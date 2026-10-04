@@ -26,9 +26,46 @@ import { createOrientationStore } from './orientation.js';
  * (a bare assembly context, for example), and a missing id must never throw.
  */
 export declare function agentIdOf(agent: unknown): string;
+/**
+ * Direct user instruction batches, counted for the maintenance trigger.
+ *
+ * Batch 6 §6 is specific about what counts: direct user instruction batches, and
+ * deliberately *not* internal agent steps, tool calls or generated context.
+ */
+export interface BatchCounter {
+    count: number;
+    /** The last `agent/pre-step` turn counted, so one turn counts once. */
+    lastTurn: number;
+    /** Set when the threshold is reached; cleared by a completed round. */
+    required: boolean;
+    roundsCompleted: number;
+}
+/** A fresh counter: nothing counted, no round run. */
+export declare function createBatchCounter(): BatchCounter;
+/**
+ * Count one direct user instruction batch from an `agent/pre-step` payload.
+ *
+ * The host opens a **turn** for each batch of user messages and reports the
+ * messages it removed from the inbox for the step; every internal step inside that
+ * turn repeats the same turn number with an empty inbox. Keying on the turn number
+ * while requiring at least one message therefore counts exactly what §6 asks for
+ * and cannot be inflated by steps, tool calls or generated context.
+ *
+ * @returns whether a batch was counted, and whether maintenance just became due
+ */
+export declare function countInstructionBatch(counter: BatchCounter, input: {
+    turn: unknown;
+    messages: unknown;
+}): {
+    counted: boolean;
+    due: boolean;
+};
+/** Record a completed round: the counter resets, per Batch 6 §6 step 4. */
+export declare function completeMaintenanceRound(counter: BatchCounter): void;
 /** One agent's governance state. */
 interface AgentState {
     orientation: ReturnType<typeof createOrientationStore>;
+    batches: BatchCounter;
 }
 /**
  * One agent's governance state.

@@ -150,8 +150,8 @@ test('IEG requests the tool registry through ctx.inject, not eagerly', () => {
   assert.match(String(stub.guards[0]({ name: 'write', arguments: { file_path: '/repo/secrets/k' } })), /protected path/)
   assert.deepEqual(
     stub.tools.map((tool) => tool.name).sort(),
-    ['ieg_status', 'record_orientation'],
-    'IEG registers exactly its own two tools: the orientation capture tool and the read-only status surface',
+    ['ieg_status', 'maintain_environment', 'record_orientation'],
+    'IEG registers exactly its own three tools: orientation capture, the read-only status surface, and the read-only maintenance round',
   )
 })
 

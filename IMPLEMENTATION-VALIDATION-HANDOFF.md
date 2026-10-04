@@ -2,11 +2,11 @@
 doc_type: implementation-handoff
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.9.3
+plugin_version: 0.10.0
 status: retired
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.3-batch-5
+revision: 0.10.0-batch-6
 superseded_by: ARCHITECTURE-SPEC-AGENT-REFERENCE.md §32 (gates) and Part B (evaluation cases); MAINTENANCE-HANDOFF.md §3–§4 (status)
 language: en
 ---

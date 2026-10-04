@@ -1,12 +1,12 @@
 ---
 doc_type: changelog
 project: information-environment-governance
-version: 0.9.3
-plugin_version: 0.9.3
+version: 0.10.0
+plugin_version: 0.10.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.3-batch-5
+revision: 0.10.0-batch-6
 audience: everyone
 language: en
 ---
@@ -32,6 +32,54 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.10.0] — 2026-10-04
+
+**The information environment maintenance round (Batch 6).** IEG stops only
+governing actions and starts maintaining the environment as well — within a
+capability boundary it states explicitly.
+
+### Added
+
+- **`maintain_environment`, a read-only maintenance round.** It inventories the
+  workspace's persistent artifacts, classifies them (authoritative specification,
+  implementation documentation, configuration, working note, generated, historical,
+  temporary, unknown), diagnoses duplication, obsolescence and declared drift, and
+  returns proposed actions from the fixed vocabulary `KEEP | MERGE | UPDATE |
+  REPLACE | DEPRECATE | REMOVE | LEAVE_UNCHANGED | REQUIRES_REVIEW` — each with a
+  reason and a confidence. It is read-only by construction: an unknown tool is
+  read-only under `tools/pre-execute`, so the round cannot mutate anything even if
+  asked to.
+- **The seven-instruction-batch trigger.** `agent/pre-step` counts direct user
+  instruction batches using the host's own turn accounting — a new `turn` carrying
+  at least one user message. Internal steps, tool calls and generated context are
+  excluded by construction, not by filtering. At seven, maintenance is marked due in
+  the runtime context; a completed round resets the counter and records how many
+  batches it was reset from.
+- **Role-aware placement governance.** The duplicate check now injects the
+  functional-role classifier and a material-distinctness predicate: a filename
+  subject match counts as duplication only when the artifact would serve the *same
+  role* and the information is not materially distinct. Lexical similarity alone no
+  longer decides it (Batch 6 §4). `overlap.ts` remains import-free; the classifiers
+  are passed in.
+
+### Deliberately not implemented
+
+- **Free-text stale-statement detection.** A version-shaped string scan was
+  implemented, run against this repository, and removed: it raised ten
+  `REQUIRES_REVIEW` findings on a healthy tree, because changelogs, migration
+  records and batch plans legitimately quote historical versions. Declared state
+  (front matter `plugin_version`) is checked precisely instead. Cross-document
+  contradiction detection beyond that remains a **future** capability, not a claim.
+- **Automatic application of any action.** The round proposes; destructive actions
+  need an explicit human decision.
+
+### Verification
+
+- A real round over this repository: 24 artifacts scanned, inventory
+  `authoritative-specification=2 configuration=9 implementation-documentation=9
+  historical=1 unknown=3`, findings `DEPRECATE=1 LEAVE_UNCHANGED=22 KEEP=1`,
+  **unresolved = 0**, no false positives.
 
 ## [0.9.3] — 2026-10-04
 

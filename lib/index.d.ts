@@ -41,6 +41,14 @@ export declare const STATUS_CONTEXT_NAME = "ieg:status";
 /** The read-only tool that reports governance state to the model and operator. */
 export declare const STATUS_TOOL_NAME = "ieg_status";
 /**
+ * The manual maintenance trigger (Batch 6 §3).
+ *
+ * It is a *report*, not a mutation: the round classifies, diagnoses and proposes,
+ * and every destructive proposal waits for an explicit decision. That is why it
+ * needs no mutation gate — an unknown tool is read-only by construction.
+ */
+export declare const MAINTENANCE_TOOL_NAME = "maintain_environment";
+/**
  * Version of the compiled governance prompt. It changes whenever the injected
  * model-facing text changes, so a behavioural regression is attributable to one
  * prompt revision (ARCHITECTURE-SPEC Part B §22.3, PRODUCT-SPEC PR-07).
@@ -51,7 +59,7 @@ export declare const PROMPT_VERSION = "0.4.0";
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export declare const PLUGIN_VERSION = "0.9.3";
+export declare const PLUGIN_VERSION = "0.10.0";
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
  * are enabled. Compiled ahead of module principles.

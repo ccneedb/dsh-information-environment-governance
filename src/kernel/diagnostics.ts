@@ -48,6 +48,8 @@ export const DIAGNOSTIC_CODES: readonly string[] = Object.freeze([
   'ieg.prompt_override_rejected',
   'ieg.prompt_override_missing',
   'ieg.diagnostics_export_failed',
+  'ieg.maintenance_round',
+  'ieg.maintenance_due',
   'ieg.orientation_recorded',
   'ieg.orientation_restored',
   'ieg.orientation_required',

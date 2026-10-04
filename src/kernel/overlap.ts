@@ -163,6 +163,25 @@ export function subjectCoverage(
  * @param input
  * @returns the overlap verdict and its per-document basis.
  */
+/**
+ * Whether two documents' heading structure is disjoint (Batch 6 §4).
+ *
+ * "Materially distinct" means the *information* differs, not just the wording: two
+ * documents with no shared heading token cover different ground. An empty heading
+ * set is no evidence either way, so this returns false rather than guessing.
+ *
+ * It is defined here, over this module's own helpers, so `overlap.ts` keeps its
+ * documented no-imports property; the role classifier is injected by the caller.
+ */
+export function headingsMateriallyDistinct(a: string, b: string): boolean {
+  const left = new Set<string>()
+  for (const heading of headingsOf(a)) for (const token of tokensOf(heading)) left.add(token)
+  const right = new Set<string>()
+  for (const heading of headingsOf(b)) for (const token of tokensOf(heading)) right.add(token)
+  if (left.size === 0 || right.size === 0) return false
+  return jaccard(left, right) === 0
+}
+
 export function detectOverlap(input: {
   /** proposed document body */
   content: string
@@ -172,13 +191,29 @@ export function detectOverlap(input: {
   path?: string
   threshold?: number
   subjectThreshold?: number
+  /**
+   * The functional-role classifier (Batch 6 §4). Injected rather than imported so
+   * this module stays dependency-free; omitting it keeps the original lexical
+   * behaviour exactly as it was.
+   */
+  roleOf?: (path: string, content: string) => string
+  /** Whether two documents are materially distinct; see {@link headingsMateriallyDistinct}. */
+  distinct?: (a: string, b: string) => boolean
 }): {
   overlapping: boolean
   with: string | null
   similarity: number
   same_title: boolean
   subject: boolean
-  details: { path: string, similarity: number, same_title: boolean, subject: boolean }[]
+  details: {
+    path: string
+    similarity: number
+    same_title: boolean
+    subject: boolean
+    role: string
+    same_role: boolean
+    materially_distinct: boolean
+  }[]
 } {
   const threshold = input.threshold ?? DEFAULT_OVERLAP_THRESHOLD
   const subjectThreshold = input.subjectThreshold ?? DEFAULT_SUBJECT_THRESHOLD
@@ -186,7 +221,19 @@ export function detectOverlap(input: {
   const proposedTitle = firstHeading(input.content)
   const stemTokens = input.path === undefined ? new Set<string>() : filenameStemTokens(input.path)
 
-  const details: { path: string, similarity: number, same_title: boolean, subject: boolean }[] = []
+  const proposedRole = input.path === undefined || input.roleOf === undefined
+    ? undefined
+    : input.roleOf(input.path, input.content)
+
+  const details: {
+    path: string
+    similarity: number
+    same_title: boolean
+    subject: boolean
+    role: string
+    same_role: boolean
+    materially_distinct: boolean
+  }[] = []
   let best = 0
   let bestPath: string | null = null
 
@@ -194,14 +241,31 @@ export function detectOverlap(input: {
     const similarity = jaccard(proposedTokens, tokensOf(document.content))
     const sameTitle = proposedTitle !== null && proposedTitle === firstHeading(document.content)
     const coverage = subjectCoverage(stemTokens, document)
+    const role = input.roleOf === undefined ? '' : input.roleOf(document.path, document.content)
+    const sameRole = role !== '' && role === proposedRole
+    const distinct = input.distinct === undefined ? false : input.distinct(input.content, document.content)
+    // Batch 6 §4: the filename-subject signal fires only when the artifact would
+    // serve the same functional role and the information is not materially
+    // distinct. A lexical match alone never decides it.
     const subject =
-      stemTokens.size > 0 && coverage >= subjectThreshold && jaccard(stemTokens, filenameStemTokens(document.path)) < 1
+      stemTokens.size > 0 &&
+      coverage >= subjectThreshold &&
+      jaccard(stemTokens, filenameStemTokens(document.path)) < 1 &&
+      (input.roleOf === undefined || (sameRole && !distinct))
     if (similarity > best) {
       best = similarity
       bestPath = document.path
     }
     if (similarity >= threshold || sameTitle || subject) {
-      details.push({ path: document.path, similarity: Number(similarity.toFixed(3)), same_title: sameTitle, subject })
+      details.push({
+        path: document.path,
+        similarity: Number(similarity.toFixed(3)),
+        same_title: sameTitle,
+        subject,
+        role,
+        same_role: sameRole,
+        materially_distinct: distinct,
+      })
     }
   }
 
@@ -308,6 +372,9 @@ export async function checkDocumentOverlap(input: {
   execution: IegToolExecution
   mode: 'off' | 'ask' | 'deny'
   threshold?: number
+  /** Passed through to {@link detectOverlap}; see Batch 6 §4. */
+  roleOf?: (path: string, content: string) => string
+  distinct?: (a: string, b: string) => boolean
 }): Promise<{ kind: 'ask' | 'deny', reason: string } | null> {
   if (input.mode === 'off') return null
   if (input.fs === undefined) return null
@@ -329,6 +396,8 @@ export async function checkDocumentOverlap(input: {
       content: proposed.content,
       existing: documents,
       ...(input.threshold === undefined ? {} : { threshold: input.threshold }),
+      ...(input.roleOf === undefined ? {} : { roleOf: input.roleOf }),
+      ...(input.distinct === undefined ? {} : { distinct: input.distinct }),
     })
     if (!overlap.overlapping) return null
 
@@ -346,4 +415,78 @@ export async function checkDocumentOverlap(input: {
   } catch {
     return null
   }
+}
+
+/** Bounds for {@link scanDocumentTree}; conservative because the host pays for them. */
+export const DEFAULT_TREE_DEPTH = 3
+export const DEFAULT_TREE_DOCUMENTS = 200
+export const DEFAULT_TREE_BYTES = 512 * 1024
+
+/**
+ * Read the document-like files under a root, breadth-first and strictly bounded.
+ *
+ * The maintenance round needs an inventory of the workspace, not a filesystem
+ * walker: depth, document count and per-file size are all capped, unreadable
+ * entries are reported rather than thrown, and the result says when it stopped
+ * early so a report can never imply it saw everything.
+ *
+ * @param fs the host filesystem service
+ * @param root a path the service can resolve
+ * @param options bounds; every default is deliberately small
+ * @returns the documents found, plus the truncation and skip facts
+ */
+export async function scanDocumentTree(
+  fs: IegFileSystemService,
+  root: string,
+  options: { maxDepth?: number, maxDocuments?: number, maxBytes?: number } = {},
+): Promise<{ documents: { path: string, content: string }[], truncated: boolean, skipped: string[] }> {
+  const maxDepth = options.maxDepth ?? DEFAULT_TREE_DEPTH
+  const maxDocuments = options.maxDocuments ?? DEFAULT_TREE_DOCUMENTS
+  const maxBytes = options.maxBytes ?? DEFAULT_TREE_BYTES
+
+  const documents: { path: string, content: string }[] = []
+  const skipped: string[] = []
+  let truncated = false
+
+  let frontier: { target: IegFsTarget, depth: number, label: string }[] = [
+    { target: await fs.resolve(root), depth: 0, label: '' },
+  ]
+
+  while (frontier.length > 0) {
+    const next: typeof frontier = []
+    for (const node of frontier) {
+      let entries: IegFsDirEntry[]
+      try {
+        entries = await fs.listDir(node.target)
+      } catch {
+        skipped.push(node.label === '' ? root : node.label)
+        continue
+      }
+      for (const entry of entries) {
+        const label = node.label === '' ? entry.name : `${node.label}/${entry.name}`
+        if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+        if (entry.type === 'directory') {
+          if (node.depth + 1 <= maxDepth) next.push({ target: entry.target, depth: node.depth + 1, label })
+          continue
+        }
+        if (entry.type !== 'file') continue
+        if (!DOCUMENT_EXTENSIONS.test(entry.name)) continue
+        if (entry.size !== undefined && entry.size > maxBytes) continue
+        if (documents.length >= maxDocuments) {
+          truncated = true
+          break
+        }
+        try {
+          documents.push({ path: label, content: await fs.readText(entry.target) })
+        } catch {
+          skipped.push(label)
+        }
+      }
+      if (truncated) break
+    }
+    if (truncated) break
+    frontier = next
+  }
+
+  return { documents, truncated, skipped }
 }

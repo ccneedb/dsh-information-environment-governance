@@ -2,11 +2,11 @@
 doc_type: architecture-spec
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.9.3
+plugin_version: 0.10.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.3-batch-5
+revision: 0.10.0-batch-6
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0
 part_b_status: implemented-through-the-0.8.0-packaging-round; model-backed-gates-C-and-D-pending

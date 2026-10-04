@@ -92,6 +92,17 @@ export declare function subjectCoverage(stemTokens: Set<string>, document: {
  * @param input
  * @returns the overlap verdict and its per-document basis.
  */
+/**
+ * Whether two documents' heading structure is disjoint (Batch 6 §4).
+ *
+ * "Materially distinct" means the *information* differs, not just the wording: two
+ * documents with no shared heading token cover different ground. An empty heading
+ * set is no evidence either way, so this returns false rather than guessing.
+ *
+ * It is defined here, over this module's own helpers, so `overlap.ts` keeps its
+ * documented no-imports property; the role classifier is injected by the caller.
+ */
+export declare function headingsMateriallyDistinct(a: string, b: string): boolean;
 export declare function detectOverlap(input: {
     /** proposed document body */
     content: string;
@@ -104,6 +115,14 @@ export declare function detectOverlap(input: {
     path?: string;
     threshold?: number;
     subjectThreshold?: number;
+    /**
+     * The functional-role classifier (Batch 6 §4). Injected rather than imported so
+     * this module stays dependency-free; omitting it keeps the original lexical
+     * behaviour exactly as it was.
+     */
+    roleOf?: (path: string, content: string) => string;
+    /** Whether two documents are materially distinct; see {@link headingsMateriallyDistinct}. */
+    distinct?: (a: string, b: string) => boolean;
 }): {
     overlapping: boolean;
     with: string | null;
@@ -115,6 +134,9 @@ export declare function detectOverlap(input: {
         similarity: number;
         same_title: boolean;
         subject: boolean;
+        role: string;
+        same_role: boolean;
+        materially_distinct: boolean;
     }[];
 };
 /**
@@ -163,7 +185,39 @@ export declare function checkDocumentOverlap(input: {
     execution: IegToolExecution;
     mode: 'off' | 'ask' | 'deny';
     threshold?: number;
+    /** Passed through to {@link detectOverlap}; see Batch 6 §4. */
+    roleOf?: (path: string, content: string) => string;
+    distinct?: (a: string, b: string) => boolean;
 }): Promise<{
     kind: 'ask' | 'deny';
     reason: string;
 } | null>;
+/** Bounds for {@link scanDocumentTree}; conservative because the host pays for them. */
+export declare const DEFAULT_TREE_DEPTH = 3;
+export declare const DEFAULT_TREE_DOCUMENTS = 200;
+export declare const DEFAULT_TREE_BYTES: number;
+/**
+ * Read the document-like files under a root, breadth-first and strictly bounded.
+ *
+ * The maintenance round needs an inventory of the workspace, not a filesystem
+ * walker: depth, document count and per-file size are all capped, unreadable
+ * entries are reported rather than thrown, and the result says when it stopped
+ * early so a report can never imply it saw everything.
+ *
+ * @param fs the host filesystem service
+ * @param root a path the service can resolve
+ * @param options bounds; every default is deliberately small
+ * @returns the documents found, plus the truncation and skip facts
+ */
+export declare function scanDocumentTree(fs: IegFileSystemService, root: string, options?: {
+    maxDepth?: number;
+    maxDocuments?: number;
+    maxBytes?: number;
+}): Promise<{
+    documents: {
+        path: string;
+        content: string;
+    }[];
+    truncated: boolean;
+    skipped: string[];
+}>;

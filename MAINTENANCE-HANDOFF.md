@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.9.3
+plugin_version: 0.10.0
 version: 0.8.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.3-batch-5
+revision: 0.10.0-batch-6
 host_baseline_verified: dsh-0.2.1-alpha.1
 supersedes: none
 language: en
