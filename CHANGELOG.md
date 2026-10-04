@@ -2,11 +2,11 @@
 doc_type: changelog
 project: information-environment-governance
 version: 0.9.1
-plugin_version: 0.9.1
+plugin_version: 0.9.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.1-batch-4
+revision: 0.9.2-batch-5
 audience: everyone
 language: en
 ---
@@ -32,6 +32,63 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.9.2] — 2026-10-04
+
+**Architecture simplification, installation consolidation and source-language governance.**
+
+### Removed
+
+- **The IEG installation and lifecycle architecture.** `dsh-ieg install`, `update`
+  and `uninstall` are gone — implementation, CLI commands, the profile-name
+  validation, the npm wrapper scripts, and their tests. A plugin cannot install
+  itself, so IEG had duplicated what the host already owns.
+- **The 0.6.0 control plane.** `dsh-ieg start|pause|restart|exit|status`, the
+  durable control record, its mtime cache, the generation counter, the
+  `generation`-driven re-read, the interactive ANSI menu, and the five
+  `ieg.control_*` diagnostics. Turning governance off for a profile is
+  `enabled: false` in the row config — one mechanism, not two.
+- **`dsh-ieg prompt reset`**, and with it the now-unused file-deletion path.
+
+### Changed
+
+- **`dsh-ieg` is a prompt CLI**: `prompt` (view the effective text, its version
+  and byte count) and `prompt edit` (validate an edited copy, then store it),
+  plus `--help`/`--version`. It has no installation surface.
+- **Exactly two official installation paths** remain: `dsh-market` and DSH's own
+  plugin installer (`dsh plugin --profile <p> add <source>`). Updates are
+  deliberately "remove the old installation, install the new one".
+- **The prompt file is the only operator state.** It lives at
+  `$IEG_PROMPT_FILE`, else `<state-dir>/ieg/prompt.md`, resolved by
+  `resolvePromptPath()`. The section text and the read-only `ieg_status` report
+  now read the *same* live resolution, so a reported source can no longer
+  disagree with the text actually emitted — a defect the release gate caught
+  while migrating, alongside the loss of the per-assembly re-read that the control
+  plane had been providing.
+
+### Added
+
+- **TypeScript is the only hand-written runtime language**, stated in
+  `CONTRIBUTING.md` and enforced by the packaging suite. Generated `lib/**`, the
+  host-mandated `bin/ieg` shim, and the tooling under `scripts/`, `eval/` and
+  `test/` are the documented exceptions.
+- The release gate verifies the *removed* commands are gone rather than merely
+  hidden, and that `prompt edit` refuses a bad candidate without writing.
+
+### External
+
+- Submitted IEG to the curated DSH plugin list: **awesome-dsh-plugin PR #6521**
+  (`data/plugins/ccneedb__dsh-information-environment-governance.yml`). Discovery
+  is the ecosystem's existing mechanism — the `dsh-plugin` npm keyword and GitHub
+  topic plus a `dsh.bundle` manifest; there is no official DSH marketplace
+  protocol, and no IEG-specific one was invented.
+
+### Not done in this release
+
+- Full documentation convergence. `README.md` and `TESTING.md` were updated for
+  the reduced surface; `docs/PACKAGE-REFERENCE.md`, `ARCHITECTURE-SPEC-AGENT-REFERENCE.md`,
+  `MAINTENANCE-HANDOFF.md` and `TYPESCRIPT-MIGRATION.md` still describe parts of
+  the removed lifecycle surface and are the next pass.
 
 ## [0.9.1] — 2026-10-03
 

@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.9.1
+plugin_version: 0.9.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.1-batch-4
+revision: 0.9.2-batch-5
 audience: implementers + operators
 language: en
 ---
@@ -332,67 +332,22 @@ the `ieg` row. Plain `npm install` does not know about it, so an npm-only instal
 leaves the package on disk but **not mounted**. The `dsh-ieg` lifecycle performs both
 steps.
 
-### npm-native path (post-install; no pnpm required)
+### Installation is the host's job
 
-This lifecycle manages an **already-installed** package: `dsh-ieg` is supplied by
-IEG itself, so it cannot bootstrap the plugin. On a clean machine install through
-DSH first ([`../README.md`](../README.md) §Install). The command is also installed
-into the profile rather than onto `PATH`, so run it as
-`"$DSH_HOME/profiles/<profile>/node_modules/.bin/dsh-ieg"`, install the package
-globally once it is published
-(`npm install -g dsh-information-environment-governance`), or `npm link` from the
-repository root. With a command available, the lifecycle is:
+Batch 5 removed IEG's own installation lifecycle (`dsh-ieg install | update |
+uninstall`) together with its POSIX wrapper and the npm-only uninstall scaffolding.
+A plugin cannot install itself, and DSH already owns this:
 
 ```bash
-# install (packs this repository with `npm pack`)
-dsh-ieg install --profile ieg-test
-
-# or install a release tarball you downloaded (the version is package.json's)
-dsh-ieg install --profile ieg-test --from dsh-information-environment-governance-<version>.tgz
-
-# is it mounted?
-dsh-ieg status --profile ieg-test
-
-# update to a newer tarball
-dsh-ieg update --profile ieg-test --from dsh-information-environment-governance-<newer-version>.tgz
-
-# uninstall
-dsh-ieg uninstall --profile ieg-test
+dsh plugin --profile ieg-test add <registry-name|absolute-path|git-address|tarball>
 ```
 
-[`../scripts/ieg-npm.sh`](../scripts/ieg-npm.sh) is a thin POSIX wrapper over exactly
-these commands, for callers that used it before 0.6.0; both forms take the same flags.
-The lifecycle has no dependencies beyond `node`/`npm`/`dsh`, fails loudly, and is safe
-to run twice. It refuses to write to the live `$HOME/.dsh` unless `--allow-live` (or
-`IEG_NPM_ALLOW_LIVE=1`) is given; `status` is read-only. Its `--home <dir>` flag points
-it at any DSH home, which is how the lifecycle check and CI keep the live profile
-untouched.
+Exactly two official entry paths exist — `dsh-market` and DSH's native plugin
+installation — and an update is deliberately "remove the old installation, install
+the new one". Registering the package in `dsh.profile.bundles` is the host's plugin
+manager's job; IEG no longer performs it and no IEG-specific mechanism replaces it.
 
-Beyond `npm install` / `npm uninstall`, the lifecycle does the three things npm does
-not:
-
-1. it copies a local tarball into `<profile>/.ieg-artifacts/` and installs that copy,
-   so the recorded dependency is a stable `file:.ieg-artifacts/<name>.tgz`;
-2. after install it appends the package name to `dsh.profile.bundles`;
-3. after uninstall it removes that entry — npm leaves it behind, and DSH then prints
-   `dsh: skipping profile bundle "dsh-information-environment-governance"` on every
-   boot.
-
-### Upgrading a pnpm-installed profile to npm
-
-A pnpm-installed profile has `pnpm-lock.yaml`; npm writes `package-lock.json`. Each
-manager ignores the other's lockfile, and mixing does not break composition: after
-`npm install` into a pnpm profile, `dsh --dump-config` still composes the `ieg` row and
-`dsh plugin remove` still works. To move a profile to npm, either uninstall first or
-install over the top:
-
-```bash
-./scripts/ieg-npm.sh uninstall --profile ieg-test   # or:
-./scripts/ieg-npm.sh install --profile ieg-test --from <tarball>
-```
-
-Prefer one manager per profile: the other manager's lockfile is left **stale** after
-the switch, so delete the lockfile you no longer use.
+`dsh-ieg` remains, reduced to the prompt surface (`prompt` and `prompt edit`).
 
 ### Environment variables
 

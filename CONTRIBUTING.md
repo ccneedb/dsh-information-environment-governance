@@ -2,11 +2,11 @@
 doc_type: contributing
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.9.1
+plugin_version: 0.9.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.1-batch-4
+revision: 0.9.2-batch-5
 audience: contributors
 language: en
 ---
@@ -110,6 +110,33 @@ gitignored.
 Behavioural evaluation (`eval/`) runs **real agents** and therefore costs model
 calls and needs credentials. It is deliberately not part of CI or `npm test`.
 See [`eval/README.md`](eval/README.md).
+
+## Source-language policy
+
+**TypeScript is the only permitted hand-written runtime/application language.**
+The plugin's runtime lives in `src/**/*.ts` and is compiled to the committed
+`lib/**` by `tsc`. There are exactly three documented exceptions, and each is
+enforced by `test/integration/packaging.test.js` rather than left to convention:
+
+| Exception | Why it exists |
+|---|---|
+| `lib/**` | generated output; never edit it by hand |
+| `bin/ieg` | the extensionless shim the host's `bin` mapping requires |
+| `scripts/`, `eval/`, `test/` | tooling, evaluation and tests — not shipped |
+
+Adding a hand-written `.js` runtime module is a review rejection. If a change
+seems to need one, say so in the pull request instead of committing it.
+
+## Official installation paths
+
+There are exactly two, and no third IEG-specific mechanism:
+
+1. **`dsh-market`** — the DSH plugin market ecosystem.
+2. **DSH native plugin installation** — `dsh plugin --profile <p> add <source>`,
+   where `<source>` is a registry name, absolute path, git address or tarball.
+
+Updates are "remove the old installation, install the new one"; there is no IEG
+updater. `dsh-ieg` manages the prompt of an installed plugin and nothing else.
 
 ## Rules that keep this project maintainable
 

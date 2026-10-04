@@ -458,143 +458,33 @@ test('a full mount degrades nothing and collects its disposer', () => {
   assert.doesNotThrow(() => /** @type {() => void} */ (disposer)())
 })
 
-/* ── control plane: start | pause | restart | exit (0.6.0) ───────────────── */
+/* ── the operator's prompt file (Batch 5: no control plane, no lifecycle) ── */
 
 /**
- * Run one case with the control plane pointed at a throwaway state file, then
- * remove it. The plugin resolves `$IEG_STATE_FILE` per `apply()`, so setting it
- * here is exactly how a real profile is pointed at its control record.
+ * Run one case with the operator's prompt file pointed at a throwaway path. The
+ * plugin resolves `$IEG_PROMPT_FILE` per `apply()`, so setting it here is exactly
+ * how a real profile is pointed at its prompt text.
  *
- * @param {(control: {
- *   dir: string, stateFile: string, promptFile: string,
- *   writeState: (value: unknown) => void, writePrompt: (text: string) => void,
- * }) => Promise<void>} fn
+ * @param {(prompt: { dir: string, file: string, write: (text: string) => void }) => Promise<void>} fn
  * @returns {Promise<void>}
  */
-async function withControl(fn) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'ieg-control-'))
-  const stateFile = path.join(dir, 'state.json')
-  const promptFile = path.join(dir, 'prompt.md')
-  const previous = process.env.IEG_STATE_FILE
-  process.env.IEG_STATE_FILE = stateFile
+async function withPromptFile(fn) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'ieg-prompt-'))
+  const file = path.join(dir, 'prompt.md')
+  const previous = process.env.IEG_PROMPT_FILE
+  process.env.IEG_PROMPT_FILE = file
   try {
-    await fn({
-      dir,
-      stateFile,
-      promptFile,
-      writeState: (value) =>
-        writeFileSync(stateFile, typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`),
-      writePrompt: (text) => writeFileSync(promptFile, text),
-    })
+    await fn({ dir, file, write: (text) => writeFileSync(file, text) })
   } finally {
-    if (previous === undefined) delete process.env.IEG_STATE_FILE
-    else process.env.IEG_STATE_FILE = previous
+    if (previous === undefined) delete process.env.IEG_PROMPT_FILE
+    else process.env.IEG_PROMPT_FILE = previous
     rmSync(dir, { recursive: true, force: true })
   }
 }
 
-const controlRecord = (/** @type {'running'|'paused'|'stopped'} */ status, /** @type {number} */ generation = 0) => ({
-  schema: 1,
-  status,
-  generation,
-  updatedAt: '2026-10-03T00:00:00.000Z',
-})
-
-test('control: an absent state file means running, exactly as before 0.6.0', async () => {
-  await withControl(async () => {
-    const stub = stubContext()
-    ieg.apply(stub.ctx, {})
-    assert.equal(stub.sections.length, 1)
-    assert.match(stub.sections[0].text({}), /Information Environment Governance \(IEG\)/)
-  })
-})
-
-test('control: pause suppresses the section, passes hooks through, and is recorded once', async () => {
-  await withControl(async (control) => {
-    const stub = stubContext()
-    ieg.apply(stub.ctx, {})
-    const section = stub.sections[0]
-
-    control.writeState(controlRecord('paused'))
-    assert.equal(section.text({}), '', 'a paused profile emits no governance section')
-    assert.match(section.text({}), /^$/, 'a second assembly is still suppressed')
-
-    const preStep = await stub.listeners.get('agent/pre-step')[0](
-      { agent: {}, messages: [], turn: 1, step: 1 },
-      async () => ({ kind: 'enter', messages: [] }),
-    )
-    assert.equal(preStep.kind, 'enter', 'a paused profile lets the step through')
-
-    const decision = await stub.listeners.get('tools/pre-execute')[0](
-      { name: 'write', arguments: { file_path: '/a' } },
-      async () => ({ kind: 'allow' }),
-    )
-    assert.equal(decision.kind, 'allow', 'a paused profile does not gate a mutation')
-
-    const paused = stub.logs.filter((entry) => entry.message.includes('control_paused'))
-    assert.equal(paused.length, 1, 'the transition is recorded once, not once per step')
-  })
-})
-
-test('control: start after pause resumes and re-emits the section', async () => {
-  await withControl(async (control) => {
-    const stub = stubContext()
-    ieg.apply(stub.ctx, {})
-    const section = stub.sections[0]
-
-    control.writeState(controlRecord('paused'))
-    assert.equal(section.text({}), '')
-    control.writeState(controlRecord('running'))
-    assert.match(section.text({}), /Information Environment Governance \(IEG\)/)
-    assert.ok(stub.logs.some((entry) => entry.message.includes('control_resumed')))
-  })
-})
-
-test('control: exit mounts nothing active, as `enabled: false` does', async () => {
-  await withControl(async (control) => {
-    control.writeState(controlRecord('stopped'))
-    const stub = stubContext()
-    assert.doesNotThrow(() => ieg.apply(stub.ctx, {}))
-    assert.equal(stub.sections.length, 0, 'no section while stopped')
-    assert.equal(stub.listeners.size, 0, 'no enforcement while stopped')
-    assert.ok(stub.logs.some((entry) => entry.message.includes('control_stopped')))
-    assert.ok(stub.logs.some((entry) => entry.message.includes('stopped by control state')))
-  })
-})
-
-test('control: a corrupt state file degrades to running and is recorded, never thrown', async () => {
-  await withControl(async (control) => {
-    control.writeState('{ this is not json')
-    const stub = stubContext()
-    assert.doesNotThrow(() => ieg.apply(stub.ctx, {}))
-    assert.equal(stub.sections.length, 1, 'a corrupt record must not switch governance off')
-    assert.match(stub.sections[0].text({}), /Information Environment Governance \(IEG\)/)
-    assert.ok(stub.logs.some((entry) => entry.message.includes('control_state_unreadable')))
-  })
-})
-
-test('control: restart bumps generation, which invalidates the cached prompt', async () => {
-  await withControl(async (control) => {
-    const stub = stubContext()
-    ieg.apply(stub.ctx, {})
-    const section = stub.sections[0]
-    assert.match(section.text({}), /Information Environment Governance \(IEG\)/)
-
-    // A prompt.md that appears after mount is NOT picked up until a restart:
-    // the contract is that `restart` reloads configuration and prompt.md.
-    control.writePrompt('# House rules\n\n- Never write outside the workspace.\n')
-    assert.match(section.text({}), /Information Environment Governance \(IEG\)/)
-
-    control.writeState(controlRecord('running', 1))
-    // `composePromptOverride` trims, so the effective text carries no trailing newline.
-    assert.equal(section.text({}), '# House rules\n\n- Never write outside the workspace.')
-    assert.ok(stub.logs.some((entry) => entry.message.includes('control_generation_changed')))
-  })
-})
-
-test('control: a valid prompt.md applies at mount and is attributed to its text', async () => {
-  await withControl(async (control) => {
-    control.writePrompt('# House rules\n\n- Never write outside the workspace.\n')
+test('the operator prompt.md applies at mount, is attributed, and is reported by ieg_status', async () => {
+  await withPromptFile(async (prompt) => {
+    prompt.write('# House rules\n\n- Never write outside the workspace.\n')
     const stub = stubContext()
     ieg.apply(stub.ctx, {})
     stub.mountTools()
@@ -602,17 +492,11 @@ test('control: a valid prompt.md applies at mount and is attributed to its text'
 
     const status = stub.tools.find((tool) => tool.name === ieg.STATUS_TOOL_NAME)
     const report = await status.execute({}, {})
-    assert.equal(report.mount.promptOverridden, true)
-    // Derived from the constant, not hardcoded: a prompt revision must never
-    // require a test edit, only a `PROMPT_VERSION` change.
-    const escapedVersion = ieg.PROMPT_VERSION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    assert.match(report.mount.promptVersion, new RegExp(`^${escapedVersion}\\+user:`))
-    assert.equal(report.control.status, 'running')
-    assert.equal(report.control.promptSource, 'control')
+    const escaped = ieg.PROMPT_VERSION.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    assert.match(report.mount.promptVersion, new RegExp(`^${escaped}\\+user:`))
+    assert.equal(report.prompt.source, 'prompt-file')
+    assert.equal(report.prompt.file, prompt.file)
 
-    // A tool's canonical value only reaches the model through `render`. This
-    // tool once declared `render: () => []`, so every call succeeded and showed
-    // the caller nothing (observed live, 2026-10-03).
     const rendered = status.output.render({}, report)
     assert.ok(Array.isArray(rendered) && rendered.length > 0, 'ieg_status must render model-visible content')
     assert.ok(
@@ -622,9 +506,9 @@ test('control: a valid prompt.md applies at mount and is attributed to its text'
   })
 })
 
-test('control: a refused prompt.md falls back to the compiled default with its reasons', async () => {
-  await withControl(async (control) => {
-    control.writePrompt('Report {{objective}} each turn.')
+test('a refused prompt.md falls back to the compiled default with its reasons', async () => {
+  await withPromptFile(async (prompt) => {
+    prompt.write('Report {{objective}} each turn.')
     const stub = stubContext()
     ieg.apply(stub.ctx, {})
     assert.match(stub.sections[0].text({}), /Information Environment Governance \(IEG\)/)
@@ -633,4 +517,3 @@ test('control: a refused prompt.md falls back to the compiled default with its r
     assert.match(rejection.message, /interpolation/)
   })
 })
-

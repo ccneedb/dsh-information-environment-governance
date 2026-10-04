@@ -23,8 +23,8 @@ import { classifyMutation, decideMutation, guardBackstop } from './modules/works
 /** Options for {@link buildGovernance}. */
 interface BuildGovernanceOptions {
     overrideText?: string;
-    controlText?: string;
-    controlPath?: string;
+    promptFileText?: string;
+    promptFilePath?: string;
 }
 /** Cordis plugin name. */
 export declare const name = "ieg";
@@ -51,7 +51,7 @@ export declare const PROMPT_VERSION = "0.4.0";
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export declare const PLUGIN_VERSION = "0.9.1";
+export declare const PLUGIN_VERSION = "0.9.2";
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
  * are enabled. Compiled ahead of module principles.
@@ -111,8 +111,8 @@ export declare const MODULES: readonly (Readonly<{
  * compiled prompt section. Pure — no Cordis context required — so it is directly
  * unit-testable.
  *
- * Precedence is the prompt store's, not this function's: a control-plane
- * `prompt.md` read by the caller (`controlText`) outranks the config layer, which
+ * Precedence is the prompt store's, not this function's: an operator
+ * `prompt.md` read by the caller (`promptFileText`) outranks the config layer, which
  * outranks the compiled default. The caller does the I/O; this stays pure.
  *
  * @param raw
@@ -127,7 +127,7 @@ export declare function buildGovernance(raw?: unknown, options?: BuildGovernance
     /** Why a user prompt edit was refused or ignored; surfaced as diagnostics on mount. */
     promptIssues: string[] | never[];
     promptOverridden: boolean;
-    /** `control` | `config-file` | `config-append` | `compiled`. */
+    /** `prompt-file` | `config-file` | `config-append` | `compiled`. */
     promptSource: string;
     /** Soft invariants that no longer apply once the text is user-authored. */
     promptUnchecked: string[] | never[];
@@ -146,10 +146,9 @@ export declare function buildGovernance(raw?: unknown, options?: BuildGovernance
  * registered inside its own guarded step, so one failing seam cannot cost the
  * deployment the rest of the governance layer.
  *
- * 0.6.0 adds a second, independent input: the control plane. `ieg start|pause|
- * exit` writes a small state file that this function re-reads (cached by mtime),
- * and `ieg restart` bumps its `generation`, which invalidates the cached
- * configuration and prompt so the next step re-reads from disk.
+ * The operator's `prompt.md` is the prompt layer's own input: it is read here
+ * and resolved by the prompt store, so the mounted configuration and the prompt
+ * text stay independent of each other.
  */
 export declare function apply(ctx: IegContext, rawConfig?: unknown): void;
 export { resolveConfig, createRegistry, compilePrompt, createProjectState, evaluateOrientationGate, classifyMutation, decideMutation, guardBackstop, };

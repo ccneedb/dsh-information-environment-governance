@@ -26,15 +26,7 @@ import { createRegistry } from './kernel/registry.js'
 // is still hand-written JavaScript.
 import { compilePrompt, promptStats } from './kernel/prompt-compiler.js'
 import { createDiagnosticsExporter } from './kernel/export.js'
-// The 0.6.0 control plane: the durable `ieg start|pause|exit` record and the
-// `prompt.md` store beside it. The CLI writes them; this host layer reads them.
-import {
-  readControlStateFile,
-  resolveControlPaths,
-  transitionDiagnostic,
-  type IegControlReadResult,
-} from './kernel/control.js'
-import { readPromptFile, resolveEffectivePrompt } from './kernel/prompt-store.js'
+import { readPromptFile, resolveEffectivePrompt, resolvePromptPath } from './kernel/prompt-store.js'
 import { projectGovernanceModule, createProjectState, evaluateOrientationGate } from './modules/project-governance.js'
 import { informationIntegrityModule } from './modules/information-integrity.js'
 import {
@@ -57,8 +49,8 @@ import { createDurableStore, sessionIdOf } from './kernel/durability.js'
 /** Options for {@link buildGovernance}. */
 interface BuildGovernanceOptions {
   overrideText?: string
-  controlText?: string
-  controlPath?: string
+  promptFileText?: string
+  promptFilePath?: string
 }
 
 /** Result of reading the config-supplied replacement prompt file. */
@@ -95,23 +87,16 @@ interface IegMountRecord {
   compatibility: MountCompatibility
 }
 
-/** The live prompt facts, rebuilt when a generation change re-reads disk. */
+/** The live prompt facts: the text the section emits, and its provenance. */
 interface PromptState {
   text: string
   bytes: number
   overridden: boolean
+  /** Where the text came from: `prompt-file` | `config-file` | `config-append` | `compiled`. */
+  source: string
   version: string
   issues: string[]
   unchecked: string[]
-}
-
-/** The control-plane file cache and the last state it established. */
-interface ControlCache {
-  initialised: boolean
-  mtimeKey: string
-  status: 'running' | 'paused' | 'stopped' | undefined
-  generation: number
-  unreadable: boolean
 }
 
 /**
@@ -162,7 +147,7 @@ export const PROMPT_VERSION = '0.4.0'
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export const PLUGIN_VERSION = '0.9.1'
+export const PLUGIN_VERSION = '0.9.2'
 
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
@@ -205,8 +190,8 @@ export const MODULES = Object.freeze([
  * compiled prompt section. Pure — no Cordis context required — so it is directly
  * unit-testable.
  *
- * Precedence is the prompt store's, not this function's: a control-plane
- * `prompt.md` read by the caller (`controlText`) outranks the config layer, which
+ * Precedence is the prompt store's, not this function's: an operator
+ * `prompt.md` read by the caller (`promptFileText`) outranks the config layer, which
  * outranks the compiled default. The caller does the I/O; this stays pure.
  *
  * @param raw
@@ -225,8 +210,8 @@ export function buildGovernance(raw?: unknown, options: BuildGovernanceOptions =
         mode: config.prompt.mode,
         append: config.prompt.append,
         configText: options.overrideText,
-        controlText: options.controlText,
-        controlPath: options.controlPath,
+        promptFileText: options.promptFileText,
+        promptFilePath: options.promptFilePath,
         basePrompt,
         allowOverBudget: config.prompt.allowOverBudget,
       })
@@ -238,8 +223,8 @@ export function buildGovernance(raw?: unknown, options: BuildGovernanceOptions =
         issues: [],
         unchecked: [],
         bytes: 0,
-        controlPath: '',
-        controlRefused: false,
+        promptFilePath: '',
+        promptFileRefused: false,
       }
 
   return {
@@ -251,7 +236,7 @@ export function buildGovernance(raw?: unknown, options: BuildGovernanceOptions =
     /** Why a user prompt edit was refused or ignored; surfaced as diagnostics on mount. */
     promptIssues: effective.issues,
     promptOverridden: effective.applied,
-    /** `control` | `config-file` | `config-append` | `compiled`. */
+    /** `prompt-file` | `config-file` | `config-append` | `compiled`. */
     promptSource: effective.source,
     /** Soft invariants that no longer apply once the text is user-authored. */
     promptUnchecked: effective.unchecked,
@@ -370,25 +355,24 @@ function readPromptOverride(rawConfig: unknown): PromptOverrideRead {
  * registered inside its own guarded step, so one failing seam cannot cost the
  * deployment the rest of the governance layer.
  *
- * 0.6.0 adds a second, independent input: the control plane. `ieg start|pause|
- * exit` writes a small state file that this function re-reads (cached by mtime),
- * and `ieg restart` bumps its `generation`, which invalidates the cached
- * configuration and prompt so the next step re-reads from disk.
+ * The operator's `prompt.md` is the prompt layer's own input: it is read here
+ * and resolved by the prompt store, so the mounted configuration and the prompt
+ * text stay independent of each other.
  */
 export function apply(ctx: IegContext, rawConfig?: unknown): void {
   let kernel: ReturnType<typeof buildGovernance>
   let overrideIssue = ''
-  let controlFileIssue = ''
-  const controlPaths = resolveControlPaths({ env: process.env })
+  let promptFileIssue = ''
+  const promptFilePath = resolvePromptPath({ env: process.env })
   try {
     const override = readPromptOverride(rawConfig)
     if (override.issue !== undefined) overrideIssue = override.issue
-    const controlPrompt = readPromptFile(controlPaths.promptFile)
-    if (controlPrompt.issue !== undefined) controlFileIssue = controlPrompt.issue
+    const promptFile = readPromptFile(promptFilePath)
+    if (promptFile.issue !== undefined) promptFileIssue = promptFile.issue
     kernel = buildGovernance(rawConfig, {
       overrideText: override.text,
-      controlText: controlPrompt.text,
-      controlPath: controlPaths.promptFile,
+      promptFileText: promptFile.text,
+      promptFilePath,
     })
   } catch (error) {
     mountConfigFaultSurface(ctx, error)
@@ -444,18 +428,48 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
   }
 
   /**
-   * The live prompt facts. `ieg prompt edit` / `ieg prompt reset` change the
-   * on-disk `prompt.md`, and `ieg restart` (a `generation` bump) is what rebuilds
-   * these; the section text provider and the read-only `ieg_status` tool read
-   * them, so a reload applies to the next assembly without a remount.
+   * The live prompt facts, as resolved at mount. `dsh-ieg prompt edit` changes
+   * the on-disk `prompt.md`; {@link livePromptText} re-resolves it on each
+   * assembly so an edit applies without a remount, and the read-only `ieg_status`
+   * tool reports these mount-time facts.
    */
   const promptState: PromptState = {
     text: prompt,
     bytes: stats.bytes,
     overridden: kernel.promptOverridden,
+    source: kernel.promptSource,
     version: kernel.promptVersion,
     issues: [...kernel.promptIssues],
     unchecked: [...kernel.promptUnchecked],
+  }
+
+  /**
+   * Re-resolve the prompt facts from disk.
+   *
+   * An edit to `prompt.md` must apply to the next assembly, and nothing else
+   * re-reads it now that the 0.6.0 control plane is gone (Batch 5 removed it).
+   * The section text and the read-only `ieg_status` report both read this, so the
+   * reported source can never disagree with the text actually emitted. A file
+   * that vanished, or a refused candidate, falls back to the mount-time facts, so
+   * this never throws and never emits unvalidated text.
+   */
+  const livePromptFacts = (): PromptState => {
+    const read = readPromptFile(promptFilePath)
+    if (read.text === undefined) return promptState
+    try {
+      const next = buildGovernance(rawConfig, { promptFileText: read.text, promptFilePath })
+      return {
+        text: next.prompt,
+        bytes: next.stats.bytes,
+        overridden: next.promptOverridden,
+        source: next.promptSource,
+        version: next.promptVersion,
+        issues: [...next.promptIssues],
+        unchecked: [...next.promptUnchecked],
+      }
+    } catch {
+      return promptState
+    }
   }
 
   /** Set once the exporter exists; `note()` calls it so every record can mirror. */
@@ -516,154 +530,6 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     degradedCapabilities.push(capability)
     note('ieg.capability_missing', { capability }, `ieg: capability_missing ${capability}`, 'warn')
   }
-
-  /* ── control plane: start | pause | exit (0.6.0) ──────────────────────── */
-
-  // The control record is a second, independent input beside the mount config.
-  // It is re-read cheaply: a re-stat per assembly and per step is allowed, and
-  // only a changed mtime costs a read. `ieg restart` bumps `generation`, which is
-  // the signal to invalidate the cached configuration and prompt so the next step
-  // sees on-disk truth.
-  const control: ControlCache = {
-    // Distinguishes "never read" from "read and still absent". An absent file
-    // also yields the default cache key, so an uninitialised cache must not be
-    // treated as an unchanged one: the first read is what establishes the
-    // previous state a transition (and a generation change) is measured against.
-    initialised: false,
-    mtimeKey: '-Infinity:0',
-    status: undefined,
-    generation: 0,
-    unreadable: false,
-  }
-
-  /**
-   * The control file's cache key: mtime **and** size.
-   *
-   * The mtime alone is what the contract asks for, but two writes inside the same
-   * clock millisecond share an mtime on coarse clocks. Adding the byte size is
-   * free (same `stat`) and closes that window for any transition that changes the
-   * record's length — every `status` change does.
-   */
-  const controlMtime = (): string => {
-    try {
-      const info = statSync(controlPaths.stateFile)
-      return `${info.mtimeMs}:${info.size}`
-    } catch {
-      return '-Infinity:0'
-    }
-  }
-
-  /**
-   * Rebuild the kernel after a generation change, re-reading every on-disk
-   * input: the config-supplied prompt file and the control-plane `prompt.md`.
-   */
-  const rebuildKernel = (): void => {
-    const override = readPromptOverride(rawConfig)
-    overrideIssue = override.issue ?? ''
-    const controlPrompt = readPromptFile(controlPaths.promptFile)
-    controlFileIssue = controlPrompt.issue ?? ''
-    kernel = buildGovernance(rawConfig, {
-      overrideText: override.text,
-      controlText: controlPrompt.text,
-      controlPath: controlPaths.promptFile,
-    })
-    promptState.text = kernel.prompt
-    promptState.bytes = kernel.stats.bytes
-    promptState.overridden = kernel.promptOverridden
-    promptState.version = kernel.promptVersion
-    promptState.issues = [...kernel.promptIssues]
-    promptState.unchecked = [...kernel.promptUnchecked]
-    mount.promptVersion = kernel.promptVersion
-    mount.promptOverridden = kernel.promptOverridden
-    mount.promptIssues = kernel.promptIssues
-    mount.promptBytes = kernel.stats.bytes
-    mount.compiledPromptBytes = kernel.compiledBytes
-  }
-
-  /**
-   * Read the control record when it changed, classify the transition, and apply
-   * a generation change. Always returns a usable status; never throws.
-   */
-  const refreshControl = (): 'running' | 'paused' | 'stopped' => {
-    const mtimeKey = controlMtime()
-    if (control.initialised && mtimeKey === control.mtimeKey) return control.status ?? 'running'
-    control.initialised = true
-    let read: IegControlReadResult
-    try {
-      read = readControlStateFile(controlPaths.stateFile)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      read = { state: { schema: 1, status: 'running', generation: control.generation, updatedAt: '' }, present: false, issue: message }
-    }
-    const previous = control.status
-    control.mtimeKey = mtimeKey
-    control.status = read.state.status
-
-    const issue = read.issue ?? ''
-    if (issue !== '' && !control.unreadable) {
-      control.unreadable = true
-      note(
-        'ieg.control_state_unreadable',
-        { file: controlPaths.stateFile, issue },
-        `ieg: control_state_unreadable ${issue}`,
-        'warn',
-      )
-    } else if (issue === '') {
-      control.unreadable = false
-    }
-
-    const transition = transitionDiagnostic(previous, read.state.status)
-    if (transition !== undefined) {
-      note(
-        transition,
-        { status: read.state.status, generation: read.state.generation, file: controlPaths.stateFile },
-        `ieg: ${transition.slice('ieg.'.length)} status=${read.state.status}`,
-      )
-    }
-
-    if (previous !== undefined && read.state.generation !== control.generation) {
-      const from = control.generation
-      control.generation = read.state.generation
-      note(
-        'ieg.control_generation_changed',
-        { from, to: read.state.generation },
-        `ieg: control_generation_changed ${from}->${read.state.generation}`,
-      )
-      try {
-        rebuildKernel()
-      } catch (error) {
-        note(
-          'ieg.error',
-          { capability: 'control.reload', message: error instanceof Error ? error.message : String(error) },
-          `ieg: control.reload failed: ${error instanceof Error ? error.message : String(error)}`,
-          'warn',
-        )
-      }
-    } else {
-      control.generation = read.state.generation
-    }
-    return read.state.status
-  }
-
-  if (controlFileIssue !== '') {
-    note('ieg.prompt_override_missing', { issue: controlFileIssue }, `ieg: prompt_override_missing ${controlFileIssue}`, 'warn')
-  }
-
-  // Observe the control plane once at mount, so a `stopped` profile behaves as if
-  // governance were switched off and a `paused` profile records its transition.
-  const initialControl = refreshControl()
-  if (initialControl === 'stopped') {
-    // `exit` means "off for this profile", and the installation is untouched.
-    try {
-      ctx.logger?.info('ieg: governance stopped by control state')
-    } catch {
-      // Best-effort narration only.
-    }
-    return
-  }
-
-  /** Governance is live only in `running`. `paused` and `stopped` pass through. */
-  const controlIsActive = (): boolean => refreshControl() === 'running'
 
   /* ── user-editable prompt (§27.1) ─────────────────────────────────────── */
 
@@ -825,9 +691,8 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
         order: config.sectionOrder,
         interpolate: false,
         // A function-valued provider is re-evaluated per assembly, which is what
-        // lets a `prompt.md` edit or an `ieg restart` take effect on the next step.
-        // `pause`/`exit` suppress the section entirely: it contributes no text.
-        text: () => (controlIsActive() ? promptState.text : ''),
+        // lets a `prompt.md` edit take effect on the next assembly.
+        text: () => livePromptFacts().text,
       })
     })
 
@@ -850,9 +715,6 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
   /* ── 2. pre-step orientation gate ─────────────────────────────────────── */
 
   const onPreStep = async (payload: IegPreStepPayload, next: () => Promise<IegPreStepDecision>): Promise<IegPreStepDecision> => {
-    // Control plane first: `paused`/`stopped` let the step through untouched,
-    // before any IEG bookkeeping.
-    if (!controlIsActive()) return next()
     // The step's own agent decides which orientation is evaluated.
     const agent = payload?.agent
     const { orientation } = governance.forAgent(agent)
@@ -882,9 +744,6 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
   /* ── 3. mutation gate: tools/pre-execute ──────────────────────────────── */
 
   const onPreExecute = async (exec: IegToolExecution, next: () => Promise<IegPreToolDecision>): Promise<IegPreToolDecision> => {
-    // Control plane first: `paused`/`stopped` pass the call straight through, so
-    // a paused profile neither gates nor observes a mutation.
-    if (!controlIsActive()) return next()
     // Every decision below is taken against the calling agent's own state.
     const agent = exec?.agent
     const { orientation } = governance.forAgent(agent)
@@ -1010,13 +869,15 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
         output: { schema: { type: 'object' }, render: renderJson },
         execute: async (_args, exec) => ({
           mount,
-          control: {
-            status: refreshControl(),
-            generation: control.generation,
-            stateFile: controlPaths.stateFile,
-            promptFile: controlPaths.promptFile,
-            promptSource: kernel.promptSource,
-          },
+          prompt: ((): Record<string, unknown> => {
+            const live = livePromptFacts()
+            return {
+              source: live.source,
+              file: promptFilePath,
+              version: live.version,
+              bytes: live.bytes,
+            }
+          })(),
           compatibility: mount.compatibility,
           agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent),
           status_line: diagnostics.formatLine(),

@@ -133,6 +133,9 @@ fi
 
 PKG_PROFILE="iegpkgverify"
 PKG_HOME="${VERIFY_ROOT}/pkg-home"
+# The verify root persists between runs, so the throwaway profile must be removed
+# before it is created: `--from-default-profile` refuses an existing profile.
+rm -rf "$PKG_HOME"
 if [ -n "$PKG_TARBALL" ]; then
   if DSH_HOME="$PKG_HOME" "$DSH_BIN" --profile "$PKG_PROFILE" --from-default-profile headless --dump-config >"${VERIFY_ROOT}/pkg-create.log" 2>&1 &&
      DSH_HOME="$PKG_HOME" "$DSH_BIN" plugin --profile "$PKG_PROFILE" add "file:${PKG_TARBALL}" >"${VERIFY_ROOT}/pkg-install.log" 2>&1; then
@@ -227,26 +230,10 @@ import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 const ieg = await import(`${process.argv[2]}/lib/index.js`)
 
-// The control plane is pointed at a throwaway state file (argument 3) so the
-// gating assertion below can drive `pause`/`start` without touching the real
-// `$IEG_STATE_FILE` of the invoking user.
-const stateFile = path.join(process.argv[3], 'state.json')
-process.env.IEG_STATE_FILE = stateFile
-
-/** Write one control record and force a strictly increasing mtime, so the plugin's mtime cache sees it. */
-let controlClock = Date.now()
-function setControl(status, generation) {
-  // Advance a whole second per write. `utimesSync` lands on a coarse clock, so a
-  // mtime derived from `Date.now()` alone can repeat when two writes occur inside
-  // the same millisecond — which is exactly what this probe does. A repeated mtime
-  // with an equal-size record is invisible to the plugin's mtime cache, so the
-  // generation bump would not be observed. A monotonic clock keeps the probe
-  // testing the reload rather than the filesystem clock's resolution.
-  controlClock += 1000
-  const now = new Date(controlClock)
-  writeFileSync(stateFile, JSON.stringify({ schema: 1, status, generation, updatedAt: now.toISOString() }))
-  utimesSync(stateFile, now, new Date(now.getTime() + 2000))
-}
+// The operator prompt file is pointed at a throwaway path (argument 3) so the
+// assertions below never touch the invoking user's own state directory.
+const promptFile = path.join(process.argv[3], 'prompt.md')
+process.env.IEG_PROMPT_FILE = promptFile
 
 // The YAML parser belongs to the DSH installation, not to this dependency-free
 // package, and ESM `import('yaml')` cannot resolve from a throwaway verify
@@ -377,23 +364,24 @@ const goodReport = await goodStatus.execute({}, {})
 assert.equal(goodReport.mount.mounted, true, 'the shipped config must ACTIVATE (mounted: true)')
 assert.deepEqual(goodReport.mount.degraded ?? [], [], 'the shipped config must mount with no degraded capability')
 
-// (c) GATING: `pause` suppresses the section and `start` restores it, from the
-// control-state file alone — no reconfiguration, no reinstall.
-setControl('paused', 0)
-assert.equal(good.sections[0].text({}), '', 'a paused control state must suppress the section')
-const pausedReport = await goodStatus.execute({}, {})
-assert.equal(pausedReport.control.status, 'paused', 'the read-only surface reports the control state')
-setControl('running', 0)
+// (c) THE OPERATOR PROMPT FILE (Batch 5: no control plane and no lifecycle).
+// It is read per assembly, so an edit applies without a reload or a restart, and
+// a refused edit leaves the compiled default in force.
+writeFileSync(promptFile, '# House rules\n\n- Never write outside the workspace.')
+assert.equal(
+  good.sections[0].text({}),
+  '# House rules\n\n- Never write outside the workspace.',
+  'the operator prompt.md must be the section text',
+)
+const promptReport = await goodStatus.execute({}, {})
+assert.equal(promptReport.prompt.source, 'prompt-file', 'the read-only surface reports the prompt source')
+writeFileSync(promptFile, 'Report {{objective}} each turn.')
 assert.match(
   good.sections[0].text({}),
   /Information Environment Governance \(IEG\)/,
-  'start must restore the section',
+  'a refused prompt.md must fall back to the compiled default',
 )
-// A generation bump must be the only thing that re-reads prompt.md.
-writeFileSync(path.join(process.argv[3], 'prompt.md'), '# House rules\n\n- Never write outside the workspace.')
-assert.match(good.sections[0].text({}), /Information Environment Governance \(IEG\)/, 'prompt.md waits for a restart')
-setControl('running', 1)
-assert.equal(good.sections[0].text({}), '# House rules\n\n- Never write outside the workspace.')
+writeFileSync(promptFile, '   \n')
 
 // (b) §26.2: a bad configuration does not throw and stays observable.
 const bad = stubContext()
@@ -420,58 +408,47 @@ else
   sed -n '1,25p' "${VERIFY_ROOT}/probe.out"
 fi
 
-# ── 5b. the `ieg` CLI smoke check (isolated --state) ─────────────────────────
-# The terminal interface is the 0.6.0 replacement for the Web GUI. Its state
-# machine is exercised here against a throwaway state file, so the check cannot
-# touch any real profile's control record.
-step "ieg CLI smoke (isolated --state)"
+# ── 5b. the `dsh-ieg` CLI: prompt management only (Batch 5) ──────────────────
+# Batch 5 removed installation, update, uninstall and lifecycle control from IEG:
+# `dsh-market` and the host's plugin installer own installation. The CLI that
+# remains manages the governance prompt, so this phase proves that surface works
+# AND that the removed commands are gone rather than merely hidden.
+step "dsh-ieg CLI (prompt management only)"
 IEG_CLI="${PACKAGE_DIR}/bin/ieg"
 CLI_DIR="${VERIFY_ROOT}/cli"
-CLI_STATE="${CLI_DIR}/state.json"
+CLI_PROMPT_FILE="${CLI_DIR}/prompt.md"
 rm -rf "$CLI_DIR"
 mkdir -p "$CLI_DIR"
 CLI=("$NODE_BIN" "$IEG_CLI")
 
-if "${CLI[@]}" --help >/dev/null 2>&1 && [ "$("${CLI[@]}" --version 2>/dev/null)" = "${EXPECTED_PACKAGE_VERSION}" ]; then
-  pass "ieg --help and --version (${EXPECTED_PACKAGE_VERSION})"
+if [ "$("${CLI[@]}" --version 2>/dev/null)" = "${EXPECTED_PACKAGE_VERSION}" ] &&
+   "${CLI[@]}" --help 2>&1 | grep -q 'prompt edit'; then
+  pass "dsh-ieg --help and --version (${EXPECTED_PACKAGE_VERSION})"
 else
-  fail "ieg --help / --version"
-fi
-if "${CLI[@]}" --state "$CLI_STATE" status >"${CLI_DIR}/status.log" 2>&1 &&
-   grep -q '^control      running (no state file: default)' "${CLI_DIR}/status.log"; then
-  pass "ieg status reports the absent-state default (running)"
-else
-  fail "ieg status"; sed -n '1,20p' "${CLI_DIR}/status.log"
-fi
-if "${CLI[@]}" --state "$CLI_STATE" pause >/dev/null 2>&1 && grep -q '"status": "paused"' "$CLI_STATE"; then
-  pass "ieg pause writes status=paused"
-else
-  fail "ieg pause"
-fi
-if "${CLI[@]}" --state "$CLI_STATE" start >/dev/null 2>&1 && grep -q '"status": "running"' "$CLI_STATE"; then
-  pass "ieg start returns to running"
-else
-  fail "ieg start"
-fi
-if "${CLI[@]}" --state "$CLI_STATE" restart >/dev/null 2>&1 && grep -q '"generation": 1' "$CLI_STATE"; then
-  pass "ieg restart bumps generation"
-else
-  fail "ieg restart"
-fi
-if "${CLI[@]}" --state "$CLI_STATE" exit >/dev/null 2>&1 && grep -q '"status": "stopped"' "$CLI_STATE"; then
-  pass "ieg exit stops governance without uninstalling"
-else
-  fail "ieg exit"
+  fail "dsh-ieg --help / --version"
 fi
 
-# ── 5c. the prompt.md round-trip through $EDITOR ─────────────────────────────
-step "ieg prompt round-trip (edit validates; a refusal is refused)"
-PROMPT_DIR="${VERIFY_ROOT}/prompt-cli"
-PROMPT_STATE="${PROMPT_DIR}/state.json"
-rm -rf "$PROMPT_DIR"
-mkdir -p "$PROMPT_DIR"
-REFUSE_EDITOR="${PROMPT_DIR}/editor-refuse.sh"
-OK_EDITOR="${PROMPT_DIR}/editor-ok.sh"
+REMOVED_OK=1
+for command in install update uninstall start pause restart exit status; do
+  if IEG_PROMPT_FILE="$CLI_PROMPT_FILE" "${CLI[@]}" "$command" >/dev/null 2>&1; then
+    fail "dsh-ieg '$command' still exists — Batch 5 removed it"
+    REMOVED_OK=0
+  fi
+done
+if [ "$REMOVED_OK" -eq 1 ]; then
+  pass "the removed commands (install/update/uninstall and lifecycle control) are gone"
+fi
+
+if EDITOR= "${CLI[@]}" prompt edit >"${CLI_DIR}/noeditor.log" 2>&1; then
+  fail "prompt edit without \$EDITOR should be a usage error"
+elif grep -q 'EDITOR' "${CLI_DIR}/noeditor.log"; then
+  pass "prompt edit requires \$EDITOR and says so"
+else
+  fail "prompt edit without \$EDITOR"; sed -n '1,10p' "${CLI_DIR}/noeditor.log"
+fi
+
+REFUSE_EDITOR="${CLI_DIR}/editor-refuse.sh"
+OK_EDITOR="${CLI_DIR}/editor-ok.sh"
 cat >"$REFUSE_EDITOR" <<'SH'
 #!/bin/sh
 printf '%s' 'Report {{objective}} each turn.' > "$1"
@@ -482,30 +459,27 @@ printf '%s' '# House rules' > "$1"
 SH
 chmod +x "$REFUSE_EDITOR" "$OK_EDITOR"
 
-if EDITOR="$REFUSE_EDITOR" "${CLI[@]}" --state "$PROMPT_STATE" prompt edit >"${PROMPT_DIR}/refuse.log" 2>&1; then
+if EDITOR="$REFUSE_EDITOR" IEG_PROMPT_FILE="$CLI_PROMPT_FILE" "${CLI[@]}" prompt edit >"${CLI_DIR}/refuse.log" 2>&1; then
   fail "prompt edit accepted a refused text"
-elif grep -q 'interpolation' "${PROMPT_DIR}/refuse.log" && [ ! -f "${PROMPT_DIR}/prompt.md" ]; then
-  pass "prompt edit refuses {{ }} with its reasons and keeps the previous text"
+elif grep -q 'interpolation' "${CLI_DIR}/refuse.log" && [ ! -f "$CLI_PROMPT_FILE" ]; then
+  pass "prompt edit refuses {{ }} with its reasons and writes nothing"
 else
-  fail "prompt edit refusal"; sed -n '1,20p' "${PROMPT_DIR}/refuse.log"
+  fail "prompt edit refusal"; sed -n '1,20p' "${CLI_DIR}/refuse.log"
 fi
-if EDITOR="$OK_EDITOR" "${CLI[@]}" --state "$PROMPT_STATE" prompt edit >"${PROMPT_DIR}/ok.log" 2>&1 &&
-   [ -f "${PROMPT_DIR}/prompt.md" ]; then
+
+if EDITOR="$OK_EDITOR" IEG_PROMPT_FILE="$CLI_PROMPT_FILE" "${CLI[@]}" prompt edit >"${CLI_DIR}/ok.log" 2>&1 &&
+   [ -f "$CLI_PROMPT_FILE" ]; then
   pass "prompt edit validates and stores prompt.md"
 else
-  fail "prompt edit success"; sed -n '1,20p' "${PROMPT_DIR}/ok.log"
+  fail "prompt edit success"; sed -n '1,20p' "${CLI_DIR}/ok.log"
 fi
-if "${CLI[@]}" --state "$PROMPT_STATE" prompt >"${PROMPT_DIR}/print.log" 2>&1 &&
-   grep -q '^# House rules$' "${PROMPT_DIR}/print.log" &&
-   grep -q "version ${EXPECTED_PROMPT_VERSION}+user:" "${PROMPT_DIR}/print.log"; then
+
+if IEG_PROMPT_FILE="$CLI_PROMPT_FILE" "${CLI[@]}" prompt >"${CLI_DIR}/print.log" 2>&1 &&
+   grep -q '^# House rules$' "${CLI_DIR}/print.log" &&
+   grep -q "version ${EXPECTED_PROMPT_VERSION}+user:" "${CLI_DIR}/print.log"; then
   pass "prompt prints the effective text, its version and byte count"
 else
-  fail "prompt print"; sed -n '1,20p' "${PROMPT_DIR}/print.log"
-fi
-if "${CLI[@]}" --state "$PROMPT_STATE" prompt reset >/dev/null 2>&1 && [ ! -f "${PROMPT_DIR}/prompt.md" ]; then
-  pass "prompt reset returns to the compiled default"
-else
-  fail "prompt reset"
+  fail "prompt print"; sed -n '1,20p' "${CLI_DIR}/print.log"
 fi
 
 # The host must still boot the real composition carrying the bad overlay: with the

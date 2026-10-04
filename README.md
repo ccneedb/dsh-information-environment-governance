@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.9.1
+plugin_version: 0.9.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.1-batch-4
+revision: 0.9.2-batch-5
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 format_note: conservative-machine-readable-markdown
@@ -183,33 +183,27 @@ also works non-interactively with flags, because CI and scripts call it. The
 entry file is [`bin/ieg`](bin/ieg).
 
 ```text
-dsh-ieg                      # ANSI numbered menu (also: dsh-ieg menu)
-dsh-ieg start                # status=running
-dsh-ieg pause                # status=paused -> section not emitted, hooks pass through
-dsh-ieg restart              # status=running, generation+1: reload config and prompt.md
-dsh-ieg exit                 # status=stopped (governance off for this profile; install untouched)
-dsh-ieg install   [--profile P] [--from <tarball|dir>]   # post-install lifecycle
-dsh-ieg update    [--profile P] [--from <tarball|dir>]
-dsh-ieg uninstall [--profile P]
+dsh-ieg                      # usage (there is no interactive menu)
 dsh-ieg prompt               # print the effective prompt, its version and byte count
 dsh-ieg prompt edit          # $EDITOR on a temp copy of the effective text; validate; store
-dsh-ieg prompt reset         # delete prompt.md -> back to the compiled default
-dsh-ieg status               # control state, generation, timestamps, install/compose state, PROMPT_VERSION
 dsh-ieg --help / --version
 ```
 
-`start`/`pause`/`exit` take effect while the harness is running: the plugin
-re-reads the control state each step. `exit` stops governance for the profile and
-**never uninstalls** — only `install | update | uninstall` touch the installation.
+There is **no installation, update, uninstall or lifecycle surface** here: a
+plugin cannot install itself, so §Install carries the only two official entry
+paths. Batch 5 removed the former `install`/`update`/`uninstall` commands, the
+`start`/`pause`/`restart`/`exit` control plane and the interactive menu, so `prompt`
+management is the whole interface — use `enabled: false` in the row config to turn
+governance off for a profile.
 
-Control state lives in `$IEG_STATE_FILE`, else
-`<state-dir>/ieg/state.json` where `<state-dir>` is `$XDG_STATE_HOME` else
-`~/.local/state`. Prompt text is **not** stored inside that JSON: it lives in a
-sibling `prompt.md`, validated through the same kernel the plugin uses for a
-config-supplied override (no `{{ }}`, byte ceiling unless `allowOverBudget`; a
-refusal keeps the previous text and prints its reasons). Precedence is
-control-plane `prompt.md` > config `prompt.file` (when `prompt.mode: replace`) >
-config `prompt.append` > the compiled default.
+The prompt text lives in `prompt.md`, at `$IEG_PROMPT_FILE`, else
+`<state-dir>/ieg/prompt.md` where `<state-dir>` is `$XDG_STATE_HOME` else
+`~/.local/state`. Every candidate is validated through the same kernel the plugin
+uses for a config-supplied override (no `{{ }}`, byte ceiling unless
+`allowOverBudget`; a refusal keeps the previous text and prints its reasons), and
+it is re-resolved on each assembly, so an edit applies without a remount.
+Precedence is the operator `prompt.md` > config `prompt.file` (when
+`prompt.mode: replace`) > `prompt.append` > the compiled default.
 
 The plugin contributes **one** additive prompt section, `ieg:governance`
 (`order: 8500`, `interpolate: false`, `complete` never set) and **two**
@@ -283,11 +277,11 @@ A release tarball is attached to the
 [GitHub release](https://github.com/ccneedb/dsh-information-environment-governance/releases);
 it is a developer/recovery source, not the normal user path.
 
-### Post-install management: `dsh-ieg`
+### The `dsh-ieg` prompt CLI
 
-`dsh-ieg` manages an **already installed** IEG. pnpm installs it into the profile
-beside the package rather than onto your `PATH`, so the dependable invocation is
-the profile-local binary:
+`dsh-ieg` manages the **prompt** of an already installed IEG — nothing else. pnpm
+installs it into the profile beside the package rather than onto your `PATH`, so
+the dependable invocation is the profile-local binary:
 
 ```bash
 <DSH_HOME>/profiles/<your-test-profile>/node_modules/.bin/dsh-ieg status
@@ -295,10 +289,9 @@ the profile-local binary:
 
 For a stable command, install the package globally with npm
 (`npm install -g dsh-information-environment-governance`, once published) or call
-it through `npx dsh-ieg …`. It provides control
-(`start`/`pause`/`restart`/`exit`), `prompt` editing, `status` reporting, and —
-for an already-installed package — the `install`/`update`/`uninstall` lifecycle.
-It is never the first-install step.
+it through `npx dsh-ieg …`. It has two commands: `prompt` (view the effective
+text, its version and byte count) and `prompt edit` (validate an edited copy and
+store it). It never installs anything.
 
 ### Upgrading
 
@@ -398,7 +391,7 @@ enforces through `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`; it reports its own state through a bounded runtime-context
 status line plus the `record_orientation` and read-only `ieg_status` tools; and
 it ships the `dsh-ieg` terminal interface for control
-(`start`/`pause`/`restart`/`exit`), `prompt.md` editing, and the npm lifecycle.
+and a `prompt` / `prompt edit` command for `prompt.md`.
 The runtime is authored in TypeScript under `src/**`; `lib/**` is its committed
 `tsc` build output (see
 [`TYPESCRIPT-MIGRATION.md`](TYPESCRIPT-MIGRATION.md)).
@@ -459,7 +452,7 @@ form (or [`feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml) for
 capability request) — see [`TESTING.md`](TESTING.md) §6 for what to put in it.
 
 The most important step is the A/B check: capture `dsh-ieg status --json`, then
-run the same task with IEG disabled (`dsh-ieg exit`, or `enabled: false`;
+run the same task with IEG disabled (`enabled: false`;
 [`TESTING.md`](TESTING.md) §4 shows the correct way). That separates an IEG
 defect from a host or model defect — which is also exactly the measurement Gates
 C and D need.

@@ -1,6 +1,6 @@
 {
   "name": "dsh-information-environment-governance",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Information Environment Governance (IEG): an additive project-work governance layer for DeepSeek Harness. Contributes one system-prompt section and uses deterministic runtime seams (agent/pre-step, tools/pre-execute, tools.guard) for enforcement, plus the `dsh-ieg` terminal interface for control (start/pause/restart/exit), prompt.md editing and the npm lifecycle. Zero runtime dependencies.",
   "type": "module",
   "main": "lib/index.js",
@@ -50,7 +50,7 @@
     "pretest": "npm run build",
     "test": "node --test",
     "typecheck": "tsc -p tsconfig.json",
-    "prepack": "npm run build && node -e \"const fs=require('fs');const need=['lib/index.js','bin/ieg','lib/kernel/export.js','lib/kernel/prompt-compiler.js','lib/kernel/prompt-override.js','lib/kernel/control.js','lib/kernel/prompt-store.js','lib/kernel/lifecycle.js','lib/bin/ieg.js','cordis.patch.yml','LICENSE','CHANGELOG.md','README.md'];for(const f of need)fs.accessSync(f);console.log('ieg pack: required artifacts present')\""
+    "prepack": "npm run build && node -e \"const fs=require('fs');const need=['lib/index.js','bin/ieg','lib/kernel/export.js','lib/kernel/prompt-compiler.js','lib/kernel/prompt-override.js','lib/kernel/prompt-store.js','lib/bin/ieg.js','cordis.patch.yml','LICENSE','CHANGELOG.md','README.md'];for(const f of need)fs.accessSync(f);console.log('ieg pack: required artifacts present')\""
   },
   "devDependencies": {
     "typescript": "^5.8.0 || ^6.0.0"

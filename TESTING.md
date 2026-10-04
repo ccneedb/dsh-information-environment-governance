@@ -2,11 +2,11 @@
 doc_type: testing-guide
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.9.1
+plugin_version: 0.9.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.1-batch-4
+revision: 0.9.2-batch-5
 audience: volunteers
 language: en
 ---
@@ -106,7 +106,7 @@ dsh plugin --profile web add "<same package reference>"
 ```
 
 **Inspect it from the terminal.** IEG has no Web panel. Run `dsh-ieg status`
-(see §3) to see the mount and control state, and `dsh-ieg pause` / `dsh-ieg start`
+(see §3) to see the mount state, and the row's `enabled: false` to compare against
 to switch governance for the profile without touching the installation.
 
 Installing into the live `web` profile modifies it. The project does not
@@ -147,10 +147,10 @@ npm run build
 export PATH="$PWD/bin:$PATH"
 
 dsh-ieg status                 # control status, generation, prompt and install/compose state
-dsh-ieg pause                  # governance section suppressed, hooks pass through
-dsh-ieg start                  # back to normal
-dsh-ieg restart                # generation+1: reload config and prompt.md
-dsh-ieg exit                   # governance off for this profile; the install is untouched
+# to test without governance, set `enabled: false` in the profile row and restart
+# then set it back to `true`
+# an edited prompt.md applies on the next assembly; no restart is needed
+# re-enable with `enabled: true`; the package is never touched by the row config
 ```
 
 - **`dsh-ieg prompt`** prints the effective section, its version and its byte
@@ -190,7 +190,7 @@ information stops being reused as authoritative.
 
 ## 5. Uninstall
 
-Use `dsh-ieg uninstall --profile <name>` (or the uninstall command in
+Use the host's plugin removal (`dsh plugin --profile <name> remove
 [`README.md`](README.md) §Install). Note that governance state lives in the
 profile's `ctx.storageDomain`, and any `prompt.file` or `diagnosticsExport.file`
 you configured stays where you put it.

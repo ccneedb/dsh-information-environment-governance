@@ -15,7 +15,6 @@ import path from 'node:path'
 import {
   PROMPT_FILE_NAME,
   attributedPromptVersion,
-  deletePromptFile,
   readPromptFile,
   resolveEffectivePrompt,
   validatePromptText,
@@ -29,7 +28,7 @@ test('prompt-store: the file name is prompt.md', () => {
   assert.equal(PROMPT_FILE_NAME, 'prompt.md')
 })
 
-test('prompt-store: an absent control plane leaves the config layer in charge', () => {
+test('prompt-store: an absent prompt file leaves the config layer in charge', () => {
   assert.deepEqual(
     pick(resolveEffectivePrompt({ basePrompt: BASE, mode: 'compiled' })),
     { text: BASE, source: 'compiled', applied: false, versionSuffix: '' },
@@ -49,13 +48,13 @@ test('prompt-store: prompt.md outranks every configuration layer', () => {
     basePrompt: BASE,
     mode: 'replace',
     configText: 'config file text',
-    controlText: HOUSE,
-    controlPath: '/state/ieg/prompt.md',
+    promptFileText: HOUSE,
+    promptFilePath: '/state/ieg/prompt.md',
   })
   assert.equal(result.text, HOUSE)
-  assert.equal(result.source, 'control')
+  assert.equal(result.source, 'prompt-file')
   assert.match(result.versionSuffix, /^\+user:/)
-  assert.equal(result.controlPath, '/state/ieg/prompt.md')
+  assert.equal(result.promptFilePath, '/state/ieg/prompt.md')
 })
 
 test('prompt-store: a refused prompt.md falls back to the next layer and keeps its reasons', () => {
@@ -63,38 +62,23 @@ test('prompt-store: a refused prompt.md falls back to the next layer and keeps i
     basePrompt: BASE,
     mode: 'append',
     append: 'extra',
-    controlText: 'Report {{objective}} each turn.',
+    promptFileText: 'Report {{objective}} each turn.',
   })
   assert.equal(refused.text, `${BASE}\n\nextra`, 'the config layer is used instead')
   assert.equal(refused.source, 'config-append')
-  assert.equal(refused.controlRefused, true)
+  assert.equal(refused.promptFileRefused, true)
   assert.ok(refused.issues.some((issue) => issue.startsWith('prompt.md:') && /interpolation/.test(issue)))
 
   // With no config layer either, the compiled default is the safe floor.
-  const bare = resolveEffectivePrompt({ basePrompt: BASE, mode: 'compiled', controlText: 'a {{ b }} c' })
+  const bare = resolveEffectivePrompt({ basePrompt: BASE, mode: 'compiled', promptFileText: 'a {{ b }} c' })
   assert.equal(bare.text, BASE)
   assert.equal(bare.source, 'compiled')
 })
 
 test('prompt-store: an empty prompt.md is treated as absent', () => {
-  const result = resolveEffectivePrompt({ basePrompt: BASE, mode: 'compiled', controlText: '   \n' })
+  const result = resolveEffectivePrompt({ basePrompt: BASE, mode: 'compiled', promptFileText: '   \n' })
   assert.equal(result.source, 'compiled')
-  assert.equal(result.controlRefused, false)
-})
-
-test('prompt-store: read, write and delete round-trip atomically', () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'ieg-prompt-unit-'))
-  try {
-    const file = path.join(dir, 'ieg', 'prompt.md')
-    assert.equal(readPromptFile(file).present, false)
-    writePromptFile(file, HOUSE)
-    assert.equal(readPromptFile(file).text, HOUSE)
-    assert.equal(deletePromptFile(file), true)
-    assert.equal(deletePromptFile(file), false)
-    assert.equal(readPromptFile(file).present, false)
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
+  assert.equal(result.promptFileRefused, false)
 })
 
 test('prompt-store: validation delegates to the override kernel and attributes the text', () => {
