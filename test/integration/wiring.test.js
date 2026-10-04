@@ -517,3 +517,124 @@ test('a refused prompt.md falls back to the compiled default with its reasons', 
     assert.match(rejection.message, /interpolation/)
   })
 })
+
+/* ── Batch 6: the maintenance round and the batch counter, as wired ─────────── */
+
+/** A minimal read-only `ctx.fs` over a flat path→content map. */
+function stubFs(files) {
+  const key = (path) => path.replace(/^\.\/?/, '')
+  return {
+    resolve: async (path) => ({ targetKey: { path: key(path) } }),
+    listDir: async (target) => {
+      const base = target.targetKey.path === '' ? '' : `${target.targetKey.path}/`
+      const names = new Set()
+      for (const path of Object.keys(files)) {
+        if (!path.startsWith(base)) continue
+        names.add(path.slice(base.length).split('/')[0])
+      }
+      return [...names].map((name) => {
+        const full = `${base}${name}`
+        const isFile = Object.prototype.hasOwnProperty.call(files, full)
+        return isFile
+          ? { name, type: 'file', target: { targetKey: { path: full } }, size: files[full].length }
+          : { name, type: 'directory', target: { targetKey: { path: full } } }
+      })
+    },
+    readText: async (target) => files[target.targetKey.path],
+  }
+}
+
+test('the maintenance tool reports a round, and is read-only by construction', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, {})
+  stub.mountTools()
+  stub.ctx.get = (name) => (name === 'fs' ? stubFs({
+    'README.md': '---\ndoc_type: readme\nstatus: active\nowner: maintainers\n---\n\n# Readme\n\nproject usage\n',
+    'history/OLD-SPEC.md': '---\nstatus: retired\n---\n\n# Old spec\n\nsuperseded guidance\n',
+  }) : undefined)
+
+  const tool = stub.tools.find((entry) => entry.name === 'maintain_environment')
+  assert.ok(tool, 'the maintenance tool must be registered')
+  assert.deepEqual(Object.keys(tool.parameters.properties).sort(), ['changed', 'depth', 'path'])
+
+  const report = await tool.execute({ path: '.' }, {})
+  assert.equal(report.status, 'ok')
+  assert.equal(report.scanned, 2)
+  const retired = report.items.find((item) => item.path === 'history/OLD-SPEC.md')
+  assert.equal(retired.action, 'DEPRECATE')
+  assert.equal(retired.destructive, true, 'a destructive proposal is flagged, never applied')
+  assert.equal(typeof report.report, 'string')
+  assert.match(report.report, /maintenance round: scanned 2 artifact/)
+  assert.ok(Array.isArray(report.unresolved))
+  // The round reports; it never registers a guard or writes anything.
+  assert.equal(stub.guards.length, 1, 'only the mutation backstop guard exists')
+})
+
+test('the maintenance tool reconciles a named change instead of guessing', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, {})
+  stub.mountTools()
+  stub.ctx.get = (name) => (name === 'fs' ? stubFs({
+    'PRODUCT-SPEC.md': '# Spec\n\ninformation environment governance scope and terms\n',
+    'docs/guide.md': '# Guide\n\ninformation environment governance scope explained here\n',
+    'docs/recipe.md': '# Recipe\n\nbaking bread with a long slow ferment\n',
+  }) : undefined)
+
+  const tool = stub.tools.find((entry) => entry.name === 'maintain_environment')
+  const report = await tool.execute({ path: '.', changed: 'PRODUCT-SPEC.md' }, {})
+  assert.equal(report.reconciliation.changed, 'PRODUCT-SPEC.md')
+  assert.ok(report.reconciliation.affected.includes('docs/guide.md'))
+  assert.ok(!report.reconciliation.affected.includes('docs/recipe.md'))
+  assert.match(report.reconciliation.report, /reconciliation for PRODUCT-SPEC\.md/)
+
+  const missing = await tool.execute({ path: '.', changed: 'not/in/scan.md' }, {})
+  assert.match(missing.reconciliation.unresolved.join(' '), /not in the scanned inventory/)
+})
+
+test('the maintenance tool fails open but says so when no filesystem is available', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, {})
+  stub.mountTools()
+  // The stub's default `get` returns undefined: no filesystem service.
+  const tool = stub.tools.find((entry) => entry.name === 'maintain_environment')
+  const report = await tool.execute({}, {})
+  assert.equal(report.status, 'degraded')
+  assert.match(report.reason, /filesystem service is unavailable/)
+  const note = stub.logs.find((entry) => entry.message.includes('maintenance round degraded'))
+  assert.ok(note, 'a degradation is recorded, never a silent "nothing to maintain"')
+})
+
+test('the pre-step handler counts direct user instruction batches, not steps', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, {})
+  const handler = stub.listeners.get('agent/pre-step')[0]
+  const next = async () => ({ kind: 'admit' })
+
+  // State is keyed by the agent *object identity* (ARCHITECTURE-SPEC §17.7), so the
+  // same object must be reused — a fresh literal per call would reset the counter.
+  const agent = { id: 'a1' }
+  const call = (turn, messages) => handler({ agent, messages, turn, step: 0 }, next)
+  for (let turn = 0; turn < 6; turn += 1) await call(turn, [{ role: 'user' }])
+  // Internal steps inside an already-counted turn must not inflate the counter.
+  await call(5, [])
+  await call(5, [{ role: 'user' }])
+  assert.ok(!stub.logs.some((entry) => entry.message.includes('maintenance_due')), 'six batches are not due')
+
+  await call(6, [{ role: 'user' }])
+  const due = stub.logs.filter((entry) => entry.message.includes('maintenance_due'))
+  assert.ok(due.length >= 1, 'the seventh batch marks maintenance due')
+  assert.match(due[0].message, /batches=7\/7/)
+  assert.match(due[0].message, /next safe boundary/)
+
+  // A further batch does not re-announce an already-required round.
+  const announced = stub.logs.length
+  await call(7, [{ role: 'user' }])
+  const again = stub.logs.slice(announced).filter((entry) => entry.message.includes('maintenance_due'))
+  assert.equal(again.length, 0, 'an already-required round is not re-announced on every batch')
+
+  // A second agent starts from zero: one agent's batches never mark another's due.
+  const other = { id: 'a2' }
+  await handler({ agent: other, messages: [{ role: 'user' }], turn: 0, step: 0 }, next)
+  const after = stub.logs.filter((entry) => entry.message.includes('maintenance_due'))
+  assert.equal(after.length, due.length, 'another agent does not inherit a due round')
+})

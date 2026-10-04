@@ -452,6 +452,18 @@ export function formatMaintenanceReport(report: MaintenanceReport): string {
   return lines.join('\n')
 }
 
+/** Render a reconciliation result as the compact text a model or operator reads. */
+export function formatReconciliation(result: ReconciliationResult): string {
+  const lines: string[] = []
+  lines.push(`reconciliation for ${result.changed}: ${result.affected.length} affected artifact(s)`)
+  for (const path of result.affected) lines.push(`  affected ${path}`)
+  for (const item of result.stale) lines.push(`  stale ${item.path} — ${item.reason}`)
+  for (const item of result.contradictions) lines.push(`  contradict ${item.path} — ${item.reason}`)
+  lines.push(`unresolved: ${result.unresolved.length}`)
+  for (const issue of result.unresolved) lines.push(`  - ${issue}`)
+  return lines.join('\n')
+}
+
 /** The kernel's export shape, mirroring the other modules (Part B §24). */
 export const maintenanceKernel = Object.freeze({
   name: 'maintenance',

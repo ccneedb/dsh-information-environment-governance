@@ -54,8 +54,10 @@ import {
   classifyArtifact,
   classifyInventory,
   formatMaintenanceReport,
+  formatReconciliation,
   maintenanceKernel,
   parseFrontMatter,
+  reconcileChange,
   runMaintenanceRound,
 } from './kernel/maintenance.js'
 import { completeMaintenanceRound, countInstructionBatch } from './kernel/state.js'
@@ -751,15 +753,15 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     // keying on the turn (and requiring a message) excludes steps, tool calls and
     // generated context by construction.
     const counted = countInstructionBatch(batches, { turn: payload?.turn, messages: payload?.messages })
-    if (counted.counted) {
+    // The diagnostic *is* the announcement, so it fires on the batch that crosses
+    // the threshold and not on every counted batch. The running count is visible in
+    // the status line and in `ieg_status` either way.
+    if (counted.due) {
       note('ieg.maintenance_due', {
         batches: batches.count,
         threshold: MAINTENANCE_BATCH_THRESHOLD,
-        required: batches.required,
         agentId: agentIdOf(agent),
-      }, batches.required
-        ? `ieg: maintenance_due batches=${batches.count}/${MAINTENANCE_BATCH_THRESHOLD} — run the maintenance round at the next safe boundary`
-        : `ieg: instruction_batch batches=${batches.count}/${MAINTENANCE_BATCH_THRESHOLD}`)
+      }, `ieg: maintenance_due batches=${batches.count}/${MAINTENANCE_BATCH_THRESHOLD} — run the maintenance round at the next safe boundary`)
     }
     const { decision, missing } = evaluateOrientationGate(orientation.state(), config.preStep.orientationGate)
     if (decision !== null) {
@@ -956,12 +958,16 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
           properties: {
             path: { type: 'string', description: 'Root to inventory, relative to the workspace. Defaults to ".".' },
             depth: { type: 'number', description: `Directory depth to scan (default ${DEFAULT_TREE_DEPTH}, hard cap 6).` },
+            changed: {
+              type: 'string',
+              description: 'Optional path of an artifact that just changed. Naming one adds a reconciliation: which other artifacts mention its subject, which of their stated facts have gone stale, and what remains unresolved.',
+            },
           },
         },
         output: { schema: { type: 'object' }, render: renderJson },
         execute: async (args, exec) => {
           const fsService = ctx.get?.('fs') as IegFileSystemService | undefined
-          const raw = (args ?? {}) as { path?: unknown, depth?: unknown }
+          const raw = (args ?? {}) as { path?: unknown, depth?: unknown, changed?: unknown }
           const root = typeof raw.path === 'string' && raw.path.trim() !== '' ? raw.path : '.'
           const depth = Math.min(typeof raw.depth === 'number' && Number.isFinite(raw.depth) ? Math.max(0, Math.trunc(raw.depth)) : DEFAULT_TREE_DEPTH, 6)
 
@@ -998,6 +1004,33 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
             skipped: scanned.skipped,
           })
 
+          // Instruction 5: reconcile one named change against the rest of the
+          // environment. This is the only caller of `reconcileChange`, so the
+          // capability has a real path rather than being dead code.
+          const changed = typeof raw.changed === 'string' && raw.changed.trim() !== '' ? raw.changed.trim() : undefined
+          let reconciliation: Record<string, unknown> | undefined
+          if (changed !== undefined) {
+            const subject = artifacts.find((artifact) => artifact.path === changed)
+            reconciliation = subject === undefined
+              ? { changed, affected: [], stale: [], contradictions: [], unresolved: [`${changed} is not in the scanned inventory, so nothing could be reconciled`] }
+              : (() => {
+                const result = reconcileChange({
+                  change: { path: subject.path, summary: subject.headings[0] ?? subject.path, tokens: subject.tokens },
+                  artifacts,
+                  contents,
+                  truth: { packageVersion: PLUGIN_VERSION, promptVersion: PROMPT_VERSION },
+                  coverage: (a, b) => jaccard(new Set(a), new Set(b)),
+                })
+                return { ...result, report: formatReconciliation(result) }
+              })()
+            note('ieg.maintenance_round', {
+              phase: 'reconciliation',
+              changed,
+              affected: (reconciliation.affected as string[] | undefined)?.length ?? 0,
+              unresolved: (reconciliation.unresolved as string[] | undefined)?.length ?? 0,
+            })
+          }
+
           // A completed round is what resets the seven-batch counter (Batch 6 §6),
           // and the reset is recorded so the accounting is auditable.
           const counter = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).batches
@@ -1017,6 +1050,7 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
           return {
             status: 'ok',
             root,
+            ...(reconciliation === undefined ? {} : { reconciliation }),
             scanned: report.scanned,
             truncated: report.truncated,
             inventory: report.inventoryCounts,

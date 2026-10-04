@@ -256,7 +256,12 @@ export function detectOverlap(input: {
       best = similarity
       bestPath = document.path
     }
-    if (similarity >= threshold || sameTitle || subject) {
+    // Batch 6 §4 applies uniformly: when a role classifier is supplied, *every*
+    // duplicate verdict requires the same functional role and content that is not
+    // materially distinct. File-body similarity stays an independent lexical
+    // signal, because it is strong evidence on its own.
+    const titleDuplicate = sameTitle && (input.roleOf === undefined || (sameRole && !distinct))
+    if (similarity >= threshold || titleDuplicate || subject) {
       details.push({
         path: document.path,
         similarity: Number(similarity.toFixed(3)),

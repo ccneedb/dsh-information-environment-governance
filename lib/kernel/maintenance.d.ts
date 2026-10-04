@@ -173,6 +173,8 @@ export declare function runMaintenanceRound(input: {
 }): MaintenanceReport;
 /** Render a report as the compact text a model or operator reads. */
 export declare function formatMaintenanceReport(report: MaintenanceReport): string;
+/** Render a reconciliation result as the compact text a model or operator reads. */
+export declare function formatReconciliation(result: ReconciliationResult): string;
 /** The kernel's export shape, mirroring the other modules (Part B §24). */
 export declare const maintenanceKernel: Readonly<{
     name: "maintenance";
