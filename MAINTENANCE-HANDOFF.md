@@ -142,6 +142,49 @@ exporter. `lib/kernel/compatibility.js` observes the real
 `system-prompt/assemble` waterfall and classifies `COMPATIBLE |
 COMPATIBLE_WITH_WARNINGS | UNSUPPORTED | PENDING` against a committed baseline.
 
+### Capability boundary matrix (Batch 6 audit)
+
+What IEG actually does, as opposed to what its prompt asks for. **deterministic**
+means code enforces it; **heuristic** means a bounded, fail-open signal decides;
+**guidance** means the model must interpret it and nothing verifies the result.
+
+| Area | Status | Mechanism | What is missing |
+|---|---|---|---|
+| Artifact creation governance | implemented + heuristic | `tools/pre-execute` classifies `write`/`edit` as persistent mutation, protected paths are denied outright, `ctx.tools.guard` is the monotonic backstop, and role-aware overlap decides duplication | no semantic (meaning-level) equivalence test |
+| Duplicate information prevention | heuristic, role-aware | `overlap.ts`: token Jaccard, filename-subject coverage, plus an injected functional-role classifier and material-distinctness predicate; `ask` or `deny` per config | still lexical at bottom; a paraphrase with different wording and headings is not caught |
+| Cross-document consistency | **not implemented** (future) | nothing | a free-text stale-statement scan was written, run against this repository and **removed**: ten false `REQUIRES_REVIEW` findings on a healthy tree. Only *declared* state is checked |
+| Stale information handling | partial | `information-integrity` state machine (statuses, dispositions, reintroduction detection) for recorded items; declared `plugin_version` drift detection; a `status: retired` artifact becomes a `DEPRECATE` proposal | prose-level staleness is not detected; recording depends on the agent calling the tool |
+| Periodic maintenance | implemented | the `maintain_environment` round (inventory, diagnosis, planning) plus the seven-instruction-batch counter on the host's own turn accounting | the round proposes; nothing is applied automatically, by decision |
+| Change-impact reconciliation | partial | `reconcileChange` through `maintain_environment { changed }`: affected artifacts by subject, declared drift, unresolved report | subject matching is lexical; contradictions beyond declared state are not detected |
+
+### Prompt rule → capability boundary
+
+Every rule in the compiled section, mapped (Batch 6 §8). This is the audit that
+precedes any prompt edit; the text itself is unchanged in 0.10.0.
+
+| Rule | Boundary |
+|---|---|
+| Supplement the host, never replace it; the host instruction governs | guidance, and structurally true: one additive section, `complete` never set |
+| Prefer a safe refusal over unauthorized action | deterministic at the gate (deny/ask); guidance for actions the gate does not classify |
+| Unresolved uncertainty may persist unless proceeding would be unsafe | guidance |
+| Diagnose before acting destructively; report the blocking condition | guidance |
+| State intent and scope before the first change | **guidance only** — the orientation *record* is required when `requireBeforeMutation` is on, but its content is never verified |
+| Distinguish requirements, assumptions and unknowns | guidance |
+| Derive the best-supported reading when intent is unstated | guidance |
+| Preserve established terminology; never silently redefine the task | **guidance only** — no runtime check exists, and none is claimed |
+| Re-check scope when direction changes and state it | guidance |
+| State the ordered task flow, revise it explicitly | guidance (captured by `record_orientation` when the gate requires it) |
+| Treat project information as having a status | deterministic for recorded items (`information-integrity` transitions) |
+| Delete what is established wrong; mark outdated instead in software projects | guidance — the maintenance round *proposes* `DEPRECATE`/`REMOVE`; nothing deletes |
+| Never present invalid, superseded or unconfirmed information as authoritative | deterministic for recorded items; guidance otherwise |
+| Re-promoting invalidated information requires new evidence | deterministic for recorded items (`findReintroduced`) |
+| Remove a wrong claim at the source | guidance |
+| Distinguish read-only inspection from persistent mutation | deterministic (`classifyMutation`) |
+| Do not create persistent artifacts merely because convenient | heuristic (overlap check) plus guidance |
+| Before creating, look for an existing artifact serving the same purpose | heuristic, now role-aware, plus guidance |
+| Never claim authorization the user has not given | deterministic (mutation gate, approval path) |
+| A previous approval is not standing authorization | guidance reinforced per call: the gate asks each time |
+
 ## 4. Not verified — the blockers
 
 Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
