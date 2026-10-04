@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 version: 0.8.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 host_baseline_verified: dsh-0.2.1-alpha.1
 supersedes: none
 language: en
@@ -228,7 +228,7 @@ overlap gate       ctx.fs scan + tools/pre-execute   ask / deny
 mutation backstop  ctx.tools.guard()                 deny only, monotonic
 durability         ctx.storageDomain                 per-session orientation
 compatibility      system-prompt/assemble            observe only, must call next()
-control plane      dsh-ieg start|pause|restart|exit   control (state file; absent = running)
+prompt CLI         dsh-ieg prompt | prompt edit       operator (no install surface; Batch 5)
 ```
 
 There is **no question ledger and no `record_question` tool**: that seam was
@@ -252,7 +252,7 @@ key**. Defaults a maintainer must not change silently: `workspace.policy: ask`,
 `diagnostics: true`, and `prompt.mode: compiled`. Non-intrusive defaults are the
 documented decision; strict enforcement is an explicit opt-in.
 
-The control plane (`dsh-ieg start|pause|restart|exit`) is a separate input, not
+The operator's `prompt.md` is a separate input, not
 config: its record lives at `$IEG_STATE_FILE` (else
 `<state-dir>/ieg/state.json`, `<state-dir>` = `$XDG_STATE_HOME` or
 `~/.local/state`), with a sibling `prompt.md`. Prompt precedence:
@@ -274,8 +274,8 @@ These each cost real time. Do not rediscover them.
   and was still denied on every write, and it correctly refused to route around
   the gate. Either perform delegated file work in a session with an approval
   channel, or give the delegated session `workspace: { policy: allow }` for the
-  duration (`dsh-ieg pause` disables enforcement for every agent sharing the
-  state file, not just one). This is the documented fail-closed path working as
+  duration. There is no per-agent pause: `enabled: false` in the row config disables
+  IEG for that whole profile, and every agent in it. This is the documented fail-closed path working as
   designed, not a defect — but it is the first thing to check when a teammate
   produces nothing.
 - **`ieg_status` must render content or it is silently useless.** A tool whose

@@ -2,11 +2,11 @@
 doc_type: documentation-index
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: everyone
 language: en
 ---
@@ -116,7 +116,7 @@ or failure class as current.
 | Current status and numbers | [`MAINTENANCE-HANDOFF.md`](../MAINTENANCE-HANDOFF.md) §3–§4 | [`README.md`](../README.md) §Status, [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](../ARCHITECTURE-SPEC-AGENT-REFERENCE.md) Part B, [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`TESTING.md`](../TESTING.md) intro, [`PRODUCT-SPEC.md`](../PRODUCT-SPEC.md) §11 |
 | Naming change, withdrawn capability, gate renumbering, and earlier rounds | [`MAINTENANCE-HANDOFF.md`](../MAINTENANCE-HANDOFF.md) §13 | [`README.md`](../README.md), [`PRODUCT-SPEC.md`](../PRODUCT-SPEC.md) §6.2, [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](../ARCHITECTURE-SPEC-AGENT-REFERENCE.md) Part B, [`IMPLEMENTATION-VALIDATION-HANDOFF.md`](../IMPLEMENTATION-VALIDATION-HANDOFF.md) |
 | Install / update / uninstall — installing IEG into a profile | [`README.md`](../README.md) §Install | [`TESTING.md`](../TESTING.md) §2, §5, [`docs/PACKAGE-REFERENCE.md`](../docs/PACKAGE-REFERENCE.md) (package-level npm lifecycle) |
-| The `dsh-ieg` terminal interface — control, prompt.md and the menu | [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](../ARCHITECTURE-SPEC-AGENT-REFERENCE.md) Part B (control plane and terminal interface) | [`README.md`](../README.md) §Interface, [`docs/PACKAGE-REFERENCE.md`](../docs/PACKAGE-REFERENCE.md) §Terminal interface, [`TESTING.md`](../TESTING.md) §3 |
+| The `dsh-ieg` prompt CLI — viewing and editing `prompt.md` | [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](../ARCHITECTURE-SPEC-AGENT-REFERENCE.md) Part B (control plane and terminal interface) | [`README.md`](../README.md) §Interface, [`docs/PACKAGE-REFERENCE.md`](../docs/PACKAGE-REFERENCE.md) §Terminal interface, [`TESTING.md`](../TESTING.md) §3 |
 | Volunteer test procedure (first trial, A/B check, deviation report) | [`TESTING.md`](../TESTING.md) | [`README.md`](../README.md) §Install, [`docs/PACKAGE-REFERENCE.md`](../docs/PACKAGE-REFERENCE.md) §Verification |
 | Known limitations — accepted limits, not bugs | [`SECURITY.md`](../SECURITY.md) §Known limitations | [`TESTING.md`](../TESTING.md) §7, [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](../ARCHITECTURE-SPEC-AGENT-REFERENCE.md) Part B |
 | Security reporting | [`SECURITY.md`](../SECURITY.md) §Reporting a vulnerability | [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) |

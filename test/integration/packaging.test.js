@@ -138,3 +138,65 @@ test('the runtime is fully migrated: every built module has a TypeScript source'
   // lib/contract.d.ts is the one deliberate hand-authored declaration file.
   assert.ok(statSync(at('lib/contract.d.ts')).isFile())
 })
+
+/**
+ * The source-language policy (Batch 5 §4).
+ *
+ * TypeScript is the only permitted hand-written runtime/application language. The
+ * documented exceptions are the generated `lib/**`, the host-mandated
+ * extensionless `bin/ieg` shim, and the tooling under `scripts/`, `eval/` and
+ * `test/`. The rule is enforced here rather than left to convention, so a
+ * hand-written runtime `.js` fails the suite instead of a review.
+ */
+test('the runtime is TypeScript-only, with exactly the documented exceptions', () => {
+  const sources = sourceFiles('src')
+  assert.ok(sources.length > 0, 'src/ must carry the runtime sources')
+  for (const file of sources) {
+    assert.ok(file.endsWith('.ts'), `${file} is not TypeScript`)
+  }
+  for (const file of readdirSync(at('lib'), { withFileTypes: true })) {
+    assert.ok(!file.name.endsWith('.mjs'), `lib/${file.name} is hand-written tooling inside the build output`)
+  }
+  const strays = readdirSync(at('.'), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /\.(js|mjs|cjs)$/.test(entry.name))
+    .map((entry) => entry.name)
+  assert.deepEqual(strays, [], `hand-written JavaScript at the repository root: ${strays.join(', ')}`)
+  assert.match(readFileSync(at('bin/ieg'), 'utf8'), /^#!\/usr\/bin\/env node/, 'bin/ieg is the host-mandated shim')
+})
+
+/**
+ * Release-metadata drift (Batch 5 §5).
+ *
+ * One version, stated once, must agree everywhere it is repeated: the manifest,
+ * the runtime's `PLUGIN_VERSION`, the newest changelog heading, and every
+ * document's `plugin_version` front matter. A drift check is cheaper than
+ * noticing a stale figure in a document six months later.
+ */
+test('release metadata is internally consistent', async () => {
+  const ieg = await import('../../lib/index.js')
+  assert.equal(ieg.PLUGIN_VERSION, manifest.version, 'PLUGIN_VERSION disagrees with package.json')
+
+  const changelog = readFileSync(at('CHANGELOG.md'), 'utf8')
+  const newest = changelog.match(/^## \[([0-9]+\.[0-9]+\.[0-9]+)\]/m)
+  assert.ok(newest, 'the changelog must carry a released version heading')
+  assert.equal(newest[1], manifest.version, 'the newest changelog entry disagrees with package.json')
+
+  const documents = [
+    ...readdirSync(at('.'), { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith('.md')).map((e) => e.name),
+    ...readdirSync(at('docs'), { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith('.md')).map((e) => `docs/${e.name}`),
+  ]
+  for (const doc of documents) {
+    const front = readFileSync(at(doc), 'utf8').match(/^plugin_version:\s*(\S+)/m)
+    if (front) {
+      assert.equal(front[1], manifest.version, `${doc} front matter plugin_version disagrees with package.json`)
+    }
+  }
+
+  // The declared peer range is a compatibility statement; exactly one host release
+  // is verified, and the committed baseline file must name that same release.
+  assert.equal(manifest.dsh.engines.dsh, `>=${DECLARED_BASELINE} <0.3.0`)
+  assert.ok(
+    readFileSync(at('lib/compatibility-baseline.json'), 'utf8').includes(DECLARED_BASELINE),
+    'the committed baseline file must describe the declared baseline',
+  )
+})

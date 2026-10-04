@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: implementers + operators
 language: en
 ---
@@ -96,9 +96,7 @@ overlap gate      -> ctx.fs scan + tools/pre-execute     gate       (duplicate n
 mutation backstop -> ctx.tools.guard()                   deny only  (monotonic)
 status line       -> ctx.systemPrompt.context()          advisory   (`ieg:status`, runtime context)
 diagnostics tool  -> ieg_status (registered)             read-only  (mount, config, verdict, ring)
-control plane     -> dsh-ieg start|pause|restart|exit    control    (state file; absent = running)
-terminal UI       -> dsh-ieg menu / dsh-ieg <command>    operator   (ANSI menu + flags, zero deps)
-npm lifecycle     -> dsh-ieg install|update|uninstall    install    (npm; `exit` never uninstalls)
+prompt CLI        -> dsh-ieg prompt | prompt edit        operator   (no install surface; Batch 5)
 compatibility     -> host section inventory + hashes     report     (COMPATIBLE | … | UNSUPPORTED)
 ```
 
@@ -124,10 +122,9 @@ host compatibility (`ieg.host_compatibility`), modules (`ieg.module_enabled`,
 (`ieg.workspace_mutation_allowed`, `ieg.workspace_mutation_blocked`,
 `ieg.document_overlap_flagged`), prompt assembly (`ieg.prompt_assembly`,
 `ieg.prompt_override_applied`, `ieg.prompt_override_rejected`,
-`ieg.prompt_override_missing`), the control plane (`ieg.control_paused`,
-`ieg.control_resumed`, `ieg.control_stopped`, `ieg.control_generation_changed`,
-`ieg.control_state_unreadable`), and the diagnostics mirror
-(`ieg.diagnostics_export_failed`).
+`ieg.prompt_override_missing`), and the diagnostics mirror
+(`ieg.diagnostics_export_failed`). Batch 5 removed the five `ieg.control_*` codes
+along with the control plane they described.
 
 **Durable state** is stored through `ctx.storageDomain` under domain
 **`ieg_governance`**, `DOMAIN_VERSION` **1**.
@@ -267,70 +264,30 @@ something the transcript can show rather than into a silent absence:
 ## Control plane and CLI
 
 The supported interface is a terminal command, `dsh-ieg`, run from a Debian shell.
-Running it with no arguments opens an ANSI numbered menu — plain escape codes, no
-ncurses, no dependency, usable over SSH — and every command also works
-non-interactively with flags, because CI and scripts call it. Both modes call the same
-handlers, so the menu cannot drift from the flag surface. Parsing, rendering, and the
-`$EDITOR` invocation are hand-rolled over Node builtins: the package keeps its
-zero-runtime-dependency property.
+The command is a **prompt CLI**. Batch 5 removed the interactive menu, the
+`start | pause | restart | exit` control plane and the npm installation lifecycle
+(`install | update | uninstall`): a plugin cannot install itself, and the host already
+owns installation. What remains is small enough to state completely.
 
 ```text
-dsh-ieg                # ANSI numbered menu
-dsh-ieg start | pause | restart | exit
-dsh-ieg install [--profile P] [--from <tarball|dir>] | update ... | uninstall [--profile P]
 dsh-ieg prompt         # print the effective prompt, its version and byte count
 dsh-ieg prompt edit    # $EDITOR on a temp copy; validate; store prompt.md
-dsh-ieg prompt reset   # delete prompt.md -> the compiled default
-dsh-ieg status [--json]
 dsh-ieg --help | --version
 ```
 
-Global options: `--home <dir>` (default `$DSH_HOME` or `~/.dsh`), `--state <file>`,
-`--json`, `--yes`, `--dry-run`. `install` and `update` additionally accept `--from`.
+There are no flags beyond those: no `--state`, `--json`, `--profile`, `--from`,
+`--home`, `--yes` or `--dry-run`. Parsing and the `$EDITOR` invocation are hand-rolled
+over Node builtins, so the package keeps its zero-runtime-dependency property.
 
-**Control state.** `start | pause | restart | exit` write one small JSON record,
-`{schema, status, generation, updatedAt, editor?}`, at **`$IEG_STATE_FILE`**, else
-`<state-dir>/ieg/state.json` where `<state-dir>` = `$XDG_STATE_HOME` or
-`~/.local/state`. The record is written atomically (temporary sibling, then rename). An
-**absent file means `running`**, so an install that predates the control plane behaves
-exactly as before; a corrupt file also means `running`, with the reason reported, never
-a crash. `pause` suppresses the section and lets every hook pass through; `exit` sets
-`stopped`, which mounts nothing active (like `enabled: false`); `start` returns to
-normal; `restart` bumps `generation`, which is the plugin's signal to invalidate cached
-configuration and re-read `prompt.md`.
+**`prompt.md`.** Prompt text lives in its own file, at **`$IEG_PROMPT_FILE`**, else
+`<state-dir>/ieg/prompt.md` where `<state-dir>` = `$XDG_STATE_HOME` or
+`~/.local/state`; `resolvePromptPath()` is the whole location policy. `dsh-ieg prompt`
+prints the effective text with its version and byte count; `dsh-ieg prompt edit` opens
+`$EDITOR` on a temporary copy and stores the result only after the same validation the
+plugin applies. Nothing in the package deletes the file: to return to the compiled
+default, remove it by hand.
 
-**`exit` is not uninstall.** Only `install | update | uninstall` touch the
-installation.
-
-**`prompt.md`.** Prompt text is **not** stored inside the control JSON: it lives in a
-sibling `prompt.md`, so the record stays a small control object and the text stays
-something a human edits as text. `dsh-ieg prompt` prints the effective text with its
-version and byte count; `dsh-ieg prompt edit` opens `$EDITOR` on a temporary copy and
-stores the result only after validation; `dsh-ieg prompt reset` deletes the file and
-returns to the compiled default.
-
-## Install, update, and uninstall (npm-native lifecycle)
-
-IEG is installed **into one DSH profile**, never globally, and never into a profile you
-rely on while the behavioural gates are unmeasured. The canonical artifact is the npm
-tarball that `npm pack` produces (the release workflow attaches it to the GitHub
-release). `npm pack` runs `npm run build` first via the `prepack` script, so the tarball
-always carries freshly emitted `lib/**`.
-
-### The package-manager limitation, first
-
-`dsh plugin --profile <p> add|remove ...` forwards **everything after `plugin`
-verbatim to pnpm** — the host hard-codes the package manager. Two consequences:
-
-- a machine without pnpm cannot use `dsh plugin` at all;
-- everything after `plugin` must be a pnpm argument, so launcher flags such as
-  `--from-default-profile`, `--dump-config`, or `--patch` belong **before** `plugin`.
-
-`dsh plugin add` also registers the new package name in the profile manifest's
-`dsh.profile.bundles` list. That list — not `node_modules` — is what makes DSH compose
-the `ieg` row. Plain `npm install` does not know about it, so an npm-only install
-leaves the package on disk but **not mounted**. The `dsh-ieg` lifecycle performs both
-steps.
+## Installation
 
 ### Installation is the host's job
 

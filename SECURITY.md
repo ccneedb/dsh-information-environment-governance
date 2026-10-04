@@ -2,11 +2,11 @@
 doc_type: security-policy
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: everyone
 language: en
 ---

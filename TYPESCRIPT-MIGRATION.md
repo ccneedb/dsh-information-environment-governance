@@ -2,11 +2,11 @@
 doc_type: migration-record
 project: information-environment-governance
 version: 1.0.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: contributors
 language: en
 ---
@@ -239,7 +239,7 @@ JavaScript into the program and fail with hundreds of
 
 The migration began with a list of not-yet-migrated JavaScript files under
 `lib/**`. **That list is now empty and is not maintained here.** Every runtime
-module — the kernel, the three governance modules, the control plane, the prompt
+module — the kernel, the three governance modules, the prompt
 store and lifecycle, the aggregator `src/index.ts`, and the CLI entry
 `src/bin/ieg.ts` — has a `.ts` source, and `test/**/*.js` remains JavaScript by
 design (it is the test suite, not the shipped runtime). If a hand-written `.js`
@@ -255,7 +255,7 @@ below is pending work.** The completed state is described in §2 and §4.
 | Step | Modules | Lines | Outcome | Why it was ordered here |
 |---|---|---:|---|---|
 | 1 | `prompt-compiler`, `prompt-override`, `export` | 423 | **done** | Complete leaf closure: pure, no host seams, no legacy imports. Proved the build/emit/declare pipeline end to end. |
-| 1b | `control`, `prompt-store`, `lifecycle`, `bin/ieg` | — | **done** | The 0.6.0 control plane and CLI; new source written as TypeScript from the start (rule 1). |
+| 1b | ~~`control`, `lifecycle`~~, `prompt-store`, `bin/ieg` | — | **partly superseded** | The 0.6.0 control plane and the installation lifecycle were written as TypeScript here and **deleted in 0.9.2** (Batch 5); the prompt store and CLI remain. New source written as TypeScript from the start (rule 1). |
 | 2 | `config`, `registry`, `diagnostics`, `durability`, `overlap` | 1499 | **done** | Kernel leaves with no relative imports. |
 | 3 | the three `modules/*` | 730 | **done** | Pure policy modules with their own unit tests. |
 | 4 | `orientation`, `state` | 375 | **done** | Thin adapters over the modules from step 3. |

@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 format_note: conservative-machine-readable-markdown
@@ -222,7 +222,7 @@ is supplied by the package itself**, so it cannot bootstrap the package. On a
 clean machine a bare `dsh-ieg` is simply not on your `PATH`:
 
 ```console
-$ dsh-ieg install --profile web --from <tarball>
+$ dsh-ieg prompt
 bash: dsh-ieg: command not found
 ```
 
@@ -284,7 +284,7 @@ installs it into the profile beside the package rather than onto your `PATH`, so
 the dependable invocation is the profile-local binary:
 
 ```bash
-<DSH_HOME>/profiles/<your-test-profile>/node_modules/.bin/dsh-ieg status
+<DSH_HOME>/profiles/<your-test-profile>/node_modules/.bin/dsh-ieg prompt
 ```
 
 For a stable command, install the package globally with npm
@@ -301,7 +301,7 @@ re-resolves and re-links the package, and `dsh-ieg` is not involved:
 ```bash
 dsh plugin --profile <your-test-profile> add <the same source you installed from>
 dsh --profile <your-test-profile> --dump-config | grep -A3 'id: ieg'      # still composes
-<DSH_HOME>/profiles/<your-test-profile>/node_modules/.bin/dsh-ieg status  # version + control state
+<DSH_HOME>/profiles/<your-test-profile>/node_modules/.bin/dsh-ieg prompt  # the effective text
 ```
 
 First install, upgrade and developer/recovery all use the same DSH-native
@@ -451,7 +451,7 @@ A deviation report is an **ordinary GitHub issue**. Use the repository's
 form (or [`feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml) for a
 capability request) — see [`TESTING.md`](TESTING.md) §6 for what to put in it.
 
-The most important step is the A/B check: capture `dsh-ieg status --json`, then
+The most important step is the A/B check: ask the agent to call `ieg_status`, then
 run the same task with IEG disabled (`enabled: false`;
 [`TESTING.md`](TESTING.md) §4 shows the correct way). That separates an IEG
 defect from a host or model defect — which is also exactly the measurement Gates

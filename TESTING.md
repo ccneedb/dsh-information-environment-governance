@@ -2,11 +2,11 @@
 doc_type: testing-guide
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: volunteers
 language: en
 ---
@@ -56,7 +56,7 @@ profile or to roll one back. It is never the first step:
 "$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" uninstall --profile ieg-test
 ```
 
-`dsh-ieg status` reports the package, control and composed-row state. If you
+`dsh-ieg prompt` prints the effective text with its version and byte count. If you
 prefer a stable command name, install the package globally once it is published
 (`npm install -g dsh-information-environment-governance`) or use `npx dsh-ieg …`.
 
@@ -105,9 +105,10 @@ appear in that list — correctly. Either run the profile you installed into
 dsh plugin --profile web add "<same package reference>"
 ```
 
-**Inspect it from the terminal.** IEG has no Web panel. Run `dsh-ieg status`
-(see §3) to see the mount state, and the row's `enabled: false` to compare against
-to switch governance for the profile without touching the installation.
+**Inspect it from the terminal.** IEG has no Web panel. After installing, use the
+read-only `ieg_status` tool (or the profile-local `dsh-ieg prompt`) to see the mount
+state, and the row's `enabled: false` to compare against — that switch is how
+governance is turned off for a profile without touching the installation.
 
 Installing into the live `web` profile modifies it. The project does not
 recommend it while the behavioural gates (C and D) are unmeasured — see
@@ -139,32 +140,29 @@ the project most needs evidence about. `userAttention` is **not** a valid key in
 ### Seeing it from the terminal: `dsh-ieg`
 
 The terminal interface is the fastest way to answer "is IEG even doing anything?",
-which is otherwise indistinguishable from silence. Build it once and put it on
-`PATH`:
+which is otherwise indistinguishable from silence. It is a **prompt CLI** — Batch 5
+removed its installation and lifecycle commands, because the host owns installation.
 
 ```bash
 npm run build
 export PATH="$PWD/bin:$PATH"
 
-dsh-ieg status                 # control status, generation, prompt and install/compose state
+dsh-ieg prompt                 # the effective text, its version and byte count
+dsh-ieg prompt edit            # $EDITOR round-trip; validated before it is stored
+dsh-ieg --help                 # the whole surface: prompt, prompt edit, version
 # to test without governance, set `enabled: false` in the profile row and restart
-# then set it back to `true`
-# an edited prompt.md applies on the next assembly; no restart is needed
-# re-enable with `enabled: true`; the package is never touched by the row config
 ```
 
 - **`dsh-ieg prompt`** prints the effective section, its version and its byte
   count; **`dsh-ieg prompt edit`** opens `$EDITOR` on a temp copy and stores the
   result only after the same validation the plugin applies (`{{ }}` and the byte
-  ceiling are refused, with reasons); **`dsh-ieg prompt reset`** deletes
-  `prompt.md` and returns to the compiled default.
-- `prompt.md` lives beside the control-state file (`$IEG_STATE_FILE`, else
-  `<state-dir>/ieg/state.json` with `<state-dir>` = `$XDG_STATE_HOME` or
-  `~/.local/state`). The plugin re-reads it on `restart`.
-- Every command also works non-interactively with flags (`--state`, `--json`,
-  …) because CI and scripts call it; run `dsh-ieg` with no arguments for the ANSI
-  menu, or `dsh-ieg --help` for the full surface.
-- Use `dsh-ieg status --json` to capture machine-readable state for a report.
+  ceiling are refused, with reasons). There is no `prompt reset`: to return to the
+  compiled default, delete the file by hand.
+- `prompt.md` lives at `$IEG_PROMPT_FILE`, else `<state-dir>/ieg/prompt.md` with
+  `<state-dir>` = `$XDG_STATE_HOME` or `~/.local/state`. The plugin re-reads it on
+  each assembly, so an edit applies without a restart.
+- Use the agent-facing `ieg_status` tool (or the `ieg:status` runtime-context line)
+  to capture machine-readable state for a report.
 
 ## 4. What a useful trial looks like
 
@@ -178,7 +176,7 @@ dsh-ieg status                 # control status, generation, prompt and install/
    valuable thing you can contribute: it separates an IEG defect from a host or
    model defect.
 4. **Capture state** by asking the agent to call `ieg_status`, or by running
-   `dsh-ieg status --json`, or by reading the diagnostics mirror if the profile
+   the `ieg_status` tool, or by reading the diagnostics mirror if the profile
    sets `diagnosticsExport.file`.
 
 The metrics the project is trying to establish — a newly created document
@@ -191,14 +189,13 @@ information stops being reused as authoritative.
 ## 5. Uninstall
 
 Use the host's plugin removal (`dsh plugin --profile <name> remove
-[`README.md`](README.md) §Install). Note that governance state lives in the
-profile's `ctx.storageDomain`, and any `prompt.file` or `diagnosticsExport.file`
-you configured stays where you put it.
+dsh-information-environment-governance`) — see [`README.md`](README.md) §Install.
+There is no `dsh-ieg uninstall`, and nothing else removes the package.
 
-**`dsh-ieg exit` is not uninstall.** It sets the profile's control status to
-`stopped`: no governance prompt section is emitted and every hook passes through,
-but the package stays installed and `dsh-ieg start` resumes it. Only
-`dsh-ieg install | update | uninstall` touch the installation.
+**Turning governance off is not uninstalling.** `enabled: false` in the `ieg` row
+stops the prompt section and passes every hook through, while the package stays
+installed. Only the host's plugin commands touch the installation — a separation
+Batch 5 made deliberate.
 
 ## 6. Report a behavioural deviation
 
@@ -211,12 +208,13 @@ form:
 Include, in the form's own fields:
 
 1. the task you ran and the workspace shape (a copy you can share);
-2. the A/B result from §4 — the same task with `dsh-ieg exit` (or `enabled: false`);
-3. `dsh-ieg status --json`, which carries the plugin version, `PROMPT_VERSION`, the
-   control state and generation, and the install/compose state;
+2. the A/B result from §4 — the same task with `enabled: false`;
+3. the read-only `ieg_status` report, which carries the plugin version,
+   `PROMPT_VERSION`, the prompt source and file, the mount record and the recent
+   diagnostics;
 4. what you expected and what happened, in project terms.
 
-Read `dsh-ieg status` (and any diagnostics you quote) before posting: it names
+Read the `ieg_status` output (and any diagnostics you quote) before posting: it names
 paths and versions, not file contents, but you are responsible for what you
 paste. Do not include credentials, private file contents, or session logs; see
 [`SECURITY.md`](SECURITY.md).

@@ -1,12 +1,12 @@
 ---
 doc_type: changelog
 project: information-environment-governance
-version: 0.9.1
-plugin_version: 0.9.2
+version: 0.9.3
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 audience: everyone
 language: en
 ---
@@ -32,6 +32,34 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.9.3] — 2026-10-04
+
+**Documentation convergence and automated enforcement.** No runtime behaviour
+changed in this release; every change is documentation, tests or drift detection.
+
+### Changed
+
+- **The documentation now describes the reduced surface.** The 0.9.2 removals
+  (installation lifecycle, control plane, menu, `prompt reset`) were still
+  described as current in `docs/PACKAGE-REFERENCE.md`,
+  `ARCHITECTURE-SPEC-AGENT-REFERENCE.md`, `MAINTENANCE-HANDOFF.md`, `TESTING.md`
+  and `TYPESCRIPT-MIGRATION.md`. Those passages are rewritten to the two-command
+  prompt CLI, and the few remaining mentions are explicitly historical — a
+  changelog and a design record are history, so the record of what was removed is
+  kept and marked rather than erased.
+
+### Added
+
+- **Source-language enforcement.** `test/integration/packaging.test.js` asserts the
+  TypeScript-only rule: `src/**` holds only `.ts`, no hand-written JavaScript sits
+  at the repository root, and the build output carries no hand-written tooling. The
+  documented exceptions are `lib/**` (generated), `bin/ieg` (the host-mandated
+  shim) and `scripts/`, `eval/`, `test/`.
+- **Release-metadata drift detection.** The same suite asserts one version agrees
+  across `package.json`, `PLUGIN_VERSION`, the newest changelog heading and every
+  document's `plugin_version`, and that the committed baseline file names the
+  declared peer baseline.
 
 ## [0.9.2] — 2026-10-04
 

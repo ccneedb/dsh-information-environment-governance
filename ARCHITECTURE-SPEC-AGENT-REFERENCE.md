@@ -2,11 +2,11 @@
 doc_type: architecture-spec
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.9.2
+plugin_version: 0.9.3
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.9.2-batch-5
+revision: 0.9.3-batch-5
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0
 part_b_status: implemented-through-the-0.8.0-packaging-round; model-backed-gates-C-and-D-pending
@@ -1433,8 +1433,6 @@ ieg.mount  ieg.config_invalid  ieg.capability_missing
 ieg.module_enabled  ieg.module_conflict
 ieg.host_compatibility  ieg.prompt_assembly
 ieg.prompt_override_applied  ieg.prompt_override_rejected  ieg.prompt_override_missing
-ieg.control_paused  ieg.control_resumed  ieg.control_stopped
-ieg.control_generation_changed  ieg.control_state_unreadable
 ieg.diagnostics_export_failed
 ieg.orientation_recorded  ieg.orientation_restored  ieg.orientation_required
 ieg.workspace_mutation_allowed  ieg.workspace_mutation_blocked
@@ -1492,73 +1490,45 @@ issue-reporting feature with that interface; the diagnostics ring and its opt-in
 mirror (§28.7) are
 unchanged, and the CLI is now the mirror's reader.
 
-**Two modes, one implementation.** Bare `dsh-ieg` renders a numbered ANSI menu (plain
-escape codes; no ncurses, no dependency, usable over SSH). Every command is also
-available non-interactively with flags, because CI and scripts call it. The menu
-dispatches to the same handlers the flags do, so the two cannot drift. Parsing,
-rendering, and the `$EDITOR` invocation are hand-rolled over Node builtins: the
-package keeps its zero-runtime-dependency property.
+**One surface: the prompt CLI (Batch 5).** `dsh-ieg` has exactly two commands —
+`prompt` (print the effective text, its version and byte count) and `prompt edit`
+(`$EDITOR` on a temporary copy, validate, then store) — plus `--help`/`--version`.
+The interactive ANSI menu, the `start | pause | restart | exit` control plane, the
+durable control record with its mtime cache and generation counter, and the npm
+installation lifecycle (`install | update | uninstall`) were **removed in 0.9.2**:
+a plugin cannot install itself, and a durable lifecycle record was a second
+mechanism beside the row's own `enabled`. The removed surface is recorded in
+`CHANGELOG.md` [0.9.2] and is not part of the current design. Parsing and the
+`$EDITOR` invocation are hand-rolled over Node builtins, so the package keeps its
+zero-runtime-dependency property.
 
-**The control record.** `dsh-ieg start | pause | restart | exit` writes one small
-JSON record, `{schema, status, generation, updatedAt, editor?}`, where `status` is
-`running` | `paused` | `stopped`. It resolves to `$IEG_STATE_FILE`, else
-`<state-dir>/ieg/state.json` with `<state-dir>` = `$XDG_STATE_HOME` or
-`~/.local/state`. Writes are atomic (sibling temporary file, then rename). An
-**absent** file means `running`, so every pre-0.6.0 install behaves exactly as
-before; an unparsable file also means `running`, with the reason recorded as
-`ieg.control_state_unreadable` — corruption never switches governance off and never
-crashes the host.
+**Turning governance off** for a profile is `enabled: false` in the `ieg` row —
+there is no control state to read, no `ieg.control_*` diagnostic, and no
+`exit`/`pause` command.
 
-**Gating in the plugin.** `src/index.ts` (compiled to `lib/index.js`) re-reads the record, cached by mtime (and
-size, to close a same-millisecond write window); a re-stat per assembly and per
-step is allowed. `paused` emits no prompt section and passes every hook through;
-`stopped` mounts nothing active, exactly like `enabled: false`; `running` is
-normal. Each transition is recorded once — `ieg.control_paused`,
-`ieg.control_resumed`, `ieg.control_stopped`. `restart` bumps `generation`, and a
-changed generation is the signal to invalidate the cached configuration and prompt
-so the next step re-reads on-disk truth, recorded as
-`ieg.control_generation_changed`.
-
-**Prompt text in `prompt.md`.** Prompt text is deliberately **not** stored inside
-the control JSON: it lives in a sibling `prompt.md`, so the record stays a small
-stable control object and the text stays something a human edits as text.
-`dsh-ieg prompt` prints the effective text with its version and byte count;
-`dsh-ieg prompt edit` opens `$EDITOR` on a temporary copy and stores the result only
-after validation; `dsh-ieg prompt reset` deletes the file and returns to the compiled
-default. Precedence is
+**Prompt text in `prompt.md`.** Prompt text lives in its own file, resolved by
+`resolvePromptPath()`: `$IEG_PROMPT_FILE`, else `<state-dir>/ieg/prompt.md` with
+`<state-dir>` = `$XDG_STATE_HOME` or `~/.local/state`. Precedence is
 
 ```text
-control-plane prompt.md                                 (highest)
+the operator's prompt.md                                 (highest)
   > config prompt.file   (only when prompt.mode: replace)
   > config prompt.append (only when prompt.mode: append)
-  > the compiled default                                (lowest)
+  > the compiled default                                 (lowest)
 ```
 
 and `prompt.mode: compiled` forces the compiled default whenever no `prompt.md`
-exists. Every candidate is validated through the existing `composePromptOverride`
-kernel, so the CLI, a config-supplied file, and the compiled default obey the same
-two hard rules — no `{{ }}` interpolation syntax, and the byte ceiling unless
-`allowOverBudget` — and an accepted override is attributed
-`PROMPT_VERSION+user:<hash>`. A refusal changes nothing, keeps the previous text,
-and prints its reasons; it is never a silent no-op.
+exists. The plugin re-resolves the file on **each assembly** (`livePromptFacts()` in
+`src/index.ts`), so an edit applies without a remount; the section text and the
+read-only `ieg_status` report read that one resolution, so the reported source can
+never disagree with the text actually emitted. Every candidate is validated through
+the existing `composePromptOverride` kernel, so the CLI, a config-supplied file and
+the compiled default obey the same two hard rules — no `{{ }}` interpolation syntax,
+and the byte ceiling unless `allowOverBudget` — and an accepted override is
+attributed `PROMPT_VERSION+user:<hash>`. A refusal changes nothing, keeps the
+previous text, and prints its reasons; it is never a silent no-op. Nothing in the
+package deletes the file.
 
-**`exit` is not uninstall.** `exit` sets `status: stopped` for the profile. Only
-`dsh-ieg install | update | uninstall` touch the installation. The lifecycle is
-npm-native (the host's `dsh plugin` path hard-codes pnpm): it packs the repository
-root with `npm pack`, installs the artifact into `<DSH_HOME>/profiles/<p>`, and
-maintains `dsh.profile.bundles` itself, so the `ieg` row composes without pnpm.
-It refuses to write the live `$HOME/.dsh` without `--allow-live` (exit 2) and
-defaults npm's cache to a writable home-local directory, because a read-only
-`~/.npm` fails every npm operation before it starts. `scripts/ieg-npm.sh` is a
-thin wrapper over these commands, so the lifecycle has one implementation, not
-two.
-
-**Evidence.** The kernel modules (`control`, `prompt-store`, `lifecycle`) have
-unit suites; `scripts/verify.sh` adds a CLI smoke check (status plus
-pause/start transitions on an isolated `--state`), a `prompt.md` round-trip
-including a refused `{{ }}` edit, and a gating check that a `paused` control state
-suppresses the section. The installed-artifact proof still applies the shipped
-`cordis.patch.yml` verbatim.
 
 ### 28.7 Opt-in diagnostics mirror (v0.4.0)
 
