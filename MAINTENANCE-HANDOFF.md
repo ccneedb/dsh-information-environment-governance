@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.10.0
+plugin_version: 0.11.0
 version: 0.8.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 host_baseline_verified: dsh-0.2.1-alpha.1
 supersedes: none
 language: en
@@ -74,8 +74,8 @@ node eval/e2e-analyze.mjs              # derives ordering from tool/call events
 `workspace-governance` (`FC-2.2`), all enabled by default, and registers exactly
 two model-facing tools: `record_orientation` and `ieg_status`. It compiles
 **one** prompt section, `ieg:governance` (`order: 8500`, `interpolate: false`,
-`complete` never set), at **`PROMPT_VERSION` 0.4.0**. The compiled section is
-**2,677 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
+`complete` never set), at **`PROMPT_VERSION` 0.5.0**. The compiled section is
+**2,806 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
 4,096). Integration tests mount the real `dsh-system-prompt`, `dsh-tools`,
 `dsh-fs-local`, and the `dsh-storage`/`dsh-storage-json`/`dsh-storage-domain`
 stack — not mocks. **272 tests (all pass, no todo, no skip) and 27/27
@@ -179,6 +179,7 @@ precedes any prompt edit; the text itself is unchanged in 0.10.0.
 | Never present invalid, superseded or unconfirmed information as authoritative | deterministic for recorded items; guidance otherwise |
 | Re-promoting invalidated information requires new evidence | deterministic for recorded items (`findReintroduced`) |
 | Remove a wrong claim at the source | guidance |
+| Run a maintenance round when the environment reports maintenance due, and report its proposals | counter is deterministic (turn-keyed); the timing and the proposal are guidance |
 | Distinguish read-only inspection from persistent mutation | deterministic (`classifyMutation`) |
 | Do not create persistent artifacts merely because convenient | heuristic (overlap check) plus guidance |
 | Before creating, look for an existing artifact serving the same purpose | heuristic, now role-aware, plus guidance |

@@ -1,12 +1,12 @@
 ---
 doc_type: changelog
 project: information-environment-governance
-version: 0.10.0
-plugin_version: 0.10.0
+version: 0.11.0
+plugin_version: 0.11.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 audience: everyone
 language: en
 ---
@@ -32,6 +32,41 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.11.0] — 2026-10-04
+
+**Prompt refinement (Batch 6 §8).** `PROMPT_VERSION` 0.4.0 -> **0.5.0**.
+
+### Added
+
+- One rule to the information-integrity module: *when the environment reports
+  maintenance as due, run one maintenance round at the next safe boundary and report
+  its proposals.* It is the model-owned half of the seven-batch trigger — the
+  due-marking is deterministic, the timing and the reporting are guidance — and it
+  is stated as an action rather than as a restatement of enforcement.
+
+### Measured
+
+- The compiled section is **2,806 bytes** (from 2,677) and still fits the
+  **2,945-byte ceiling established at 0.4.0**. `RECORDED_PROMPT_BYTES` is
+  deliberately **not** re-recorded: a budget recomputed at every revision would
+  follow the text it exists to bound, which is the failure the constant prevents.
+  The compiler comment now says so.
+
+### Audited, and deliberately not changed
+
+- **The two deletion rules were left verbatim.** They read as if the first
+  ("delete information you have established is wrong") and the second ("delete
+  outdated and superseded content as well, except in a software development
+  project, where… mark it explicitly as outdated") might contradict for a software
+  project. Merging them was attempted, and reverted: both are **pinned OBJ-2
+  acceptance phrases**, and a minimality pass is not authority to rewrite an
+  acceptance criterion. The ambiguity is recorded in the capability matrix as a
+  follow-up, not silently resolved.
+- No unsupported expectation was found to remove. The full rule-to-boundary mapping
+  is in `MAINTENANCE-HANDOFF.md` -> "Prompt rule -> capability boundary": twenty
+  rules, each marked deterministic, heuristic or guidance, with the guidance-only
+  ones named as unverified.
 
 ## [0.10.0] — 2026-10-04
 

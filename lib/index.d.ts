@@ -53,13 +53,13 @@ export declare const MAINTENANCE_TOOL_NAME = "maintain_environment";
  * model-facing text changes, so a behavioural regression is attributable to one
  * prompt revision (ARCHITECTURE-SPEC Part B §22.3, PRODUCT-SPEC PR-07).
  */
-export declare const PROMPT_VERSION = "0.4.0";
+export declare const PROMPT_VERSION = "0.5.0";
 /**
  * Version of the plugin package, kept in step with `package.json` `version`.
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export declare const PLUGIN_VERSION = "0.10.0";
+export declare const PLUGIN_VERSION = "0.11.0";
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
  * are enabled. Compiled ahead of module principles.

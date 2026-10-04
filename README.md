@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.10.0
+plugin_version: 0.11.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 format_note: conservative-machine-readable-markdown
@@ -207,12 +207,38 @@ Precedence is the operator `prompt.md` > config `prompt.file` (when
 
 The plugin contributes **one** additive prompt section, `ieg:governance`
 (`order: 8500`, `interpolate: false`, `complete` never set) and **two**
-model-facing tools, `record_orientation` and `ieg_status`. At `PROMPT_VERSION`
-0.4.0 the compiled section is **2,677 bytes** against a **2,945-byte** ceiling.
+model-facing tools — `record_orientation`, read-only `ieg_status`, and read-only
+`maintain_environment`. At `PROMPT_VERSION`
+0.5.0 the compiled section is **2,806 bytes** against a **2,945-byte** ceiling.
 It reports its own state through the `ieg:status` runtime-context line and the
 `ieg.*` diagnostic codes. Full runtime detail is in
 [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](ARCHITECTURE-SPEC-AGENT-REFERENCE.md)
 Part B.
+
+## Maintenance round
+
+IEG also **maintains** the environment rather than only gating actions. One
+manually triggerable round, `maintain_environment`, inventories the workspace's
+persistent artifacts (authoritative specifications, implementation documentation,
+configuration, working notes, generated, historical, temporary and unknown),
+diagnoses duplication, obsolescence and declared drift, and returns proposed actions
+from a fixed vocabulary — `KEEP | MERGE | UPDATE | REPLACE | DEPRECATE | REMOVE |
+LEAVE_UNCHANGED | REQUIRES_REVIEW` — each with a reason and a confidence.
+
+**It proposes; it never applies.** The tool is read-only by construction, and every
+destructive proposal needs an explicit human decision. Point it at a specific change
+with `changed` and it also reconciles: which other artifacts mention that subject,
+which of their stated facts have gone stale, and what it could not settle.
+
+The runtime counts **direct user instruction batches** using the host's own turn
+accounting; internal steps, tool calls and generated context are excluded by
+construction. At seven it marks maintenance due in the runtime context and the
+round resets the counter.
+
+What is **not** implemented is stated in
+[`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3 — notably cross-document
+contradiction detection beyond declared state, which is listed as a future
+capability rather than a claim.
 
 ## Install
 

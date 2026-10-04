@@ -24,6 +24,11 @@
  * measured at `PROMPT_VERSION` `0.4.0`. The ceiling is derived from this
  * recorded footprint rather than from the current compilation: a budget that is
  * recomputed from the text it is meant to bound can never detect growth.
+ *
+ * Deliberately **not** re-recorded at `0.5.0`: the maintenance rule added in
+ * Batch 6 had to fit inside the ceiling this revision established, and it does.
+ * Re-recording a measurement at every revision would let the budget follow the
+ * text it is meant to bound — the failure mode this constant exists to prevent.
  */
 export const RECORDED_PROMPT_BYTES = 2677
 

@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.10.0
+plugin_version: 0.11.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 audience: implementers + operators
 language: en
 ---
@@ -97,6 +97,7 @@ mutation backstop -> ctx.tools.guard()                   deny only  (monotonic)
 status line       -> ctx.systemPrompt.context()          advisory   (`ieg:status`, runtime context)
 diagnostics tool  -> ieg_status (registered)             read-only  (mount, config, verdict, ring)
 prompt CLI        -> dsh-ieg prompt | prompt edit        operator   (no install surface; Batch 5)
+maintenance round -> maintain_environment (registered)   read-only  (inventory, diagnosis, proposals)
 compatibility     -> host section inventory + hashes     report     (COMPATIBLE | … | UNSUPPORTED)
 ```
 
@@ -107,6 +108,7 @@ Exactly **two** tools are registered:
 | Tool | Direction | Purpose |
 |---|---|---|
 | `record_orientation` | capture | record intent, scope, terminology, and a task-flow plan |
+| `maintain_environment` | read-only | one maintenance round: inventory, diagnosis and proposed actions for the information environment; optionally reconciles one named change |
 | `ieg_status` | read-only | mount record, effective configuration, compatibility verdict, and the diagnostic ring |
 
 The plugin also contributes one runtime-context line, **`ieg:status`**, which reports
@@ -123,7 +125,9 @@ host compatibility (`ieg.host_compatibility`), modules (`ieg.module_enabled`,
 `ieg.document_overlap_flagged`), prompt assembly (`ieg.prompt_assembly`,
 `ieg.prompt_override_applied`, `ieg.prompt_override_rejected`,
 `ieg.prompt_override_missing`), and the diagnostics mirror
-(`ieg.diagnostics_export_failed`). Batch 5 removed the five `ieg.control_*` codes
+(`ieg.diagnostics_export_failed`), and the maintenance round
+(`ieg.maintenance_round`, `ieg.maintenance_due`). Batch 5 removed the five
+`ieg.control_*` codes
 along with the control plane they described.
 
 **Durable state** is stored through `ctx.storageDomain` under domain
@@ -139,7 +143,7 @@ the plugin adds text and never claims the section is complete.
 | Property | Value |
 |---|---|
 | `PROMPT_VERSION` | `0.3.0` |
-| Compiled section size | **2,677 bytes** |
+| Compiled section size | **2,806 bytes** |
 | Recorded ceiling | **2,945 bytes** |
 | Floor | 1400 bytes |
 | Hard cap | 4096 bytes |

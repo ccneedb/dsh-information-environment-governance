@@ -2,11 +2,11 @@
 doc_type: product-spec
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.10.0
+plugin_version: 0.11.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 host_target: deepseek-harness

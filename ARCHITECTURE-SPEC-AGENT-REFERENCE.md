@@ -2,11 +2,11 @@
 doc_type: architecture-spec
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.10.0
+plugin_version: 0.11.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.10.0-batch-6
+revision: 0.11.0-batch-6
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0
 part_b_status: implemented-through-the-0.8.0-packaging-round; model-backed-gates-C-and-D-pending
@@ -436,7 +436,7 @@ Rules:
 Detailed state belongs in runtime structures, and deterministic checks belong in hooks.
 
 > **Recorded footprint (`0.8.0`; unchanged from `0.7.0`).** The folded
-> three-module section measures **2,677 bytes**; the derived ceiling is
+> three-module section measures **2,806 bytes**; the derived ceiling is
 > **2,945 bytes** (floor 1,400, hard cap 4,096). The rule that derives and
 > enforces that budget is §27; current status and numbers are maintained once in
 > [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3.
@@ -510,7 +510,7 @@ The shipped `0.9.1` artifact versions are:
 artifact                      field                    0.9.1 value
 ──────────────────────────────────────────────────────────────────────
 package                       package.json `version`   0.9.1 (publishable; not published)
-compiled prompt               PROMPT_VERSION           0.4.0
+compiled prompt               PROMPT_VERSION           0.5.0
 governance state              DOMAIN_VERSION           1
 module semantics              `module.version`         0.2.0 in the three shipped
                                                         descriptors, matching the
@@ -1352,7 +1352,7 @@ diagnostic, and no context contribution is produced.
 - `PROMPT_VERSION` is recorded in diagnostics, not injected into the text.
   `0.7.0` moved it to `0.3.0`.
 - **Budget — recorded footprint (§34.1 B6), implemented.** After the `0.7.0`
-  scope reset the compiled section measures **2,677 bytes** over the three
+  scope reset the compiled section measures **2,806 bytes** over the three
   shipped modules. `src/kernel/prompt-compiler.ts` records that measurement as
   `RECORDED_PROMPT_BYTES` (compiled to `lib/kernel/prompt-compiler.js`,
   which is what the plugin loads) and derives the ceiling as
@@ -1501,6 +1501,23 @@ mechanism beside the row's own `enabled`. The removed surface is recorded in
 `CHANGELOG.md` [0.9.2] and is not part of the current design. Parsing and the
 `$EDITOR` invocation are hand-rolled over Node builtins, so the package keeps its
 zero-runtime-dependency property.
+
+**The maintenance round (Batch 6, 0.10.0).** `src/kernel/maintenance.ts` owns the
+capability: inventory classification (eight classes), diagnosis (seven dimensions),
+planning over a fixed action vocabulary, and reconciliation. It is pure — filesystem
+traversal lives in the caller — so the round is testable without a host, and it
+**proposes**: the eight actions are plan items with a reason and a confidence, and
+every destructive one is flagged for a human decision. `maintain_environment`
+(`src/index.ts`) is the manual trigger and is read-only by construction, because an
+unknown tool is read-only under `tools/pre-execute`.
+
+The seven-instruction-batch trigger reads the host's own turn accounting:
+`agent/pre-step` carries `turn` and the `messages` removed from the inbox for the
+step, so a new `turn` carrying at least one message is exactly one direct user
+instruction batch, while internal steps, tool calls and generated context are
+excluded by construction. The counter is per-agent state (`src/kernel/state.ts`),
+keyed by agent object identity like every other live ledger, and a completed round
+resets it.
 
 **Turning governance off** for a profile is `enabled: false` in the `ieg` row —
 there is no control state to read, no `ieg.control_*` diagnostic, and no

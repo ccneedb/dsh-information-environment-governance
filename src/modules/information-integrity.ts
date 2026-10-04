@@ -195,6 +195,7 @@ export const informationIntegrityModule = Object.freeze({
     'Treat project information as having a status, and keep that status explicit.',
     'Delete information you have established is wrong. Never leave it in place annotated as wrong.',
     'Delete outdated and superseded content as well, except in a software development project, where version history matters: there, mark it explicitly as outdated instead of removing it.',
+    'When the environment reports maintenance as due, run one maintenance round at the next safe boundary and report its proposals.',
     'Never present invalid, deprecated, superseded, suspect, or unconfirmed information as authoritative.',
     'Re-promoting deleted or invalidated information requires new evidence or explicit user confirmation.',
   ]),
