@@ -32,7 +32,7 @@ the product scope and the explicit out-of-scope list live in
 | A DeepSeek Harness installation (`@deepseek-ai/dsh`) | The integration tests mount the **real** host services rather than mocks | Without it those tests **skip**; the unit and conformance suites still run. Single supported baseline `0.2.1-alpha.1` (declared peer range `>=0.2.1-alpha.1 <0.3.0`, verified release map and committed baseline re-captured in 0.8.0). The retired `0.2.0-rc.2` baseline is **SUPERSEDED** |
 | `pnpm` (via `dsh plugin add`) | `scripts/verify.sh` performs a real install into a throwaway profile | Only needed for the full chain; the `dsh-ieg` lifecycle is npm-native |
 
-If your DSH installation is not at `/usr/local/lib/node_modules/@deepseek-ai/dsh`,
+If your DSH installation is not at `/usr/local/lib/node_modules/@deepseek-ai/dsh`
 point the test loader at it:
 
 ```bash
@@ -82,7 +82,7 @@ dsh --profile <profile> --dump-config | grep -A3 'id: ieg'      # the row must c
 | `IMPLEMENTATION-VALIDATION-HANDOFF.md` | retired — a pointer to the §32 gates and the build order |
 | `docs/DOCUMENTATION-INDEX.md` | document inventory and the single-source-of-truth map |
 | `.github/ISSUE_TEMPLATE/` | the issue forms a deviation report and a feature request use |
-| `scripts/` | repository tooling: `check-install.sh`, `check-docs.sh`, `ieg-npm.sh`, `ieg-npm-lifecycle-check.sh` |
+| `scripts/` | repository tooling: `check-install.sh`, `check-docs.sh`, `verify.sh`, `capture-baseline.mjs` |
 | repository root | the installable package: `package.json` + `cordis.patch.yml` (the DSH bundle), `lib/` kernel and modules, `src/` TypeScript sources, `bin/ieg`, `test/`, and `scripts/verify.sh` |
 | `eval/` | behavioural and end-to-end evaluation harness and scenarios |
 
@@ -101,7 +101,7 @@ npm test                   # node --test — unit, conformance, and integration
 ```
 
 `scripts/verify.sh` is the **release gate**. Its chain is: build, strict
-typecheck, tests, a real install into a throwaway profile, row composition,
+typecheck, tests, a real install into a throwaway profile, row composition
 positive proof against the installed artifact, and a CLI smoke check plus a
 `prompt.md` round-trip. It never touches your real profile. It creates
 `.ieg-verify/` (honouring `IEG_VERIFY_HOME`) and `.pnpm-store/`; both are
@@ -132,7 +132,7 @@ seems to need one, say so in the pull request instead of committing it.
 There are exactly two, and no third IEG-specific mechanism:
 
 1. **`dsh-market`** — the DSH plugin market ecosystem.
-2. **DSH native plugin installation** — `dsh plugin --profile <p> add <source>`,
+2. **DSH native plugin installation** — `dsh plugin --profile <p> add <source>`
    where `<source>` is a registry name, absolute path, git address or tarball.
 
 Updates are "remove the old installation, install the new one"; there is no IEG
@@ -147,7 +147,7 @@ reason the project is as small as it is:
    the compiler emits exactly one (`ieg:governance`). Never set `complete: true`
    — it replaces the host system prompt.
 2. **Deterministic enforcement over prompt text.** If a rule is mechanically
-   checkable, enforce it at a seam (`tools/pre-execute`, `ctx.tools.guard`,
+   checkable, enforce it at a seam (`tools/pre-execute`, `ctx.tools.guard`
    `agent/pre-step`) and **do not restate it in the prompt**; the conformance
    suite fails if you do.
 3. **Host semantics stay authoritative.** IEG supplements; it never overrides
@@ -164,13 +164,13 @@ reason the project is as small as it is:
    requires `PROMPT_VERSION` to change and a [`CHANGELOG.md`](CHANGELOG.md)
    entry naming the problem or evaluation result that motivated it.
 8. **Do not commit regenerable artifacts or credentials — with one deliberate
-   exception.** `.gitignore` covers the known regenerable trees (`.ieg-verify/`,
+   exception.** `.gitignore` covers the known regenerable trees (`.ieg-verify/`
    `.pnpm-store/`, `eval/runs/`, result JSON); if you find a new one, add it there
    rather than committing it. The **compiled runtime `lib/**` is the exception**:
    it is committed so a Git install is self-contained, because pnpm does not run a
    build for a git dependency. Never edit it by hand — build it from `src/**`
    ([`TYPESCRIPT-MIGRATION.md`](TYPESCRIPT-MIGRATION.md) §2.2).
-9. **Stay inside the declared scope.** General safety/security, sandboxing,
+9. **Stay inside the declared scope.** General safety/security, sandboxing
    authorization, user-attention optimization, and unrelated agent behavior
    management are out of scope; a new feature must show a direct connection to
    Information Environment Governance ([`PRODUCT-SPEC.md`](PRODUCT-SPEC.md) §1.4).
@@ -199,7 +199,7 @@ change.
 - Do not weaken a test to make it pass. A `todo` test that executes and fails is
   worse than no test: it makes a green run mean less. Prefer deleting an
   assertion that belongs to another composition.
-- Never include credentials, session logs, or private file contents in a commit,
+- Never include credentials, session logs, or private file contents in a commit
   an issue, or a pull request. See [`SECURITY.md`](SECURITY.md).
 
 ## Release policy

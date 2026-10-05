@@ -35,7 +35,7 @@ jobs:
       # an oversight — so the compiler is installed for the check rather than
       # declared as a runtime dependency.
       - name: Install TypeScript
-        run: npm install --global typescript
+        run: npm install --global typescript@6.0.3
       - name: Build the migrated TypeScript sources
         run: npm run build
       - name: Typecheck (strict checkJs)
@@ -58,22 +58,23 @@ jobs:
   # Best-effort. Installs the pinned DeepSeek Harness host and runs the full
   # evidence chain, which is the real release gate: a throwaway profile install,
   # row composition, an execution proof against the installed artifact, and a
-  # live mount. It is allowed to fail because the host package is published by
-  # another project and may be unavailable or renamed; a failure here is a
-  # signal to run `scripts/verify.sh` locally, not a broken build.
+  # live mount. Round 7 made this job REQUIRED: it installs the one release the
+  # package declares as verified, so a compatibility failure is a CI failure
+  # rather than a warning (Batch 7 Phase 4). No other host version is claimed or
+  # tested here. TypeScript is pinned so release correctness cannot depend on
+  # whichever version the registry serves that day (Batch 7 Phase 5).
   with-host:
-    name: full verification chain (pinned host)
+    name: full verification chain (verified host 0.2.1-alpha.1)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Install TypeScript
-        run: npm install --global typescript
+        run: npm install --global typescript@6.0.3
       - name: Install the verified host release
-        run: npm install --global @deepseek-ai/dsh@0.2.0-rc.2
+        run: npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
       - name: Point the test loader at the installed host
         run: |
           DSH_PACKAGES="$(npm root -g)/@deepseek-ai/dsh/node_modules/@deepseek-ai"
@@ -81,8 +82,3 @@ jobs:
           echo "IEG_DSH_PACKAGES=$DSH_PACKAGES" >> "$GITHUB_ENV"
       - name: Full verification chain
         run: ./scripts/verify.sh
-
-      - name: npm-native lifecycle (pack -> install -> compose -> uninstall)
-        run: |
-          chmod +x scripts/ieg-npm.sh scripts/ieg-npm-lifecycle-check.sh
-          ./scripts/ieg-npm-lifecycle-check.sh

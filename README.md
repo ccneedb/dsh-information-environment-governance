@@ -26,10 +26,10 @@ in [`PRODUCT-SPEC.md` §1](PRODUCT-SPEC.md#1-product-positioning); this README
 links there rather than restating them.
 
 > **Status: prototype, not production-ready.** The package is
-> `dsh-information-environment-governance` **0.9.1** — publishable and verified,
+> `dsh-information-environment-governance` **0.9.1** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
-> integrity (Gate D) have no valid measurement for the current prompt revision,
+> integrity (Gate D) have no valid measurement for the current prompt revision
 > and packaging (Gate I) is partial. It is not recommended for a working
 > profile. Current numbers are in
 > [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4; see [Status](#status).
@@ -125,20 +125,20 @@ plugin.
 
 IEG has **two governance entry points**:
 
-1. **Project Constraint Governance** — keeps the project's objective, scope,
+1. **Project Constraint Governance** — keeps the project's objective, scope
    terminology, constraints, and current phase explicit, and distinguishes
    *declared understanding* from *actual behavioral consistency*.
 2. **Information / Document Governance** — keeps the state of project
-   information explicit (existence, status, authority, provenance,
+   information explicit (existence, status, authority, provenance
    supersession, retrieval eligibility) and governs the documents that carry
    it. Workspace hygiene is an **enforcement mechanism inside this entry
    point**, not a separate system.
 
 Three primary areas are in scope:
 
-1. **Project Constraints** — objective, scope, terminology, constraints,
+1. **Project Constraints** — objective, scope, terminology, constraints
    current phase.
-2. **Information State** — authority, validity, provenance, supersession,
+2. **Information State** — authority, validity, provenance, supersession
    lifecycle status.
 3. **Persistent Workspace** — documents, artifacts, source/configuration, and
    generated files.
@@ -219,15 +219,15 @@ Part B.
 
 IEG also **maintains** the environment rather than only gating actions. One
 manually triggerable round, `maintain_environment`, inventories the workspace's
-persistent artifacts (authoritative specifications, implementation documentation,
-configuration, working notes, generated, historical, temporary and unknown),
+persistent artifacts (authoritative specifications, implementation documentation
+configuration, working notes, generated, historical, temporary and unknown)
 diagnoses duplication, obsolescence and declared drift, and returns proposed actions
 from a fixed vocabulary — `KEEP | MERGE | UPDATE | REPLACE | DEPRECATE | REMOVE |
 LEAVE_UNCHANGED | REQUIRES_REVIEW` — each with a reason and a confidence.
 
 **It proposes; it never applies.** The tool is read-only by construction, and every
 destructive proposal needs an explicit human decision. Point it at a specific change
-with `changed` and it also reconciles: which other artifacts mention that subject,
+with `changed` and it also reconciles: which other artifacts mention that subject
 which of their stated facts have gone stale, and what it could not settle.
 
 The runtime counts **direct user instruction batches** using the host's own turn
@@ -285,7 +285,7 @@ dsh plugin --profile <your-test-profile> add \
   "file:./dsh-information-environment-governance-<version>.tgz"
 ```
 
-The packed artifact carries exactly the runtime — `lib/**`, `bin/ieg`,
+The packed artifact carries exactly the runtime — `lib/**`, `bin/ieg`
 `cordis.patch.yml`, `package.json`, `README.md`, `LICENSE`, `CHANGELOG.md` — and
 none of `src/`, `test/`, `eval/`, `docs/`. Package-level configuration detail is
 in [`docs/PACKAGE-REFERENCE.md`](docs/PACKAGE-REFERENCE.md).
@@ -351,7 +351,7 @@ records that single baseline as `verified`; the committed baseline was
 re-captured against the installed `0.2.1-alpha.1` host in 0.8.0 (identical section
 order and host prompt hash). The retired `0.2.0-rc.2` baseline is **SUPERSEDED**
 and is no longer in the range or the release map. Note that the declared range is
-a **compatibility statement, not a tested-versions list**: exactly one release,
+a **compatibility statement, not a tested-versions list**: exactly one release
 `0.2.1-alpha.1`, is verified. See
 [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4.
 
@@ -371,7 +371,7 @@ end and prints which situation you are in.
 ```text
 README.md                             this file
 PRODUCT-SPEC.md                       positioning, scope, goals, success criteria
-ARCHITECTURE-SPEC-AGENT-REFERENCE.md  architecture; Part A verified host seams,
+ARCHITECTURE-SPEC-AGENT-REFERENCE.md  architecture; Part A verified host seams
                                       Part B the target design and the §32 gates
 IMPLEMENTATION-VALIDATION-HANDOFF.md  retired pointer to §32 and the build order
 MAINTENANCE-HANDOFF.md                current status and numbers; maintenance gotchas
@@ -381,7 +381,7 @@ CONTRIBUTING.md                       prerequisites, checks, and the project rul
 CODE_OF_CONDUCT.md                    Contributor Covenant 2.1
 LICENSE                               MIT
 docs/                                 the documentation index and single-source-of-truth map
-scripts/                              repository tooling (check-install.sh, check-docs.sh, ieg-npm.sh)
+scripts/                              repository tooling (check-install.sh, check-docs.sh, verify.sh)
 package.json / cordis.patch.yml       the DSH bundle manifest and patch (the root is the package)
 src/                                  the TypeScript source of truth for the runtime
 lib/                                  the compiled runtime `tsc` emits from src/ (committed)
@@ -400,7 +400,7 @@ single-source-of-truth map, in
 
 ## Development
 
-Prerequisites, the checks to run (`typecheck`, `npm test`, `verify.sh`,
+Prerequisites, the checks to run (`typecheck`, `npm test`, `verify.sh`
 `check-docs.sh`), and the rules that keep the project maintainable are maintained
 once in [`CONTRIBUTING.md`](CONTRIBUTING.md) §Running the checks. Integration
 tests mount the **real** host services; they skip (rather than fail) when no DSH
@@ -423,9 +423,9 @@ The runtime is authored in TypeScript under `src/**`; `lib/**` is its committed
 [`TYPESCRIPT-MIGRATION.md`](TYPESCRIPT-MIGRATION.md)).
 
 The evidence chain — run per [`CONTRIBUTING.md`](CONTRIBUTING.md) §Running the
-checks — covers strict typechecking, the full test suite (**272 tests, all pass**,
-no todo, no skip; unit,
-prompt conformance, and integration mounting the **real** `dsh-system-prompt`,
+checks — covers strict typechecking, the full test suite (**272 tests, all pass**
+no todo, no skip; unit
+prompt conformance, and integration mounting the **real** `dsh-system-prompt`
 `dsh-tools`, `dsh-fs-local`, and the
 `dsh-storage`/`dsh-storage-json`/`dsh-storage-domain` stack) and the **27 checks**
 of [`scripts/verify.sh`](scripts/verify.sh): a real install into
@@ -489,8 +489,8 @@ C and D need.
 
 ## Contributing
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for prerequisites, the checks to run,
-and the rules that keep the project small — one additive prompt section,
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for prerequisites, the checks to run
+and the rules that keep the project small — one additive prompt section
 deterministic enforcement over prompt text, zero runtime dependencies, no
 duplicate documents, `apply()` never throws, and attributed prompt changes.
 Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).

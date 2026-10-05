@@ -38,11 +38,11 @@ second). It contributes **one** system-prompt section and enforces through
 `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`.
 
-The three enabled modules are `project-governance` (`FC-2.1`),
+The three enabled modules are `project-governance` (`FC-2.1`)
 `information-integrity` (`FC-2.3`), and `workspace-governance` (`FC-2.2`).
 `user-attention`/`FC-2.4` was removed in 0.7.0 — see §13.
 
-Out of scope, and not to be drifted into: general AI safety/security,
+Out of scope, and not to be drifted into: general AI safety/security
 sandboxing, authorization, user-attention optimization (**RETIRED** — the
 capability was withdrawn in 0.7.0, §13.2), and unrelated agent behavior
 management (authoritative statement: [`PRODUCT-SPEC.md`](PRODUCT-SPEC.md) §1.4).
@@ -73,10 +73,10 @@ node eval/e2e-analyze.mjs              # derives ordering from tool/call events
 `project-governance` (`FC-2.1`), `information-integrity` (`FC-2.3`), and
 `workspace-governance` (`FC-2.2`), all enabled by default, and registers exactly
 two model-facing tools: `record_orientation` and `ieg_status`. It compiles
-**one** prompt section, `ieg:governance` (`order: 8500`, `interpolate: false`,
+**one** prompt section, `ieg:governance` (`order: 8500`, `interpolate: false`
 `complete` never set), at **`PROMPT_VERSION` 0.5.0**. The compiled section is
 **2,806 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
-4,096). Integration tests mount the real `dsh-system-prompt`, `dsh-tools`,
+4,096). Integration tests mount the real `dsh-system-prompt`, `dsh-tools`
 `dsh-fs-local`, and the `dsh-storage`/`dsh-storage-json`/`dsh-storage-domain`
 stack — not mocks. **272 tests (all pass, no todo, no skip) and 27/27
 verification checks** were derived from the current tree on 2026-10-03, the 0.8.0
@@ -127,7 +127,7 @@ does not see the arm is what produces a valid number.
 | J — Withdrawal integrity | the plugin ships three modules with no dangling reference to the removed one | met |
 
 **Mount resilience (2026-10-02).** `apply()` does not throw: a configuration
-fault mounts an inert but observable surface (`mounted: false`, `configError`,
+fault mounts an inert but observable surface (`mounted: false`, `configError`
 `ieg.config_invalid`) instead of being reported by the host as an unactivated
 entry, each capability is registered in its own guarded step, an absent seam is
 recorded as `ieg.capability_missing` and listed in the mount record's
@@ -136,7 +136,7 @@ recorded as `ieg.capability_missing` and listed in the mount record's
 `verify.sh`'s installed-artifact check.
 
 **Diagnosability and compatibility.** A bounded ring, the `ieg:status`
-runtime-context line, and the read-only `ieg_status` tool report mount,
+runtime-context line, and the read-only `ieg_status` tool report mount
 configuration, last denial, and the compatibility verdict without a logger
 exporter. `lib/kernel/compatibility.js` observes the real
 `system-prompt/assemble` waterfall and classifies `COMPATIBLE |
@@ -186,6 +186,30 @@ precedes any prompt edit; the text itself is unchanged in 0.10.0.
 | Never claim authorization the user has not given | deterministic (mutation gate, approval path) |
 | A previous approval is not standing authorization | guidance reinforced per call: the gate asks each time |
 
+### DSH compatibility policy (Batch 7 Phase 4)
+
+Compatibility is stated in four states, never as a semver range:
+
+| State | Meaning |
+|---|---|
+| **Verified** | installed and exercised by this repository's own checks |
+| **Compatible** | believed to work, but not independently verified in the current release |
+| **Unsupported** | known or declared incompatible |
+| **Unknown** | insufficient evidence |
+
+Standing: **`0.2.1-alpha.1` is Verified** — CI installs exactly that release and runs
+the full verification chain against it, in a **required** job, so a compatibility
+failure is a CI failure rather than a warning. The declared peer range
+`>=0.2.1-alpha.1 <0.3.0` is a **compatibility statement, not a tested-versions
+list**: every other version inside it is **Unknown** until a check exercises it.
+`0.2.0-rc.2` is **Unsupported** — retired in the 0.8.0 re-baseline, absent from both
+the peer range and the release map.
+
+Before Round 7, CI installed `0.2.0-rc.2` while the package declared
+`0.2.1-alpha.1` verified, and its host job was allowed to fail
+(`continue-on-error`), so the declared baseline was never actually enforced. Both
+are corrected: the job pins the verified release and is required.
+
 ## 4. Not verified — the blockers
 
 Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
@@ -198,7 +222,7 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
 2. **Information integrity (Gate D) has no valid measurement — open.** The same
    fresh-run requirement applies to whether known-invalid information stops being
    reused as authoritative.
-3. **Not a publishable package (Gate I) — partial.** `LICENSE`, `CHANGELOG.md`,
+3. **Not a publishable package (Gate I) — partial.** `LICENSE`, `CHANGELOG.md`
    the `files` allowlist, and the narrowed peer range have landed; `"private":
    true` and the publish target remain until Gates C and D pass.
 4. **The compatibility baseline for the installed host — closed in 0.8.0.** The
@@ -290,9 +314,9 @@ prompt  diagnostics  diagnosticsExport
 ```
 
 `userAttention` was **removed** in 0.7.0 and is now **rejected as an unknown
-key**. Defaults a maintainer must not change silently: `workspace.policy: ask`,
-`workspace.overlapCheck: ask`, `workspace.classifyShellCommands: true`,
-`preStep.orientationGate: off`, `preStep.requireBeforeMutation: false`,
+key**. Defaults a maintainer must not change silently: `workspace.policy: ask`
+`workspace.overlapCheck: ask`, `workspace.classifyShellCommands: true`
+`preStep.orientationGate: off`, `preStep.requireBeforeMutation: false`
 `diagnostics: true`, and `prompt.mode: compiled`. Non-intrusive defaults are the
 documented decision; strict enforcement is an explicit opt-in.
 
@@ -314,7 +338,7 @@ These each cost real time. Do not rediscover them.
   not, so the gate fails closed and **every** `write`/`edit` it attempts is
   refused with `ieg.workspace_mutation_blocked` — while the run looks like a
   mysterious stall rather than a policy decision. Observed live on 2026-10-03: a
-  delegated session recorded its orientation correctly, passed the overlap check,
+  delegated session recorded its orientation correctly, passed the overlap check
   and was still denied on every write, and it correctly refused to route around
   the gate. Either perform delegated file work in a session with an approval
   channel, or give the delegated session `workspace: { policy: allow }` for the
@@ -389,19 +413,19 @@ These each cost real time. Do not rediscover them.
    constraints → observed actions → consistency/drift evaluation). **Not
    implemented in this batch**; do not build or promise it without a scope
    decision.
-6. **Retrieval-eligibility semantics** — named terminology only (existence,
+6. **Retrieval-eligibility semantics** — named terminology only (existence
    status, authority, provenance, supersession, retrieval eligibility). **No
    retrieval system is built in this batch.**
 
 ## 9. Decisions waiting on the user
 
 Consolidated in `ARCHITECTURE-SPEC-AGENT-REFERENCE.md` Part B (§34.2). **Decided:**
-the non-intrusive defaults, the `ask`-only gate with no IEG-registered answerer,
+the non-intrusive defaults, the `ask`-only gate with no IEG-registered answerer
 and deferring to `dsh-agent-instructions`. **Closed in 0.8.0:** the compatibility
 baseline re-capture (§4 item 4, Q7) and the module descriptor versions (Q9).
 **Still open:**
 
-- **Section order `8500`** — the code ships it and a regression test fixes it,
+- **Section order `8500`** — the code ships it and a regression test fixes it
   but the value itself is still to be confirmed as final (§34.2 Q2).
 - **Publish target** — registry, git, or local `file:` distribution for the
   package once Gates C and D pass (§34.2 Q5).
@@ -462,7 +486,7 @@ changes with each run — measure it with `du -sh .` instead of trusting a numbe
 ├── CODE_OF_CONDUCT.md                    Contributor Covenant 2.1
 ├── CHANGELOG.md                          release history (pre-0.7.0 keeps the ABG name)
 ├── TYPESCRIPT-MIGRATION.md               build model, exceptions, migration history
-├── scripts/                              check-install.sh, check-docs.sh, ieg-npm.sh, verify.sh
+├── scripts/                              check-install.sh, check-docs.sh, verify.sh
 ├── docs/                                 documentation index and package reference
 ├── package.json / cordis.patch.yml       the DSH bundle manifest and patch — the root is the package
 ├── src/                                  TypeScript source of truth (kernel, three modules, CLI)
@@ -482,7 +506,7 @@ changes with each run — measure it with `du -sh .` instead of trusting a numbe
 ```
 
 `eval/runs/` is created by a run rather than stored with the method:
-[`eval/README.md`](eval/README.md) holds the method and the metric definitions,
+[`eval/README.md`](eval/README.md) holds the method and the metric definitions
 not numbers. The JSON outputs of a run (`e2e-results.json`, `e2e-analysis.json`)
 are transient for the same reason — a stale copy of a derived artifact reads as a
 standing record.
@@ -567,20 +591,20 @@ old D (user-attention efficiency) -> withdrawn
 
 ### 13.5 The `0.1.0` and v0.2.0 rounds
 
-- **`0.1.0` (2026-10-01)** — the initial prototype: kernel, prompt aggregation,
+- **`0.1.0` (2026-10-01)** — the initial prototype: kernel, prompt aggregation
   module registry, and the first enforcement seams, with a 159-test evidence
   chain recorded verbatim in the CHANGELOG. Its build order and validation cases
-  lived in [`IMPLEMENTATION-VALIDATION-HANDOFF.md`](IMPLEMENTATION-VALIDATION-HANDOFF.md),
+  lived in [`IMPLEMENTATION-VALIDATION-HANDOFF.md`](IMPLEMENTATION-VALIDATION-HANDOFF.md)
   which is now a retired pointer to the maintained homes.
 - **v0.2.0** — the "operable and reviewable" round: scope-isolated per-agent
   state (Gates E/G here; F/H in the old letters), four-channel diagnosability
-  (Gate F here; G old), the compatibility adapter (Gate H here; I old),
+  (Gate F here; G old), the compatibility adapter (Gate H here; I old)
   gate-precision simulation, and the packaging groundwork. Its phases and gate
   matrix are in [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](ARCHITECTURE-SPEC-AGENT-REFERENCE.md)
   Part B. The earlier 265-test 0.5.x structural round and 238-test v0.2.0 round
   are recorded in CHANGELOG history.
 - **0.6.0** — the control-plane round: the Web panel and in-harness issue
-  reporting were removed and replaced by the terminal interface (then `abg`),
+  reporting were removed and replaced by the terminal interface (then `abg`)
   the control record, and `prompt.md`. Its `PROMPT_VERSION` was unchanged because
   the compiled governance text was identical.
 - **0.8.0 (2026-10-03)** — the **DSH migration and packaging round** (the
