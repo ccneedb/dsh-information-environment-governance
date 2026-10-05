@@ -234,6 +234,81 @@ assertion, attributes it as `user`-sourced, and exposes it on the status surface
 but it cannot independently verify that the user said it. An agent that mis-asserts
 confirmation could grant a term authority the user never gave it.
 
+### Batch 8 baseline, change log and the pre-execution verifications (R8-00)
+
+Recorded **before** any Batch 8 change, so every later claim refers to one state.
+
+| Fact | Value |
+|---|---|
+| Starting revision | **v0.12.1** (tag) — the frozen Round 7 baseline; the tree at the time of writing is ahead of it by documentation-only commits |
+| Verified DSH baseline | **0.2.1-alpha.1** (Verified; CI installs exactly this in a required job) |
+| Package / plugin version | 0.12.1 |
+| `PROMPT_VERSION` | 0.5.0 (compiled section 2,806 bytes, ceiling 2,945) |
+| `DOMAIN_VERSION` | 1 |
+| Gate C status before Batch 8 | **unmet** — unmeasured |
+| Gate D status before Batch 8 | **unmet** — unmeasured |
+| Runtime dependencies | zero |
+
+**Invalidation rule carried into the batch:** any prompt or runtime behaviour change after
+the evaluation freeze invalidates a pending behavioural result. Batch 8 changes behaviour
+(R8-01, R8-02, R8-04), so the Round 7 frozen baseline cannot be presented as the evaluated
+surface — the evaluation must run against the post-Batch-8 revision.
+
+**Batch 8 change log** — updated as each task lands:
+
+| Task | Status | Commit | Files | Tests / evidence |
+|---|---|---|---|---|
+| R8-00 baseline | **done** | this commit | this section | baseline table above |
+| R8-01 authority boundary | not started | — | — | — |
+| R8-02 information-integrity loop | not started | — | — | — |
+| R8-03 mutation governance | not started | — | — | — |
+| R8-04 supported scope | not started | — | — | — |
+| R8-05 TS migration + decomposition | not started | — | — | — |
+| R8-06 reproducible builds | not started | — | — | — |
+| R8-07 version source of truth | not started | — | — | — |
+| R8-08 docs vs history | not started | — | — | — |
+| R8-09 state schema evolution | not started | — | — | — |
+| R8-10 multilingual overlap | not started | — | — | — |
+| R8-11 credential workflow | not started | — | — | — |
+| R8-12 Gate C/D closure | not started | — | — | blocked by U8-01 until the predecessors are done |
+| R8-13 artifact cleanup | not started | — | — | U8-03 verified below |
+
+#### U8-02 — the user-confirmation seam: **verified, not invented**
+
+The host seam is the **tool-registry approval path**: `tools/pre-execute` returns
+`{ kind: 'ask' }`, the registry resolves it through the host's approval service, and the
+tool body runs **only on approval**; with no approval channel the host degrades `ask` to
+denial. This is not a proposal — IEG already relies on exactly this path for its mutation
+gate, and it is documented in the contract at `lib/contract.d.ts`: *"`ask` is resolved by
+the tool registry through `ctx.approval`; with no approval channel the host degrades `ask`
+to denial."*
+
+Consequence for R8-01: the model must lose the ability to set `confirmedByUser`
+(the orientation schema's flag is model-supplied, so it is not authority), and promotion
+to `CONFIRMED` must happen in a tool body that is **unconditionally routed through
+approval** — independent of `workspace.policy`, because this is a user-authority
+operation rather than a workspace mutation. Under that design the model cannot manufacture
+confirmation: the host decides, and a denial changes nothing.
+
+**Not yet verified, and deliberately not assumed:** whether a *user message* payload is
+readable as text (the ambient contract types `agent/pre-step`'s `messages` as `unknown[]`).
+The approval path above needs no such assumption; `agent/pre-step` remains usable for
+counting instruction batches, which is all IEG currently does with it.
+
+#### U8-03 — historical `.tgz` location: **verified**
+
+- **Git-tracked `.tgz` files: 0.** `.gitignore` already ignores `*.tgz` and
+  `*.tgz.sha256`, so a newly generated tarball cannot silently re-enter Git.
+- **Exactly one `.tgz` was added at some point in history** (`git log --all
+  --diff-filter=A -- '*.tgz'`). It is not in the current tree.
+- **Release assets are separate**: the published `.tgz` files live as GitHub Release
+  assets (v0.9.x … v0.12.1), not as repository objects.
+
+So R8-13's premise is already satisfied for the tracked tree, and its measurable storage
+impact is **zero for Git** — the later decision is whether to rewrite history to purge the
+single historical blob, which R8-13 §6 forbids without a separate justified migration plan.
+Release assets are governed by the release policy, not by repository size.
+
 ### Phase 13 — behavioural evaluation: assessed, and blocked for a stated reason
 
 **Status: not executed. Gates C and D remain unmeasured, and no behavioural result is
