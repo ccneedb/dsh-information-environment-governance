@@ -42,6 +42,7 @@ import {
   guardBackstop,
 } from './modules/workspace-governance.js'
 import { registerGovernanceTools } from './host/governance-tools.js'
+import { registerPreStepGate } from './host/pre-step-gate.js'
 import { registerInformationTools } from './host/information-tools.js'
 import { registerMaintenanceTool } from './host/maintenance-tool.js'
 import {
@@ -754,47 +755,12 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
 
   /* ── 2. pre-step orientation gate ─────────────────────────────────────── */
 
-  const onPreStep = async (payload: IegPreStepPayload, next: () => Promise<IegPreStepDecision>): Promise<IegPreStepDecision> => {
-    // The step's own agent decides which orientation is evaluated.
-    const agent = payload?.agent
-    const { orientation, batches } = governance.forAgent(agent)
-
-    // Batch 6 §6: count direct user instruction batches. The host opens one turn
-    // per batch of user messages and repeats that turn for every internal step, so
-    // keying on the turn (and requiring a message) excludes steps, tool calls and
-    // generated context by construction.
-    const counted = countInstructionBatch(batches, { turn: payload?.turn, messages: payload?.messages })
-    // The diagnostic *is* the announcement, so it fires on the batch that crosses
-    // the threshold and not on every counted batch. The running count is visible in
-    // the status line and in `ieg_status` either way.
-    if (counted.due) {
-      note('ieg.maintenance_due', {
-        batches: batches.count,
-        threshold: MAINTENANCE_BATCH_THRESHOLD,
-        agentId: agentIdOf(agent),
-      }, `ieg: maintenance_due batches=${batches.count}/${MAINTENANCE_BATCH_THRESHOLD} — run the maintenance round at the next safe boundary`)
-    }
-    const { decision, missing } = evaluateOrientationGate(orientation.state(), config.preStep.orientationGate)
-    if (decision !== null) {
-      note(
-        'ieg.orientation_required',
-        { phase: 'pre-step', missing, agentId: agentIdOf(agent) },
-        `ieg: pre_step_rejected missing=${missing.join(',')} agent=${agentIdOf(agent) || '-'}`,
-        'warn',
-      )
-      return decision
-    }
-    if (config.preStep.orientationGate === 'warn' && missing.length > 0) {
-      note(
-        'ieg.orientation_required',
-        { phase: 'pre-step', outcome: 'warn', missing },
-        `ieg: orientation_incomplete missing=${missing.join(',')}`,
-      )
-    }
-    return next()
-  }
-  guarded('agent/pre-step', () => {
-    ctx.on('agent/pre-step', onPreStep)
+  registerPreStepGate({
+    note,
+    guarded,
+    governance,
+    orientationGate: config.preStep.orientationGate,
+    on: (event, handler) => ctx.on(event, handler),
   })
 
   /* ── 3. mutation gate: tools/pre-execute ──────────────────────────────── */

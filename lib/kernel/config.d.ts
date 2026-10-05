@@ -34,6 +34,8 @@ export declare const DEFAULT_MUTATING_TOOLS: readonly string[];
  * status line at the same order when no validated configuration exists.
  */
 export declare const DEFAULT_SECTION_ORDER = 8500;
+/** The permitted pre-step gate modes. Exported so the host layer can name the type (R8-05). */
+export declare const ORIENTATION_GATES: string[];
 /** Raised when a configuration value is missing, malformed, or unknown. */
 export declare class IegConfigError extends Error {
     constructor(message: string);
