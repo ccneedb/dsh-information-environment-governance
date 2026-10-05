@@ -1,12 +1,12 @@
 ---
 doc_type: changelog
 project: information-environment-governance
-version: 0.11.0
-plugin_version: 0.11.0
+version: 0.12.0
+plugin_version: 0.12.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.11.0-batch-6
+revision: 0.12.0-batch-7
 audience: everyone
 language: en
 ---
@@ -32,6 +32,57 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.12.0] — 2026-10-05
+
+**Round 7 — stabilization, terminology governance and validation preparation.**
+`PROMPT_VERSION` is unchanged at 0.5.0 (the compiled section text is identical);
+this release adds persistent terminology state and repairs the CI baseline.
+
+### Fixed — the declared compatibility baseline was never enforced
+
+- CI installed `@deepseek-ai/dsh@0.2.0-rc.2`, the release retired in the 0.8.0
+  re-baseline, while the package declared `0.2.1-alpha.1` as verified. The host job
+  now installs exactly the verified release and is **required** — a compatibility
+  failure is a CI failure, not a warning.
+- That job still ran `scripts/ieg-npm*.sh`, deleted in Batch 5, hidden by
+  `continue-on-error`. The dead step is gone.
+- TypeScript was installed from a floating global; it is pinned to `6.0.3`, inside
+  the declared devDependency range and the version exercised locally.
+
+### Added — the project-local glossary
+
+- `src/kernel/glossary.ts`: the nine-field entry model, the four statuses, the
+  three sources, and the five-rung authority ladder. **User authority is structural,
+  not conventional**: an agent-inferred entry can never reach `CONFIRMED`, and an
+  inferred upsert of a confirmed entry is refused with its reason. Persisted state
+  that violates an invariant is dropped on load rather than re-entering as authority.
+- The glossary lives on the existing project ontology (`ProjectState.glossary`), so
+  terminology is persistent state rather than a prompt list; the flat `terminology`
+  map is now a derived, non-authoritative projection.
+- `record_orientation` captures terms with `aliases`, `scope`, `confidence` and an
+  explicit `confirmedByUser` flag. Unset means inferred, which always yields
+  `PROVISIONAL`.
+- `resolveTerm()` returns `exact | alias | deprecated | ambiguous | conflicted |
+  unknown` — the deterministic core of the three behaviour tiers. No kind blocks
+  work, and a harmless alias is the accept-silently case.
+
+### Documentation
+
+- The compatibility states (Verified, Compatible, Unsupported, Unknown) and the
+  terminology authority model are recorded in `MAINTENANCE-HANDOFF.md` §3, including
+  the known limitation that `confirmedByUser` is asserted by the agent and cannot be
+  independently verified.
+
+### Verification
+
+- `node --test` **284/284**, including 17 terminology tests: the ten required
+  acceptance scenarios, each paired with its non-overreach counterpart, plus the
+  invariant and orientation-capture tests.
+- The ten scenarios: exact term, harmless alias, material ambiguity, intentional
+  user term, new user-established term, deprecated term, conflicting documents,
+  user overriding a provisional entry, deprecated terminology in an artifact, and
+  canonical preference across artifacts.
 
 ## [0.11.0] — 2026-10-04
 

@@ -23,10 +23,23 @@
  * Nothing here evaluates observed actions, and the gate must never be described
  * as if it did.
  */
+import { type Glossary } from '../kernel/glossary.js';
 export interface ProjectState {
     intent: string;
     objective: string;
     scope: string;
+    /**
+     * The project-local glossary — the authoritative terminology state.
+     *
+     * Batch 7 Phase 7 chose the existing project ontology over a new subsystem, so the
+     * glossary lives here beside the constraints and assumptions it belongs with.
+     */
+    glossary: Glossary;
+    /**
+     * A flat, derived projection of the glossary, kept for reporting and for the
+     * orientation gate's "terminology was declared" check. It is never authoritative:
+     * the glossary is.
+     */
     terminology: Record<string, string>;
     constraints: string[];
     assumptions: string[];
@@ -35,10 +48,16 @@ export interface ProjectState {
     currentPhase: string;
 }
 export interface ProjectEvent {
-    type: 'set-intent' | 'set-objective' | 'set-scope' | 'set-phase' | 'define-term' | 'add-constraint' | 'add-assumption' | 'add-unknown' | 'add-plan-step' | 'resolve-unknown';
+    type: 'set-intent' | 'set-objective' | 'set-scope' | 'set-phase' | 'define-term' | 'add-constraint' | 'add-assumption' | 'add-unknown' | 'add-plan-step' | 'resolve-unknown' | 'glossary-define' | 'glossary-confirm' | 'glossary-deprecate';
     value?: string;
     term?: string;
     definition?: string;
+    /** For glossary events: who is speaking, and the entry's optional detail. */
+    source?: string;
+    aliases?: string[];
+    scope?: string;
+    confidence?: number;
+    supersedes?: string[];
 }
 /** The orientation fields required before major execution (PR-01). */
 export declare const REQUIRED_ORIENTATION_FIELDS: readonly string[];

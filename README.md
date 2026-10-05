@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.11.0
+plugin_version: 0.12.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.11.0-batch-6
+revision: 0.12.0-batch-7
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 format_note: conservative-machine-readable-markdown
@@ -214,6 +214,20 @@ It reports its own state through the `ieg:status` runtime-context line and the
 `ieg.*` diagnostic codes. Full runtime detail is in
 [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](ARCHITECTURE-SPEC-AGENT-REFERENCE.md)
 Part B.
+
+## Terminology governance
+
+IEG keeps a **project-local glossary** as persistent project state: `canonicalTerm`,
+`definition`, `aliases[]`, `status` (`PROVISIONAL | CONFIRMED | DEPRECATED |
+CONFLICTED`), `source`, `scope`, `confirmedByUser`, `confidence` and `supersedes[]`.
+Terms captured during orientation enter as **provisional and inferred**; only an
+explicit user statement makes a term confirmed.
+
+It is semantic alignment, not language policing: a harmless alias is accepted
+silently, an ambiguity is surfaced, and a conflict is reported rather than resolved
+by choosing a meaning. The precedence model and its invariant — *an inferred entry
+never becomes unquestionable authority merely by being persisted* — are in
+[`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3.
 
 ## Maintenance round
 

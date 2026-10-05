@@ -24,10 +24,28 @@
  * as if it did.
  */
 
+// The only import in this module: the glossary kernel (Batch 7 Phase 7). It is
+// dependency-free — no Node builtins, no host packages — so it cannot affect where
+// this module mounts, and reusing it is what keeps terminology on the existing
+// project ontology instead of becoming a second state system.
+import { confirmTerm, createGlossary, deprecateTerm, upsertTerm, type Glossary } from '../kernel/glossary.js'
+
 export interface ProjectState {
   intent: string
   objective: string
   scope: string
+  /**
+   * The project-local glossary — the authoritative terminology state.
+   *
+   * Batch 7 Phase 7 chose the existing project ontology over a new subsystem, so the
+   * glossary lives here beside the constraints and assumptions it belongs with.
+   */
+  glossary: Glossary
+  /**
+   * A flat, derived projection of the glossary, kept for reporting and for the
+   * orientation gate's "terminology was declared" check. It is never authoritative:
+   * the glossary is.
+   */
   terminology: Record<string, string>
   constraints: string[]
   assumptions: string[]
@@ -48,9 +66,18 @@ export interface ProjectEvent {
     | 'add-unknown'
     | 'add-plan-step'
     | 'resolve-unknown'
+    | 'glossary-define'
+    | 'glossary-confirm'
+    | 'glossary-deprecate'
   value?: string
   term?: string
   definition?: string
+  /** For glossary events: who is speaking, and the entry's optional detail. */
+  source?: string
+  aliases?: string[]
+  scope?: string
+  confidence?: number
+  supersedes?: string[]
 }
 
 /** The orientation fields required before major execution (PR-01). */
@@ -61,6 +88,7 @@ export function createProjectState(): ProjectState {
     intent: '',
     objective: '',
     scope: '',
+    glossary: createGlossary(),
     terminology: {},
     constraints: [],
     assumptions: [],
@@ -77,7 +105,16 @@ export function createProjectState(): ProjectState {
  * mutated.
  */
 export function applyProjectEvent(state: ProjectState, event: ProjectEvent): ProjectState {
-  const next = { ...state, terminology: { ...state.terminology } }
+  const next = {
+    ...state,
+    terminology: { ...state.terminology },
+    glossary: { entries: [...state.glossary.entries] },
+  }
+
+  /** Keep the derived projection in step with the authoritative glossary. */
+  const project = (): void => {
+    next.terminology = Object.fromEntries(next.glossary.entries.map((entry) => [entry.canonicalTerm, entry.definition]))
+  }
   switch (event.type) {
     case 'set-intent':
       next.intent = event.value ?? ''
@@ -93,6 +130,40 @@ export function applyProjectEvent(state: ProjectState, event: ProjectEvent): Pro
       break
     case 'define-term':
       if (event.term !== undefined) next.terminology[event.term] = event.definition ?? ''
+      break
+    case 'glossary-define':
+      // An orientation-captured term is inferred: it enters as PROVISIONAL and can
+      // never revise a confirmed entry (Batch 7 Phase 9).
+      if (event.term !== undefined) {
+        upsertTerm(next.glossary, {
+          canonicalTerm: event.term,
+          ...(event.definition === undefined ? {} : { definition: event.definition }),
+          source: event.source ?? 'agent-inferred',
+          ...(event.aliases === undefined ? {} : { aliases: event.aliases }),
+          ...(event.scope === undefined ? {} : { scope: event.scope }),
+          ...(event.confidence === undefined ? {} : { confidence: event.confidence }),
+          ...(event.supersedes === undefined ? {} : { supersedes: event.supersedes }),
+        })
+        project()
+      }
+      break
+    case 'glossary-confirm':
+      if (event.term !== undefined) {
+        confirmTerm(next.glossary, {
+          canonicalTerm: event.term,
+          ...(event.definition === undefined ? {} : { definition: event.definition }),
+          ...(event.aliases === undefined ? {} : { aliases: event.aliases }),
+          ...(event.scope === undefined ? {} : { scope: event.scope }),
+          ...(event.supersedes === undefined ? {} : { supersedes: event.supersedes }),
+        })
+        project()
+      }
+      break
+    case 'glossary-deprecate':
+      if (event.term !== undefined) {
+        deprecateTerm(next.glossary, event.term, event.value)
+        project()
+      }
       break
     case 'add-constraint':
       next.constraints = [...state.constraints, event.value ?? '']

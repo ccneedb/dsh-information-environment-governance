@@ -16,6 +16,7 @@
  * costs one extra tool call rather than adding friction to every action.
  */
 
+import { serialiseGlossary } from './glossary.js'
 import { applyProjectEvent, createProjectState, orientationStatus } from '../modules/project-governance.js'
 
 /** The model-facing tool that records orientation. */
@@ -71,7 +72,14 @@ export function createOrientationStore(): OrientationStore {
     const objective = requireText(payload.objective, 'objective')
     const scope = requireText(payload.scope, 'scope')
 
-    let terminology: Array<{ term: string, definition: string }> = []
+    let terminology: Array<{
+      term: string
+      definition: string
+      aliases: string[]
+      scope: string
+      confidence: number
+      confirmedByUser: boolean
+    }> = []
     if (payload.terminology !== undefined) {
       if (!Array.isArray(payload.terminology)) throw new OrientationError('"terminology" must be an array')
       terminology = payload.terminology.map((entry, index) => {
@@ -79,9 +87,19 @@ export function createOrientationStore(): OrientationStore {
           throw new OrientationError(`"terminology[${index}]" must be an object`)
         }
         const term = entry as Record<string, unknown>
+        const aliases = term.aliases === undefined
+          ? []
+          : (Array.isArray(term.aliases) ? term.aliases.map((alias, at) => requireText(alias, `terminology[${index}].aliases[${at}]`)) : (() => { throw new OrientationError(`"terminology[${index}].aliases" must be an array`) })())
         return {
           term: requireText(term.term, `terminology[${index}].term`),
           definition: requireText(term.definition, `terminology[${index}].definition`),
+          aliases,
+          scope: typeof term.scope === 'string' ? term.scope : '',
+          confidence: typeof term.confidence === 'number' && term.confidence >= 0 && term.confidence <= 1 ? term.confidence : 0.5,
+          // Only an explicit user statement makes an entry authoritative. The agent
+          // asserts that; the assertion is recorded and visible, never assumed
+          // (Batch 7 Phase 8/9).
+          confirmedByUser: term.confirmedByUser === true,
         }
       })
     }
@@ -97,7 +115,11 @@ export function createOrientationStore(): OrientationStore {
     next = applyProjectEvent(next, { type: 'set-objective', value: objective })
     next = applyProjectEvent(next, { type: 'set-scope', value: scope })
     for (const entry of terminology) {
-      next = applyProjectEvent(next, { type: 'define-term', term: entry.term, definition: entry.definition })
+      // A user-stated term is confirmed; anything the agent inferred enters the
+      // glossary as PROVISIONAL and can never revise a confirmed entry.
+      next = entry.confirmedByUser
+        ? applyProjectEvent(next, { type: 'glossary-confirm', term: entry.term, definition: entry.definition, aliases: entry.aliases, scope: entry.scope, source: 'user' })
+        : applyProjectEvent(next, { type: 'glossary-define', term: entry.term, definition: entry.definition, aliases: entry.aliases, scope: entry.scope, confidence: entry.confidence, source: 'agent-inferred' })
     }
     for (const step of steps) next = applyProjectEvent(next, { type: 'add-plan-step', value: step })
     next = applyProjectEvent(next, { type: 'set-phase', value: 'executing' })
@@ -114,6 +136,7 @@ export function createOrientationStore(): OrientationStore {
       objective: state.objective,
       scope: state.scope,
       terminology: state.terminology,
+      glossary: serialiseGlossary(state.glossary),
       plan: [...plan],
       note: 'Orientation recorded. Persistent workspace changes are now permitted for this session.',
     }
@@ -222,8 +245,15 @@ export function orientationToolDefinition(
           items: {
             type: 'object',
             properties: {
-              term: { type: 'string' },
-              definition: { type: 'string' },
+              term: { type: 'string', description: 'The canonical term.' },
+              definition: { type: 'string', description: 'What the term means in this project.' },
+              aliases: { type: 'array', items: { type: 'string' }, description: 'Known harmless synonyms for the same project meaning.' },
+              scope: { type: 'string', description: 'The project area the term belongs to, if it is not project-wide.' },
+              confidence: { type: 'number', description: 'How strongly the evidence supports an inferred term, 0 to 1.' },
+              confirmedByUser: {
+                type: 'boolean',
+                description: 'Set true ONLY when the user stated this term and meaning explicitly. A term you inferred must leave this unset: it is recorded as provisional and is never treated as authority.',
+              },
             },
             required: ['term', 'definition'],
           },

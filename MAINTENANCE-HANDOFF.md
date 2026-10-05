@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.11.0
+plugin_version: 0.12.0
 version: 0.8.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.11.0-batch-6
+revision: 0.12.0-batch-7
 host_baseline_verified: dsh-0.2.1-alpha.1
 supersedes: none
 language: en
@@ -185,6 +185,54 @@ precedes any prompt edit; the text itself is unchanged in 0.10.0.
 | Before creating, look for an existing artifact serving the same purpose | heuristic, now role-aware, plus guidance |
 | Never claim authorization the user has not given | deterministic (mutation gate, approval path) |
 | A previous approval is not standing authorization | guidance reinforced per call: the gate asks each time |
+
+### Terminology authority model (Batch 7 Phases 7-9)
+
+The glossary is **persistent project state**, not a prompt list: it lives on the
+project ontology beside the constraints and assumptions it belongs with
+(`ProjectState.glossary` in `src/modules/project-governance.ts`), and it is
+implemented in `src/kernel/glossary.ts`.
+
+**Precedence**, highest first — a lower rung never overrides a higher one:
+
+| # | Rung |
+|---|---|
+| 1 | DSH host semantics |
+| 2 | an explicit current user instruction or clarification |
+| 3 | user-confirmed project terminology |
+| 4 | authoritative project documentation |
+| 5 | provisional / inferred glossary entries |
+
+The invariant: **an agent-inferred entry never becomes unquestionable authority
+merely because it has been persisted.** It is enforced in code, not by the prompt
+asking nicely: an inferred upsert of an existing `CONFIRMED` or `DEPRECATED` entry
+is *refused* with its reason (`upsertTerm`), inference always yields
+`PROVISIONAL` with `confirmedByUser: false`, and `confirmedByUser: true` is only
+reachable through `confirmTerm`, which records `source: 'user'`. Conflicted entries
+cannot be user-confirmed, and `deserialiseGlossary` drops any persisted entry that
+violates an invariant, so corrupt state cannot re-enter as authority.
+
+**Three behaviour tiers, with the non-overreach rule for each:**
+
+| Tier | Trigger | Behaviour | Must not |
+|---|---|---|---|
+| 1 | known harmless alias | accepted; the canonical form is available for generated artifacts | interrupt, block or repeatedly correct the user |
+| 2 | materially ambiguous term | surface the readings, state the inferred one, ask when it matters | guess silently and proceed |
+| 3 | conflict with established semantics or documentation | surface it, state the difference, seek resolution | pick a meaning because the glossary lists one |
+
+`resolveTerm()` returns `exact | alias | deprecated | ambiguous | conflicted |
+unknown`. None of those kinds is a verdict about the user, and none blocks work —
+`alias` is the accept-silently case, and `unknown` is not corrected.
+
+**Verified by** `test/unit/glossary.test.js`: the ten acceptance scenarios the batch
+names, each paired with its non-overreach counterpart, plus the invariant tests and
+the orientation capture path.
+
+**Known limitation, stated rather than glossed:** `confirmedByUser` is *asserted by
+the agent* when it reports the user's explicit statement. The system records the
+assertion, attributes it as `user`-sourced, and exposes it on the status surface,
+but it cannot independently verify that the user said it. An agent that mis-asserts
+confirmation could grant a term authority the user never gave it.
 
 ### DSH compatibility policy (Batch 7 Phase 4)
 
