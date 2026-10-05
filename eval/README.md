@@ -75,7 +75,13 @@ stored until one is performed. `e2e.mjs` and `e2e-analyze.mjs` write JSON
 summaries that cover only the invocation that produced them; those are transient
 and are not kept.
 
-**Re-creating the end-to-end environment.** The throwaway profile and the staged
+**Authentication.** Credentials are **operator-supplied**, never assumed to live at a
+fixed path. The supported path is the **host's own authentication**: a profile that is
+already signed in needs nothing staged here. Staging a copy is the fallback for a
+throwaway home, and it is an explicit act on a file the operator names — no IEG script
+and no document assumes a particular user's home directory.
+
+**Re-creating the end-to-end environment.** The throwaway profile and any staged
 credentials are regenerated, never stored: a previous home held a copy of the
 user's credentials file, and its linked plugin copy went stale. `.ieg-e2e/`
 therefore holds only the two overlay files — `ieg-config.yml` (treatment) and
@@ -86,15 +92,28 @@ cd <repository root>
 export DSH_HOME=$PWD/.ieg-e2e/dsh-home
 dsh --profile iege2e --from-default-profile headless --dump-config   # throwaway profile
 dsh plugin --profile iege2e add "file:$PWD"                       # install IEG (repository root)
-cp /home/hero/.dsh/.credentials.yaml "$DSH_HOME/.credentials.yaml"   # stage credentials
-chmod 600 "$DSH_HOME/.credentials.yaml"
+
+# Staging is optional and explicit. Skip it entirely when the host is already
+# authenticated; otherwise the operator names the source file.
+: "${IEG_EVAL_CREDENTIALS:?set IEG_EVAL_CREDENTIALS to the credentials file to stage}"
+install -m 600 "$IEG_EVAL_CREDENTIALS" "$DSH_HOME/.credentials.yaml"
+
 node eval/e2e.mjs 4 auth-doc-request
 node eval/e2e-analyze.mjs
-rm -rf .ieg-e2e/dsh-home                                             # also removes the credentials
+rm -rf .ieg-e2e/dsh-home                                             # also removes the staged copy
 ```
 
-Staging credentials is a deliberate, user-authorized act: do it only for a run
-sequence, and delete the home as soon as the sequence finishes.
+**Cleanup assertion.** A run is not finished until the staged copy is gone. This fails
+loudly if credentials were left behind, which is the check the earlier workflow lacked:
+
+```bash
+test ! -e .ieg-e2e/dsh-home/.credentials.yaml \
+  && echo "cleanup verified: no staged credentials remain"
+```
+
+Nothing under `eval/` writes credentials into an artifact: the JSON summaries carry the
+task, the arm and filesystem facts. `e2e.mjs` never reads the credentials file — the host
+does, at request time — so a run cannot copy a secret into its own output.
 
 **Re-measuring without model calls.** Metrics are recomputed from a sandbox, so
 improving the detector re-scores every existing run for free:

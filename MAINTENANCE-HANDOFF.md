@@ -269,7 +269,7 @@ surface — the evaluation must run against the post-Batch-8 revision.
 | R8-08 docs vs history | not started | — | — | — |
 | R8-09 state schema evolution | not started | — | — | — |
 | R8-10 multilingual overlap | not started | — | — | — |
-| R8-11 credential workflow | not started | — | — | — |
+| R8-11 credential workflow | **done** | this commit | `eval/README.md`, this document | the hardcoded developer credentials path is gone; credentials are **operator-supplied** (`IEG_EVAL_CREDENTIALS`) or the host's own authentication, with no home-directory assumption anywhere in the repository; a **cleanup assertion** fails loudly if a staged copy remains; and the doc states that no `eval/` artifact can capture a secret because `e2e.mjs` never reads the credentials file |
 | R8-12 Gate C/D closure | not started | — | — | blocked by U8-01 until the predecessors are done |
 | R8-13 artifact cleanup | not started | — | — | U8-03 verified below |
 
@@ -770,7 +770,7 @@ Two further reasons it would not appear anywhere else:
 To install it into the live profile (**not recommended while §4 is open**):
 
 ```bash
-dsh plugin --profile web add file:/home/hero/Deepseek-harness-0928/DSH-plugins/agent-behavioral-governance-pugin
+dsh plugin --profile web add file:<repository root>
 ```
 
 ## 11. Resolved: `dsh-free-search` removal
