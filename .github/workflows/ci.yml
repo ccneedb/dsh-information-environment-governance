@@ -34,8 +34,11 @@ jobs:
       # The package itself has zero dependencies — that is a design property, not
       # an oversight — so the compiler is installed for the check rather than
       # declared as a runtime dependency.
-      - name: Install TypeScript
-        run: npm install --global typescript@6.0.3
+      # Immutable install from the committed lockfile: the toolchain version is pinned
+      # in `package.json` and resolved by `package-lock.json`, so a build does not depend
+      # on what the registry serves that day (R8-06 §1-4).
+      - name: Install the pinned toolchain (immutable)
+        run: npm ci --ignore-scripts
       - name: Build the migrated TypeScript sources
         run: npm run build
       - name: Typecheck (strict checkJs)
@@ -71,8 +74,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install TypeScript
-        run: npm install --global typescript@6.0.3
+      # Immutable install from the committed lockfile: the toolchain version is pinned
+      # in `package.json` and resolved by `package-lock.json`, so a build does not depend
+      # on what the registry serves that day (R8-06 §1-4).
+      - name: Install the pinned toolchain (immutable)
+        run: npm ci --ignore-scripts
       - name: Install the verified host release
         run: npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
       # `dsh plugin add` forwards to pnpm, and the host does not bundle it. Before

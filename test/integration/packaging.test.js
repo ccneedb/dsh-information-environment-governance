@@ -200,3 +200,21 @@ test('release metadata is internally consistent', async () => {
     'the committed baseline file must describe the declared baseline',
   )
 })
+
+/**
+ * R8-06: reproducible builds and development dependencies.
+ *
+ * The package's zero-runtime-dependency property is a design commitment, not an
+ * accident: it is what lets IEG mount in any composition without resolving a tree. The
+ * build toolchain, by contrast, must be pinned exactly and resolved from a lockfile, so
+ * that a verification result describes a known compiler rather than whatever the
+ * registry served that morning.
+ */
+test('R8-06: zero runtime dependencies, and an exactly pinned build toolchain', () => {
+  assert.deepEqual(manifest.dependencies ?? {}, {}, 'IEG ships with zero runtime dependencies')
+  const dev = manifest.devDependencies ?? {}
+  assert.ok(dev.typescript, 'the build toolchain is declared as a devDependency')
+  assert.match(String(dev.typescript), /^\d+\.\d+\.\d+$/, `the toolchain must be pinned exactly, not a range: ${dev.typescript}`)
+  assert.ok(existsSync(at('package-lock.json')), 'a committed lockfile is what makes the install reproducible')
+  assert.notEqual(manifest.packageManager, undefined, 'the package manager itself is declared')
+})

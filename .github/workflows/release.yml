@@ -48,7 +48,9 @@ jobs:
       # installed for the build rather than declared as a runtime dependency,
       # matching the CI `checks` job.
       - name: Install the TypeScript compiler
-        run: npm install --global typescript
+        # Immutable install from the committed lockfile, so a released artifact is built
+        # by the pinned compiler rather than whatever the registry serves that day (R8-06).
+        run: npm ci --ignore-scripts
 
       - name: Build the generated sources
         run: npm run build
