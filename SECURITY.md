@@ -123,3 +123,33 @@ Part B.
 When reporting a *task* failure rather than a vulnerability, use the
 [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml)
 issue form.
+
+## The `protectedPaths` boundary (R8-03)
+
+**`protectedPaths` is an advisory governance layer above the host sandbox. It is not a
+security boundary, and IEG does not claim one.**
+
+What it does: a target that canonicalises into a protected path is refused outright by
+`tools/pre-execute`, before the configured policy is consulted, and `ctx.tools.guard`
+re-asserts the same refusal monotonically. Canonicalisation is **lexical** — it unifies
+separators and resolves `.` and `..` — so a detour such as `/repo/./secrets/key` or
+`/repo/a/../secrets/key` is judged against the same boundary as the direct path. A root
+boundary (`/`) protects everything.
+
+What it does **not** do, stated rather than implied:
+
+- **it does not resolve symlinks.** That needs the filesystem, and the classifier is
+  synchronous because the monotonic guard is. A symlink pointing into a protected path is
+  the host sandbox's concern;
+- **it does not expand `~`**, which is a shell construct evaluated by the shell;
+- **it cannot see through an opaque command string.** Shell tools are not classified as
+  mutating tools by default, and command text is inspected heuristically: a payload
+  assembled at runtime (a variable, a base64 decode, a nested interpreter) is not
+  reliably classifiable from text;
+- **it does not confine the filesystem.** The host's own sandbox does that, and where the
+  two disagree, the host's answer is the one that takes effect.
+
+The consequence is deliberate and matches the architecture: IEG raises the cost of an
+accidental or careless write to a path the operator marked, and reports what it did.
+Confidentiality and integrity against a determined adversary remain the host's
+responsibility.

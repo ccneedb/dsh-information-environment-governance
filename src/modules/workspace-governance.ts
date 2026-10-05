@@ -61,7 +61,16 @@ const WRITING_COMMANDS = Object.freeze([
  * really does remove files.
  */
 const COMMAND_WRAPPERS = Object.freeze([
+  // Shells: their quoted arguments are commands, so the quotes must not be blanked.
   'bash', 'sh', 'zsh', 'dash', 'ksh', 'eval', 'pwsh', 'powershell', 'cmd',
+  // Execution prefixes (R8-03 §2). `sudo bash -c "echo x > f"` put the redirect inside
+  // a quoted argument; because `sudo` was not recognised as a prefix, the quotes were
+  // blanked as data and the write went unclassified. These prefixes execute what
+  // follows, so the payload is inspected the same way a bare shell's would be.
+  // Recognising them can only *add* inspection; a write is still only reported on an
+  // actual redirect or a writing command, so a read-only `sudo ls` stays read-only.
+  'sudo', 'doas', 'env', 'nohup', 'setsid', 'stdbuf', 'time', 'nice', 'ionice',
+  'command', 'exec', 'xargs',
 ])
 
 /**
@@ -154,9 +163,39 @@ export function commandWritesFiles(command: unknown): boolean {
  * Normalise a path-like target for prefix comparison only. IEG does not perform
  * containment resolution; this is a string comparison for policy matching.
  */
+/**
+ * Canonicalise a path *lexically* (R8-03 §4).
+ *
+ * Unifies separators, drops `.` segments and resolves `..` without touching the
+ * filesystem. Before this, a target like `/repo/./secrets/key` or
+ * `/repo/a/../secrets/key` did not match the `/repo/secrets` boundary, so a
+ * protected path could be reached by a detour through dot segments.
+ *
+ * Deliberately **not** done here, and stated in `SECURITY.md` rather than implied:
+ *
+ * - **symlinks** are not resolved. Doing so needs the filesystem, and this predicate is
+ *   synchronous because the monotonic `tools.guard` backstop is. A symlink that points
+ *   into a protected path is the host sandbox's boundary, not IEG's;
+ * - `~` is not expanded: it is a shell-level construct, and the shell is the host's.
+ */
 function normaliseTarget(target: string): string {
   const unified = target.replace(/\\/g, '/').replace(/\/{2,}/g, '/')
-  return unified.length > 1 ? unified.replace(/\/+$/, '') : unified
+  const absolute = unified.startsWith('/')
+  const resolved: string[] = []
+  for (const segment of unified.split('/')) {
+    if (segment === '' || segment === '.') continue
+    if (segment === '..') {
+      // `..` at the root of an absolute path cannot go above it; for a relative path
+      // the leading `..` segments are retained, since they are meaningful without a cwd.
+      if (resolved.length > 0 && resolved[resolved.length - 1] !== '..') resolved.pop()
+      else if (!absolute) resolved.push('..')
+      continue
+    }
+    resolved.push(segment)
+  }
+  const joined = resolved.join('/')
+  if (absolute) return `${joined === '' ? '/' : `/${joined}`}`
+  return joined === '' ? '.' : joined
 }
 
 /**
@@ -185,6 +224,9 @@ export function isProtectedPath(target: string, protectedPaths: readonly string[
   const candidate = normaliseTarget(target)
   return protectedPaths.some((entry) => {
     const boundary = normaliseTarget(entry)
+    // A root boundary protects everything; without this, `boundary` of `/` would build
+    // the prefix `//` and match nothing.
+    if (boundary === '/') return candidate.startsWith('/')
     return candidate === boundary || candidate.startsWith(`${boundary}/`)
   })
 }

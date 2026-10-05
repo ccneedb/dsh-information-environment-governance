@@ -108,3 +108,58 @@ test('shell tools are declared and recognised', () => {
   assert.equal(classifyMutation('bash_persistent', { command: 'echo x > f' }, POLICY).kind, 'persistent-mutation')
   assert.equal(classifyMutation('pwsh', { command: 'Remove-Item f' }, POLICY).kind, 'read-only')
 })
+
+/* ── R8-03 §2-3: wrapped/nested execution and redirection, adversarially ─────── */
+
+test('R8-03: wrapped and nested shell execution is not a blind spot', () => {
+  const writing = [
+    'bash -c "echo x > f"',
+    "sh -c 'echo x >> f'",
+    'bash -c \'bash -c "echo x > y"\'',
+    'sudo bash -c "echo x > /etc/f"',
+    'env bash -c "echo x > f"',
+  ]
+  for (const command of writing) {
+    assert.equal(commandWritesFiles(command), true, `must be classified as a write: ${command}`)
+  }
+})
+
+test('R8-03: redirection and file-effect idioms are classified', () => {
+  const writing = [
+    'echo hi > out.txt',
+    'echo hi >> out.txt',
+    'cat > out.txt <<EOF',
+    'printf x | tee out.txt',
+    'dd if=/dev/zero of=out.txt',
+    'sed -i s/a/b/ out.txt',
+    'cp a.txt b.txt',
+    'mv a.txt b.txt',
+    'rm -rf build',
+  ]
+  for (const command of writing) {
+    assert.equal(commandWritesFiles(command), true, `must be classified as a write: ${command}`)
+  }
+})
+
+test('R8-03: read-only idioms are not classified as writes', () => {
+  const reading = [
+    'ls -la',
+    'ls > /dev/null',
+    'cat a.txt',
+    'node --test 2>&1',
+    'rg "=>" src',
+    'git commit -m "fix > issue"',
+    'git log --oneline | head -5',
+  ]
+  for (const command of reading) {
+    assert.equal(commandWritesFiles(command), false, `must not be classified as a write: ${command}`)
+  }
+})
+
+test('R8-03: a payload assembled at runtime is a documented limitation, not a claim', () => {
+  // SECURITY.md states this boundary: shell tools are governed by *text* inspection, so
+  // a command whose write target is only known at execution time is not reliably
+  // classifiable. Asserting the actual behaviour keeps the documentation honest — the
+  // alternative would be a test that pretends text inspection can see through a variable.
+  assert.equal(commandWritesFiles('cmd="echo x > f"; bash -c "$cmd"'), false)
+})
