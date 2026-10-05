@@ -106,11 +106,14 @@ fi
 # a rebuild, or the build is not deterministic. All three are defects, and none of them
 # is visible from the test suite alone.
 step "Generated output matches a fresh build of the sources"
-if (cd "$PACKAGE_DIR" && git diff --quiet -- lib); then
-  pass "lib/ is identical to a fresh build of src/ (no generated-source drift)"
+# `git status` rather than `git diff`: a newly generated file is *untracked*, so a
+# diff-based check silently ignores it. Modified, deleted and untracked generated files
+# are all drift.
+if [ -z "$(cd "$PACKAGE_DIR" && git status --porcelain -- lib)" ]; then
+  pass "lib/ matches a fresh build of src/ and is fully committed (no generated-source drift)"
 else
   fail "lib/ drifted from src/ — rebuild and commit the generated output"
-  (cd "$PACKAGE_DIR" && git diff --stat -- lib | tail -8) || true
+  (cd "$PACKAGE_DIR" && git status --porcelain -- lib | head -8) || true
 fi
 
 # ── 1. typecheck ─────────────────────────────────────────────────────────────

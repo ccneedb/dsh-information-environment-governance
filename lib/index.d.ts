@@ -20,12 +20,26 @@ import { createRegistry } from './kernel/registry.js';
 import { compilePrompt } from './kernel/prompt-compiler.js';
 import { createProjectState, evaluateOrientationGate } from './modules/project-governance.js';
 import { classifyMutation, decideMutation, guardBackstop } from './modules/workspace-governance.js';
+export { CONFIRM_INFORMATION_TOOL_NAME, MAINTENANCE_TOOL_NAME, RECORD_INFORMATION_TOOL_NAME, STATUS_TOOL_NAME, renderJson, } from './host/tool-surface.js';
 /** Options for {@link buildGovernance}. */
 interface BuildGovernanceOptions {
     overrideText?: string;
     promptFileText?: string;
     promptFilePath?: string;
 }
+/**
+ * Project one read-only tool's canonical JSON value to model content.
+ *
+ * `ieg_status` is the surface an operator or agent reads to learn what the
+ * governance layer is doing. Its canonical value is already lossless JSON, but
+ * a tool result only reaches the model through `render`, and returning no
+ * content there made the tool silently useless: the call succeeded and the
+ * model saw nothing. Rendering the value fixes that.
+ *
+ * @param {unknown} _args
+ * @param {unknown} value
+ * @returns {Array<{ type: 'text', text: string }>}
+ */
 /** Cordis plugin name. */
 export declare const name = "ieg";
 /**
@@ -38,26 +52,6 @@ export declare const inject: string[];
 export declare const SECTION_NAME = "ieg:governance";
 /** The runtime-context channel that carries the governance status line. */
 export declare const STATUS_CONTEXT_NAME = "ieg:status";
-/** The read-only tool that reports governance state to the model and operator. */
-export declare const STATUS_TOOL_NAME = "ieg_status";
-/**
- * The manual maintenance trigger (Batch 6 §3).
- *
- * It is a *report*, not a mutation: the round classifies, diagnoses and proposes,
- * and every destructive proposal waits for an explicit decision. That is why it
- * needs no mutation gate — an unknown tool is read-only by construction.
- */
-export declare const MAINTENANCE_TOOL_NAME = "maintain_environment";
-/** The model-facing tool that captures information and moves it through the lifecycle. */
-export declare const RECORD_INFORMATION_TOOL_NAME = "record_information";
-/**
- * The model-facing tool that requests *revalidation* of information (R8-02 §5).
- *
- * Revalidation is promotion to `AUTHORITATIVE`, which the lifecycle already refuses
- * without evidence or explicit user confirmation. The model may ask; only the host's
- * approval service can supply the confirmation, exactly as for terminology (R8-01).
- */
-export declare const CONFIRM_INFORMATION_TOOL_NAME = "confirm_information";
 /**
  * Version of the compiled governance prompt. It changes whenever the injected
  * model-facing text changes, so a behavioural regression is attributable to one
