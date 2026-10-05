@@ -108,7 +108,15 @@ if (cd "$PACKAGE_DIR" && npm run --silent typecheck); then pass "tsc --checkJs s
 step "Unit and integration tests"
 TEST_LOG="${VERIFY_ROOT}/test.log"
 if (cd "$PACKAGE_DIR" && node --test >"$TEST_LOG" 2>&1); then
-  pass "$(grep -c '^✔' "$TEST_LOG" || true) tests passed (log: ${TEST_LOG#"$REPO_DIR"/})"
+  # Count in both modes: a TTY gets the checkmark report, a CI runner gets TAP
+  # ("ok n - name", with subtests), where the old `^✔` count reported "0 tests
+  # passed" while the suite had in fact run. Prefer the runner's own summary.
+  if grep -qE '^# pass ' "$TEST_LOG"; then
+    TESTS_PASSED="$(grep -E '^# pass ' "$TEST_LOG" | head -1 | awk '{print $3}')"
+  else
+    TESTS_PASSED="$(grep -c '^✔' "$TEST_LOG" || true)"
+  fi
+  pass "${TESTS_PASSED} tests passed (log: ${TEST_LOG#"$REPO_DIR"/})"
 else
   fail "test suite (log: ${TEST_LOG#"$REPO_DIR"/})"
   tail -30 "$TEST_LOG"
