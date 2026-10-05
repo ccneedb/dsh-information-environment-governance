@@ -41,6 +41,7 @@ import {
   decideMutation,
   guardBackstop,
 } from './modules/workspace-governance.js'
+import { registerGovernanceTools } from './host/governance-tools.js'
 import { registerInformationTools } from './host/information-tools.js'
 import { registerMaintenanceTool } from './host/maintenance-tool.js'
 import {
@@ -928,75 +929,23 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
   // Registered through `ctx.inject` so they attach whenever the tool registry
   // becomes available, without making IEG unmountable in tool-less compositions.
   const attachTools = (toolCtx: IegContext): void => {
-    /**
-     * Wrap a tool so its calls are auditable without changing its contract.
-     *
-     * @param definition
-     * @param code
-     */
-    const observed = (definition: IegToolDefinition, code: string): IegToolDefinition => ({
-      ...definition,
-      execute: async (args, exec) => {
-        const result = await definition.execute(args, exec)
-        note(code, { tool: definition.name, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) })
-        return result
-      },
-    })
 
     // Each tool is registered in its own guarded step: a registry that refuses
     // one definition must not cost the model the other tool, nor the backstop.
     // The agent's only sanctioned way to satisfy the orientation requirement.
     // Recording it also persists it, so a resumed session skips the requirement.
-    guarded('tools.record_orientation', () => {
-      toolCtx.tools?.register(
-        observed(
-          orientationToolDefinition((exec) => governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).orientation, {
-            onRecorded: persistOrientation,
-          }),
-          'ieg.orientation_recorded',
-        ),
-      )
+    registerGovernanceTools({
+      tools: toolCtx.tools,
+      guarded,
+      note,
+      governance,
+      mount,
+      diagnostics,
+      livePromptFacts,
+      promptFilePath,
+      persistOrientation,
+      workspacePolicy: config.workspace,
     })
-    // Channel B (§28.3): the read-only surface an agent or operator can query.
-    guarded('tools.ieg_status', () => {
-      toolCtx.tools?.register({
-        name: STATUS_TOOL_NAME,
-        description:
-          'Read IEG governance state: mount record, enabled modules, active configuration, host-compatibility verdict, and the recent diagnostic ring. Read-only; call it when you need to know what the governance layer is doing.',
-        parameters: { type: 'object', properties: {} },
-        output: { schema: { type: 'object' }, render: renderJson },
-        execute: async (_args, exec) => ({
-          mount,
-          prompt: ((): Record<string, unknown> => {
-            const live = livePromptFacts()
-            return {
-              source: live.source,
-              file: promptFilePath,
-              version: live.version,
-              bytes: live.bytes,
-            }
-          })(),
-          compatibility: mount.compatibility,
-          agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent),
-          status_line: diagnostics.formatLine(),
-          maintenance: ((): Record<string, unknown> => {
-            const counter = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).batches
-            return {
-              instruction_batches: counter.count,
-              threshold: MAINTENANCE_BATCH_THRESHOLD,
-              required: counter.required,
-              rounds_completed: counter.roundsCompleted,
-            }
-          })(),
-          diagnostics: diagnostics.recent(20),
-          diagnostic_counts: diagnostics.counts(),
-        }),
-      })
-    })
-    // Channel C (Batch 6 §3): one manually triggerable maintenance round. It is
-    // read-only by construction, so it is registered without a mutation gate, and
-    // it reports rather than acts: Batch 6 §5 forbids claiming automatic
-    // synchronization, and an automatic round could rewrite the user's documents.
     registerMaintenanceTool({
       tools: toolCtx.tools,
       guarded,
@@ -1014,26 +963,6 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
       guarded,
       note,
       ledgerFor: (agent) => governance.forAgent(agent).information,
-    })
-    guarded('tools.confirm_terminology', () => {
-      toolCtx.tools?.register({
-        ...confirmationToolDefinition((exec, input) => {
-          const store = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).orientation
-          const result = store.confirmTerm(input)
-          note(
-            'ieg.terminology_confirmed',
-            { term: input.term, status: result.status, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) },
-            `ieg: terminology_confirmed term=${input.term} status=${String(result.status)}`,
-          )
-          return result
-        }),
-        output: { schema: { type: 'object' }, render: renderJson },
-      })
-    })
-
-    const guard = (execution: IegToolExecution): string | undefined => guardBackstop(execution, config.workspace)
-    guarded('tools.guard', () => {
-      toolCtx.tools?.guard(guard)
     })
   }
   if (ctx.inject === undefined) {

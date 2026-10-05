@@ -75,7 +75,7 @@ interface AgentState {
  */
 export declare function createAgentState(): AgentState;
 /** Live governance state, isolated per live agent. */
-interface GovernanceState {
+export interface GovernanceState {
     forAgent: (agent: unknown) => AgentState;
     unscoped: AgentState;
 }
