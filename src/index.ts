@@ -42,6 +42,7 @@ import {
   guardBackstop,
 } from './modules/workspace-governance.js'
 import { registerGovernanceTools } from './host/governance-tools.js'
+import { createDurableState } from './host/durable-state.js'
 import { registerMutationGate } from './host/mutation-gate.js'
 import { registerPreStepGate } from './host/pre-step-gate.js'
 import { registerInformationTools } from './host/information-tools.js'
@@ -662,60 +663,7 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
 
   /* ── durable state (handoff Gate F) ───────────────────────────────────── */
 
-  // Storage is optional and every failure degrades to "no persistence"; IEG's
-  // enforcement never depends on it. The fallback also covers a storage seam that
-  // throws during construction, rather than only one that reports an error.
-  let durable: ReturnType<typeof createDurableStore> = {
-    available: async () => false,
-    load: async () => undefined,
-    save: async () => false,
-    close: async () => {},
-  }
-  guarded('storageDomain', () => {
-    durable = createDurableStore(ctx, {
-      onError: (error) =>
-        note(
-          'ieg.capability_missing',
-          { capability: 'storageDomain' },
-          `ieg: governance persistence unavailable: ${String(((error as { message?: unknown } | null)?.message) ?? error)}`,
-          'warn',
-        ),
-    })
-  })
-  /** Sessions already looked up, so a resumed session costs one read, not one per call. */
-  const hydratedSessions = new Set<string>()
-
-  /**
-   * Restore one agent's orientation from durable state. Called lazily, before
-   * the orientation requirement is evaluated, so a resumed session is not asked
-   * to re-orient work that was already oriented (Gate F).
-   *
-   * @param agent
-   * @returns whether a usable snapshot was restored.
-   */
-  const hydrateOrientation = async (agent: unknown): Promise<boolean> => {
-    const { orientation } = governance.forAgent(agent)
-    if (orientation.isRecorded()) return true
-    const sessionId = sessionIdOf(agent)
-    if (sessionId === '' || hydratedSessions.has(sessionId)) return false
-    hydratedSessions.add(sessionId)
-    const snapshot = await durable.load(sessionId)
-    if (snapshot === undefined) return false
-    if (!orientation.hydrate(snapshot)) return false
-    note('ieg.orientation_restored', { sessionId }, 'ieg: orientation_restored')
-    return true
-  }
-
-  const persistOrientation = async (snapshot: Record<string, unknown>, exec: unknown): Promise<void> => {
-    const agent = ((exec ?? {}) as { agent?: unknown }).agent
-    await durable.save(sessionIdOf(agent), snapshot)
-  }
-
-  guarded('dispose.storageDomain', () => {
-    ctx.effect?.(() => () => {
-      void durable.close()
-    }, 'ieg: release the governance domain handle')
-  })
+  const { hydrateOrientation, persistOrientation } = createDurableState({ ctx, note, guarded, governance })
 
   /* ── 1. the one additive prompt section ───────────────────────────────── */
 
