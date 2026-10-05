@@ -27,10 +27,13 @@ export declare const DEFAULT_OVERLAP_THRESHOLD = 0.4;
  */
 export declare const DEFAULT_SUBJECT_THRESHOLD = 0.5;
 /**
- * The token set of a text.
+ * Split text into comparable tokens, Unicode-aware and deterministic (R8-10 §1).
  *
- * @param text
- * @returns the tokens.
+ * Space-delimited scripts keep the previous behaviour exactly: lowercase runs of four or
+ * more letters/digits. Unspaced scripts are tokenised as **character bigrams**, because a
+ * whole run would be one token that never matches another document — the standard
+ * deterministic approach when no dictionary is available, and one that keeps the scan a
+ * pure function with no model call.
  */
 export declare function tokensOf(text: string): Set<string>;
 /**
@@ -220,4 +223,13 @@ export declare function scanDocumentTree(fs: IegFileSystemService, root: string,
     }[];
     truncated: boolean;
     skipped: string[];
+    /**
+     * How much of the tree the scan actually saw (R8-10 §5).
+     *
+     * `complete` — every candidate within the bounds was read; `bounded` — the document
+     * bound stopped it; `partial` — some entries could not be read. A governance decision
+     * reads this rather than assuming the scan was exhaustive, so it cannot imply stronger
+     * evidence than was obtained (R8-10 §6).
+     */
+    coverage: 'complete' | 'bounded' | 'partial';
 }>;

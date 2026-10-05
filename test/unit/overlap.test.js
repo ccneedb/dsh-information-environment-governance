@@ -290,3 +290,89 @@ test('regression: a short-form filename still matches its long-form heading', ()
     false,
   )
 })
+
+/* ── R8-10: multilingual, Unicode-aware tokenisation ────────────────────────── */
+
+test('R8-10: a Chinese document now yields tokens at all', () => {
+  // The regression this guards: the previous tokenizer split on `[^a-z0-9/_.-]+`, so a
+  // document written entirely in Chinese produced an **empty** token set. Every Chinese
+  // pair then scored a Jaccard of 0 — duplicates and unrelated files alike.
+  const tokens = tokensOf('# 信息环境治理\n\n治理代理在项目中持续接触的持久信息与项目约束。')
+  assert.ok(tokens.size > 0, 'a Chinese document must produce comparable tokens')
+  assert.ok([...tokens].some((token) => token.includes('信息')), 'character bigrams are emitted')
+})
+
+test('R8-10: simplified Chinese duplicates are detectable and unrelated files are not', () => {
+  const original = '# 信息环境治理\n\n治理代理在项目中持续接触的持久信息与项目约束。'
+  const nearDuplicate = '# 信息环境治理\n\n治理代理在项目中持续接触的持久信息与项目约束，保持一致性。'
+  const unrelated = '# 烘焙食谱\n\n如何用慢发酵做出好吃的面包。'
+  const a = tokensOf(original)
+  const b = tokensOf(nearDuplicate)
+  const c = tokensOf(unrelated)
+  assert.ok(jaccard(a, b) >= DEFAULT_OVERLAP_THRESHOLD, 'a near-duplicate must clear the threshold')
+  assert.ok(jaccard(a, c) < DEFAULT_OVERLAP_THRESHOLD, 'an unrelated document must not')
+})
+
+test('R8-10: traditional Chinese and mixed-language text behave the same way', () => {
+  const traditional = '# 資訊環境治理\n\n治理代理在專案中持續接觸的持久資訊與專案約束。'
+  const traditionalNear = '# 資訊環境治理\n\n治理代理在專案中持續接觸的持久資訊與專案約束，保持一致。'
+  assert.ok(jaccard(tokensOf(traditional), tokensOf(traditionalNear)) >= DEFAULT_OVERLAP_THRESHOLD)
+
+  const mixed = '# Information Environment 信息环境\n\nThe agent 治理 the persistent information 持久信息 it inherits.'
+  const mixedNear = '# Information Environment 信息环境\n\nThe agent 治理 the persistent information 持久信息 it inherits, over time.'
+  const tokens = tokensOf(mixed)
+  assert.ok([...tokens].some((token) => /^[a-z]{4,}$/.test(token)), 'Latin words are tokenised')
+  assert.ok([...tokens].some((token) => token.includes('信息')), 'CJK bigrams are tokenised too')
+  assert.ok(jaccard(tokens, tokensOf(mixedNear)) >= DEFAULT_OVERLAP_THRESHOLD)
+})
+
+test('R8-10: Markdown and code boundaries do not swallow either script', () => {
+  const prose = '# 治理说明\n\n正文解释信息环境。\n'
+  const withCode = '# 治理说明\n\n正文解释信息环境。\n\n```js\nconst 变量 = "持久信息"\n```\n\n`inline 代码`\n'
+  // Code content is tokenised as text — no stripping — which is the conservative choice:
+  // a document that copies another document's code is a duplicate for governance purposes.
+  assert.ok(tokensOf(withCode).size > tokensOf(prose).size)
+  const latinOnly = 'The quick brown fox jumps over the lazy dog'
+  assert.ok(tokensOf(latinOnly).size >= 5, 'space-delimited scripts keep the previous behaviour')
+  // ASCII behaviour is unchanged: the same four-character floor applies to Latin words.
+  assert.ok(![...tokensOf('a bb ccc')].some((token) => token.length < 4))
+})
+
+test('R8-10: the scan reports how much it actually covered', async () => {
+  const { scanDocumentTree } = await import('../../lib/kernel/overlap.js')
+  const files = { 'README.md': '# one\n', 'docs/a.md': '# two\n', 'docs/b.md': '# three\n' }
+  const makeFs = (failOn) => ({
+    resolve: async (path) => ({ targetKey: { path: path.replace(/^\.\/?/, '') } }),
+    listDir: async (target) => {
+      const base = target.targetKey.path === '' ? '' : `${target.targetKey.path}/`
+      const names = new Set()
+      for (const path of Object.keys(files)) {
+        if (!path.startsWith(base)) continue
+        names.add(path.slice(base.length).split('/')[0])
+      }
+      return [...names].map((name) => {
+        const full = `${base}${name}`
+        const isFile = Object.prototype.hasOwnProperty.call(files, full)
+        return isFile
+          ? { name, type: 'file', target: { targetKey: { path: full } }, size: files[full].length }
+          : { name, type: 'directory', target: { targetKey: { path: full } } }
+      })
+    },
+    readText: async (target) => {
+      if (target.targetKey.path === failOn) throw new Error('unreadable')
+      return files[target.targetKey.path]
+    },
+  })
+
+  const complete = await scanDocumentTree(makeFs(null), '.', {})
+  assert.equal(complete.coverage, 'complete')
+  assert.equal(complete.truncated, false)
+
+  const bounded = await scanDocumentTree(makeFs(null), '.', { maxDocuments: 1 })
+  assert.equal(bounded.coverage, 'bounded', 'hitting the document bound is reported, not hidden')
+  assert.equal(bounded.truncated, true)
+
+  const partial = await scanDocumentTree(makeFs('docs/a.md'), '.', {})
+  assert.equal(partial.coverage, 'partial', 'an unreadable entry degrades the coverage claim')
+  assert.deepEqual(partial.skipped, ['docs/a.md'])
+})

@@ -146,6 +146,9 @@ export function registerMaintenanceTool(surface: MaintenanceToolSurface): void {
           surface.note('ieg.maintenance_round', {
             status: 'ok',
             root,
+            // R8-10 §6: report what the scan actually covered, so a reader cannot mistake a
+            // bounded or partially read scan for an exhaustive one.
+            coverage: scanned.coverage,
             scanned: report.scanned,
             proposals: report.items.length,
             unresolved: report.unresolved.length,

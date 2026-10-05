@@ -41,13 +41,40 @@ const MIN_TOKEN = 4
  * @param text
  * @returns the tokens.
  */
+/**
+ * Word-ish runs in any script. Before R8-10 this was `[^a-z0-9/_.-]+`, which produced
+ * **zero tokens for a Chinese document** — so two unrelated Chinese files and two
+ * duplicates of the same Chinese file were indistinguishable to the overlap check.
+ */
+const WORD_RUN = /[\p{L}\p{N}/_.-]+/gu
+
+/** Scripts that do not separate words with spaces, where word tokens would be useless. */
+const UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
+
+/**
+ * Split text into comparable tokens, Unicode-aware and deterministic (R8-10 §1).
+ *
+ * Space-delimited scripts keep the previous behaviour exactly: lowercase runs of four or
+ * more letters/digits. Unspaced scripts are tokenised as **character bigrams**, because a
+ * whole run would be one token that never matches another document — the standard
+ * deterministic approach when no dictionary is available, and one that keeps the scan a
+ * pure function with no model call.
+ */
 export function tokensOf(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(/[^a-z0-9/_.-]+/)
-      .filter((word) => word.length >= MIN_TOKEN),
-  )
+  const tokens = new Set<string>()
+  for (const run of text.toLowerCase().match(WORD_RUN) ?? []) {
+    if (UNSPACED_SCRIPT.test(run)) {
+      const characters = [...run]
+      if (characters.length === 1) {
+        tokens.add(characters[0])
+        continue
+      }
+      for (let at = 0; at + 1 < characters.length; at += 1) tokens.add(characters[at] + characters[at + 1])
+      continue
+    }
+    if (run.length >= MIN_TOKEN) tokens.add(run)
+  }
+  return tokens
 }
 
 /**
@@ -444,7 +471,20 @@ export async function scanDocumentTree(
   fs: IegFileSystemService,
   root: string,
   options: { maxDepth?: number, maxDocuments?: number, maxBytes?: number } = {},
-): Promise<{ documents: { path: string, content: string }[], truncated: boolean, skipped: string[] }> {
+): Promise<{
+  documents: { path: string, content: string }[]
+  truncated: boolean
+  skipped: string[]
+  /**
+   * How much of the tree the scan actually saw (R8-10 §5).
+   *
+   * `complete` — every candidate within the bounds was read; `bounded` — the document
+   * bound stopped it; `partial` — some entries could not be read. A governance decision
+   * reads this rather than assuming the scan was exhaustive, so it cannot imply stronger
+   * evidence than was obtained (R8-10 §6).
+   */
+  coverage: 'complete' | 'bounded' | 'partial'
+}> {
   const maxDepth = options.maxDepth ?? DEFAULT_TREE_DEPTH
   const maxDocuments = options.maxDocuments ?? DEFAULT_TREE_DOCUMENTS
   const maxBytes = options.maxBytes ?? DEFAULT_TREE_BYTES
@@ -493,5 +533,6 @@ export async function scanDocumentTree(
     frontier = next
   }
 
-  return { documents, truncated, skipped }
+  const coverage: 'complete' | 'bounded' | 'partial' = truncated ? 'bounded' : skipped.length > 0 ? 'partial' : 'complete'
+  return { documents, truncated, skipped, coverage }
 }
