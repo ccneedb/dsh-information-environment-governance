@@ -284,7 +284,7 @@ surface — the evaluation must run against the post-Batch-8 revision.
 | R8-09 state schema evolution | not started | — | — | — |
 | R8-10 multilingual overlap | **done** | this commit | `src/kernel/overlap.ts`, `src/host/maintenance-tool.ts`, `test/unit/overlap.test.js` | tokenisation is Unicode-aware (`\p{L}\p{N}` runs; character bigrams for Han/Hiragana/Katakana/Hangul, which have no word spaces). Before it, a Chinese document produced **zero** tokens, so duplicates and unrelated files both scored 0. Now a zh duplicate scores 0.85 against the 0.4 threshold and an unrelated one 0.00. Fixtures: simplified, traditional, mixed, Markdown/code boundaries. Scan coverage is explicit — `complete`, `bounded` (document bound), `partial` (unreadable entries, listed in `skipped`) — and the round reports it. **Honest mapping of the five named states:** *read failure* is reported per entry via `skipped` and folds into `partial`; *unsupported format* is a file filter, not a coverage state, and is not claimed as one |
 | R8-11 credential workflow | **done** | this commit | `eval/README.md`, this document | the hardcoded developer credentials path is gone; credentials are **operator-supplied** (`IEG_EVAL_CREDENTIALS`) or the host's own authentication, with no home-directory assumption anywhere in the repository; a **cleanup assertion** fails loudly if a staged copy remains; and the doc states that no `eval/` artifact can capture a secret because `e2e.mjs` never reads the credentials file |
-| R8-12 Gate C/D closure | not started | — | — | blocked by U8-01 until the predecessors are done |
+| R8-12 Gate C/D closure | **recorded: gates unmet with cause** (§12) | this commit | `ARCHITECTURE-SPEC-AGENT-REFERENCE.md` §32.1, this document | Gates C and D are formally **unmet**, with the exact blocking cause recorded rather than the criterion weakened: no control/treatment measurement exists for any post-0.9 revision, the harness does not execute the subject, and a delegated agent cannot stand in (its profile's `workspace.policy: ask` fails closed). Gate D's *capability* is implemented and tested by R8-02; what is missing is the measurement. The evaluation itself remains outstanding and needs an operator-driven run |
 | R8-13 artifact cleanup | not started | — | — | U8-03 verified below |
 
 #### Maintenance round run on the Batch 8 tree (2026-10-05)
@@ -302,6 +302,33 @@ The single actionable proposal is `IMPLEMENTATION-VALIDATION-HANDOFF.md`, which 
 `status: retired` — correctly identified as history rather than current guidance. It is a
 **proposal**: the round does not apply destructive actions, and R8-13 is where artifact and
 stale-information cleanup is decided.
+
+#### R8-12 status: Gates C and D recorded **unmet**, with the blocking cause
+
+Batch 8 §12 is explicit: *"If either gate cannot honestly be met, record it as unmet with the
+exact blocking cause rather than weakening the criterion."* That is this record — not a
+closure, and not a rewording of the gate.
+
+**The blocking cause, in one sentence:** no control/treatment measurement exists for any
+post-0.9 prompt revision, because the harness seeds and scores but does not execute the
+subject, and a delegated agent cannot stand in — it inherits this session's profile, whose
+shipped `workspace.policy: ask` fails closed for want of an approval channel (observed
+twice, Batch 6 and Batch 7).
+
+**What is in place and what is missing.**
+
+| Requirement | State |
+|---|---|
+| Real control/treatment execution | **missing** — the instrument exists (`eval/harness.mjs` seeds both arms, writes the exact prompt each subject receives, and scores from the filesystem) but the subject is not run |
+| Frozen independent rubric | **missing** — nothing has been frozen, because there is nothing yet to score |
+| Repetitions, ≥2 models, one non-English scenario | **missing** — the three failed attempts to relax the host gate are recorded in the Phase 13 section above |
+| Gate D capability (non-authoritative default, reintroduction control, D14 disposition) | **implemented in the runtime path** by R8-02, and tested end to end — but implemented is not measured |
+| Read-time enforcement | **absent, and stated as absent**: the host freezes tool results, so IEG cannot mark or withhold a retrieval |
+
+**What would close them:** an operator-driven evaluation against the post-Batch-8 revision —
+repeated trials, blind judging, at least two models, one non-English scenario, across the
+four scenario families — with the six measures the batch names. Until then the gates stay
+**unmet**, and no document claims otherwise.
 
 #### R8-13 measurement baseline (measured, not assumed)
 
