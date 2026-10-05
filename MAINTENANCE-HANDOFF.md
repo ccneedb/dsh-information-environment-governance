@@ -234,6 +234,72 @@ assertion, attributes it as `user`-sourced, and exposes it on the status surface
 but it cannot independently verify that the user said it. An agent that mis-asserts
 confirmation could grant a term authority the user never gave it.
 
+### Round 7 verification record and frozen evaluation baseline (Phases 11-12)
+
+A **fresh** record, taken after every implementation change in this round — an old
+result says nothing about modified code.
+
+| Check | Command | Result |
+|---|---|---|
+| Build and typecheck | `npm run build`, `npm run typecheck` | pass, strict |
+| Unit, conformance, integration | `node --test` | **284 / 284**, no todo, no skip |
+| Terminology acceptance | `node --test test/unit/glossary.test.js` | **17 / 17** — the ten required scenarios, each paired with its non-overreach counterpart |
+| Release gate | `./scripts/verify.sh` | **23 / 23** |
+| Documentation consistency | `./scripts/check-docs.sh` | 13 governed documents, front matter, index coverage and links valid |
+| Packaging | `verify.sh` phase 3b | `npm pack` → fresh profile → row composes → runtime and bundle patch present → profile-local CLI present |
+| Compatibility | CI `with-host`, now required | installs and exercises **dsh 0.2.1-alpha.1**, the one release declared Verified |
+
+**Tested versions.** Node v24.21.0; TypeScript 6.0.3 (pinned in CI and installed
+locally); DSH 0.2.1-alpha.1 (Verified — the only baseline any claim rests on);
+package 0.12.0; `PROMPT_VERSION` 0.5.0 with the compiled section at 2,806 bytes
+against the unchanged 2,945-byte ceiling; `DOMAIN_VERSION` 1.
+
+**Intentionally excluded, stated rather than hidden.** The behavioural gates C and D:
+the `eval/` harness seeds the two arms and scores the filesystem, but its step 2 is
+*"the subject is a real agent run"*, which this repository does not execute — so no
+behavioural result exists for this revision and none is claimed. Locally, the host
+integration tests skip rather than fail when no DSH installation is present; CI
+installs the verified release, so they run there.
+
+**Frozen evaluation baseline.** **v0.12.0**, the release whose tag records the exact
+commit. From here, any change to governance behaviour invalidates the baseline: it
+must be re-frozen and the evaluation re-run, because a result measured on one
+revision may not be reported as a result for another (Batch 7 §20.7).
+
+**Known limitations carried forward**, each with its evidence above: Gates C and D
+are unmeasured; `confirmedByUser` is asserted by the agent and cannot be
+independently verified; cross-document contradiction detection is not implemented;
+the CI host job depends on an upstream npm package remaining installable.
+
+### Round 7 legacy and compatibility inventory (Phase 1)
+
+Every candidate was classified **before** anything was removed, with the evidence
+that supports the decision. `RETAIN` includes artifacts that stay because they are
+required; historical documents are retained *as historical*, never as active
+architecture.
+
+| Artifact | Current role | Usage evidence | Compatibility relevance | Decision | Rationale |
+|---|---|---|---|---|---|
+| `src/**/*.ts` (19 files) | hand-authored runtime | built by `tsc -p tsconfig.build.json`; imported by `lib/`, tested by `test/` | host-agnostic | **RETAIN** | the single source of truth; Phase 3 verified no hand-authored runtime `.js` exists outside the shim |
+| `lib/**/*.js` (19 files) | generated runtime | resolved by `main`, by `bin/ieg`, and by every integration test | required by the install model (a Git install runs no build) | **RETAIN** | generated, never hand-edited; 19 sources map 1:1 onto 19 outputs |
+| `bin/ieg` | executable shim | `package.json` `bin.dsh-ieg`; invoked by the CLI checks | required by the host's bin mapping | **RETAIN** | the documented, justified exception to the TypeScript rule |
+| `src/kernel/lifecycle.ts`, `src/kernel/control.ts` | IEG install/update/uninstall and the lifecycle control plane | none — absent from `src/` since 0.9.2 | none | **REMOVE** (already done, Batch 5) | a plugin cannot install itself; the host owns installation |
+| `scripts/ieg-npm.sh`, `scripts/ieg-npm-lifecycle-check.sh` | npm lifecycle wrappers | still invoked by `ci.yml` while no longer existing | none | **REMOVE** | dead references in a `continue-on-error` job; the step is deleted in this round |
+| `.github/workflows/ci.yml` — host pin | installs the integration host | line 76 before this round | **directly decides what is verified** | **REFACTOR** | it installed the retired `0.2.0-rc.2` while the package declared `0.2.1-alpha.1` verified; now pins the verified release and is required |
+| `.github/workflows/ci.yml` — TypeScript install | provides `tsc` to two jobs | both jobs | release correctness | **REFACTOR** | was a floating `npm install --global typescript`; now pinned to `6.0.3` |
+| `.github/workflows/release.yml` | builds release assets | runs on `release: published` | none | **RETAIN** | its example command was corrected in 0.9.2 |
+| `package.json` `dsh.bundle` / `dsh.engines.dsh` / `compatibility` | installability and the declared baseline | read by the host installer and by the packaging tests | the declared baseline itself | **RETAIN** | declares `0.2.1-alpha.1` verified; the range is now documented as a compatibility statement, not a tested list |
+| `scripts/verify.sh` (23 checks) | release gate | run locally and by CI | exercises a real install and mount | **RETAIN** | detects stale metadata, generated drift, missing package files and a broken install |
+| `test/**` (284 tests) | regression suite | `node --test` via `pretest` | mounts the real host when present | **RETAIN** | skips rather than fails without a host |
+| `eval/**` | behavioural harness and scenarios | Phase 13's instrument | host-independent | **RETAIN** | needed for the evaluation; nothing else scores outcomes from the filesystem |
+| `IMPLEMENTATION-VALIDATION-HANDOFF.md` | retired pointer | referenced from README as retired | historical | **RETAIN as historical** | `status: retired`; the maintenance round proposes `DEPRECATE` for exactly this |
+| `TYPESCRIPT-MIGRATION.md` | migration record | referenced by README and ARCHITECTURE | historical | **RETAIN as historical** | records the migration; its superseded modules are struck through |
+| `0.2.0-rc.2` mentions in active docs | retired-baseline statements | README, PRODUCT-SPEC, PACKAGE-REFERENCE, MAINTENANCE | historical | **RETAIN** | each is explicitly marked retired/SUPERSEDED; removing them would erase why the baseline moved |
+| `cordis.patch.yml`, `docs/**`, `PRODUCT-SPEC.md`, `ARCHITECTURE-SPEC-AGENT-REFERENCE.md` | configuration and active design record | referenced throughout | describes the current surface | **RETAIN** | no retired concept is described as current after the 0.9.2 and 0.11.0 passes |
+
+No deletion was performed without a line above, and nothing removed was required by
+the supported baseline.
+
 ### DSH compatibility policy (Batch 7 Phase 4)
 
 Compatibility is stated in four states, never as a semver range:
