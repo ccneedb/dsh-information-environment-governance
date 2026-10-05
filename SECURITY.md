@@ -97,9 +97,11 @@ Part B.
 1. Mutation governance covers **tool-mediated mutations only**. A plugin that
    calls `ctx.fs.writeText()` (or otherwise writes) directly is not covered, and
    IEG does not claim process-wide coverage.
-2. Shell-write classification does not recognise an indirectly invoked wrapper
-   (`env bash -c '…'`) or PowerShell `Remove-Item`; quoted text is treated as data
-   unless the command wraps another command.
+2. Shell-write classification inspects command **text**, so it recognises shells and
+   execution prefixes (`bash -c …`, `sudo bash -c …`, `env bash -c …`) but not a payload
+   assembled at runtime (`cmd="echo x > f"; bash -c "$cmd"`). Quoted text is treated as
+   data unless the command executes another command. Supported scope is Debian/Linux +
+   DSH; PowerShell and other shells are not supported and are not classified.
 3. `agent/pre-step` live dispatch is exercised by wiring and decision-shape
    tests, not by a full agent loop.
 4. **Question consolidation is no longer a capability at all (RETIRED).** The

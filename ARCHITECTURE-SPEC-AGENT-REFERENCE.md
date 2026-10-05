@@ -789,18 +789,18 @@ The D13 exclusion removes the *tool-list* channel only, and that left a coverage
 hole: a document can be created by redirection, or removed with `rm`, without any
 file-effect tool call, so the overlap gate never sees it.
 `workspace.classifyShellCommands` therefore inspects the command text of
-`bash` / `pwsh` / `*_persistent` and treats as a mutation only a command that can
-write.
+`bash` / `bash_persistent` — the shells of the supported environment, Debian/Linux +
+DSH (R8-04) — and treats as a mutation only a command that can write.
 
 D13's precision requirement is preserved rather than waived. Quoted text is data
 unless the command is a shell wrapper (`bash -c …`), and a `>` counts as a
 redirection only when it is a standalone operator rather than an arrow or a
 comparison. So `rg '=>' src`, `grep -rn 'a > b' src`, and
 `git commit -m 'rm stale files'` stay read-only, while `bash -c 'rm -rf build'`
-and `echo x > f` do not. Both directions, plus the two residual limits — an
-indirectly invoked wrapper (`env bash -c '…'`) and PowerShell `Remove-Item` — are
-measured by `test/unit/shell-classification.test.js` and counted in the §32.4
-matrix.
+and `echo x > f` do not. Execution prefixes (`sudo`, `env`, `nohup`, …) are recognised
+as of R8-03, so a wrapped write is classified; the residual limit is a payload assembled
+at runtime. Both directions, and that limit, are measured by
+`test/unit/shell-classification.test.js` and counted in the §32.4 matrix.
 
 Documentation-level correction, confirmed with the author: the README's "GLM Markdown" is a typo for **GitHub Flavored Markdown (GFM)**. These documents use conservative GFM with YAML front matter, and should continue to.
 
@@ -1929,8 +1929,8 @@ was renumbered; the closure mapping is also recorded in
 
 ```text
 tool-mediated mutation coverage only, not process-wide          (A4)
-shell writes classified from command text; quoted text is data, and an
-  indirectly invoked wrapper or PowerShell Remove-Item is not recognised (D13)
+shell writes classified from command text; quoted text is data, and a payload
+  assembled at runtime is not classified (D13). Scope: Debian/Linux + DSH
 a failed `tools` injection is visible only through channel A and the ring, never
   through a tool — IEG cannot offer a tool to explain that its tools failed
 delegated questioning is out of scope; the user-attention capability was

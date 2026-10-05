@@ -359,7 +359,9 @@ Two caveats worth knowing before first use:
   prefer `workspace: { policy: allow, overlapCheck: ask, protectedPaths: [...] }`
   and keep the non-intrusive `requireBeforeMutation: false` default.
 
-Requirements: Node.js >= 20 and a DeepSeek Harness installation. The declared
+Requirements: **Debian/Linux** (the supported environment), Node.js >= 20 and a
+DeepSeek Harness installation. Shell governance targets Bash; PowerShell and other
+platforms are explicitly unsupported. The declared
 peer range is `>=0.2.1-alpha.1 <0.3.0`, and `dsh.compatibility.dshReleases`
 records that single baseline as `verified`; the committed baseline was
 re-captured against the installed `0.2.1-alpha.1` host in 0.8.0 (identical section

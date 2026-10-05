@@ -25,7 +25,14 @@ export interface MutationClassification {
     targets: string[];
     protected: boolean;
 }
-/** Shell tools, whose command text is inspected to decide whether they mutate. */
+/**
+ * Shell tools, whose command text is inspected to decide whether they mutate.
+ *
+ * The list stays a **generic** concept — a deployment on another host would extend it —
+ * but it names only the shells of the supported environment, Debian/Linux + DSH
+ * (R8-04). PowerShell entries were removed rather than kept as unreachable
+ * platform-specific branches.
+ */
 export declare const SHELL_TOOLS: readonly string[];
 /**
  * Whether a shell command can create, overwrite, or remove a file.
@@ -40,7 +47,8 @@ export declare const SHELL_TOOLS: readonly string[];
  *
  * Two residual limits are measured by `test/unit/shell-classification.test.js`
  * rather than hidden: a wrapper invoked indirectly (`env bash -c '…'`) is
- * treated as data, and a PowerShell `Remove-Item` is not recognised as a write.
+ * treated as data. Shell support is scoped to the supported environment (Debian/Linux +
+ * DSH); see `SECURITY.md` for the boundary this inspection does and does not cover.
  */
 export declare function commandWritesFiles(command: unknown): boolean;
 /**

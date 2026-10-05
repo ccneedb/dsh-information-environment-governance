@@ -28,8 +28,15 @@ export interface MutationClassification {
 }
 
 const TARGET_KEYS = Object.freeze(['file_path', 'path', 'target', 'notebook_path', 'output_path'])
-/** Shell tools, whose command text is inspected to decide whether they mutate. */
-export const SHELL_TOOLS = Object.freeze(['bash', 'pwsh', 'bash_persistent', 'pwsh_persistent'])
+/**
+ * Shell tools, whose command text is inspected to decide whether they mutate.
+ *
+ * The list stays a **generic** concept — a deployment on another host would extend it —
+ * but it names only the shells of the supported environment, Debian/Linux + DSH
+ * (R8-04). PowerShell entries were removed rather than kept as unreachable
+ * platform-specific branches.
+ */
+export const SHELL_TOOLS = Object.freeze(['bash', 'bash_persistent'])
 
 /**
  * Commands that write to the filesystem regardless of redirection.
@@ -62,7 +69,7 @@ const WRITING_COMMANDS = Object.freeze([
  */
 const COMMAND_WRAPPERS = Object.freeze([
   // Shells: their quoted arguments are commands, so the quotes must not be blanked.
-  'bash', 'sh', 'zsh', 'dash', 'ksh', 'eval', 'pwsh', 'powershell', 'cmd',
+  'bash', 'sh', 'zsh', 'dash', 'ksh', 'eval',
   // Execution prefixes (R8-03 §2). `sudo bash -c "echo x > f"` put the redirect inside
   // a quoted argument; because `sudo` was not recognised as a prefix, the quotes were
   // blanked as data and the write went unclassified. These prefixes execute what
@@ -80,7 +87,7 @@ const COMMAND_WRAPPERS = Object.freeze([
  */
 function isCommandWrapper(command: string): boolean {
   const first = command.trim().split(/[\s;|&()]+/, 1)[0] ?? ''
-  const base = first.replace(/^.*[\\/]/, '').replace(/\.(exe|cmd|bat)$/i, '').toLowerCase()
+  const base = first.replace(/^.*[\\/]/, '').toLowerCase()
   return COMMAND_WRAPPERS.includes(base)
 }
 
@@ -145,7 +152,8 @@ function hasRedirect(text: string): boolean {
  *
  * Two residual limits are measured by `test/unit/shell-classification.test.js`
  * rather than hidden: a wrapper invoked indirectly (`env bash -c '…'`) is
- * treated as data, and a PowerShell `Remove-Item` is not recognised as a write.
+ * treated as data. Shell support is scoped to the supported environment (Debian/Linux +
+ * DSH); see `SECURITY.md` for the boundary this inspection does and does not cover.
  */
 export function commandWritesFiles(command: unknown): boolean {
   if (typeof command !== 'string' || command.trim() === '') return false

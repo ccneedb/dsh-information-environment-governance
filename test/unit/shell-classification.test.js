@@ -104,9 +104,11 @@ test('a shell write to a protected path is marked protected', () => {
 })
 
 test('shell tools are declared and recognised', () => {
-  assert.deepEqual([...SHELL_TOOLS].sort(), ['bash', 'bash_persistent', 'pwsh', 'pwsh_persistent'])
+  // R8-04: the supported environment is Debian/Linux + DSH, so the shell surface names
+  // only its shells. The *concept* stays generic — the list is data, not a branch.
+  assert.deepEqual([...SHELL_TOOLS].sort(), ['bash', 'bash_persistent'])
   assert.equal(classifyMutation('bash_persistent', { command: 'echo x > f' }, POLICY).kind, 'persistent-mutation')
-  assert.equal(classifyMutation('pwsh', { command: 'Remove-Item f' }, POLICY).kind, 'read-only')
+  assert.equal(classifyMutation('bash', { command: 'ls -la' }, POLICY).kind, 'read-only')
 })
 
 /* ── R8-03 §2-3: wrapped/nested execution and redirection, adversarially ─────── */

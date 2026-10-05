@@ -151,6 +151,15 @@ The documentation and module contract must be sufficiently explicit for agents
 operating inside DSH to implement and extend the plugin with minimal user
 intervention.
 
+## Supported environment (R8-04)
+
+IEG is scoped to **Debian/Linux + DeepSeek Harness**. Shell governance targets **Bash**
+(including `bash_persistent`); execution prefixes such as `sudo`, `env` and `nohup` are
+recognised. **PowerShell, Windows, and other shells and platforms are explicitly
+unsupported** — not merely untested — and no IEG behaviour is defined for them. The
+classification logic remains a generic concept operating over a declared tool list, so a
+future supported platform would extend data rather than add branches.
+
 ## 4. Non-Goals
 
 IEG does not aim to:

@@ -243,9 +243,10 @@ created by a redirection, or removed with `rm`, without any file-effect tool cal
 closed by `workspace.classifyShellCommands`, which inspects the command text and treats
 only a command that can write as a mutation. Quoted text is data unless the command
 wraps another command, so `rg '=>' src` and `git commit -m 'rm stale files'` stay
-read-only while `bash -c 'rm -rf build'` does not. Two residual limits are pinned by
-tests rather than hidden: a wrapper invoked indirectly (`env bash -c '…'`) and
-PowerShell `Remove-Item` are not recognised as writes.
+read-only while `bash -c 'rm -rf build'` does not. Shells and execution prefixes are
+recognised (`bash -c`, `sudo bash -c`, `env bash -c`); the residual limit, pinned by a
+test rather than hidden, is a payload assembled at runtime — `cmd="echo x > f"; bash -c
+"$cmd"` is not classified. Supported scope is Debian/Linux + DSH.
 
 ## Mount resilience
 
