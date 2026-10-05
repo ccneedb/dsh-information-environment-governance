@@ -75,6 +75,12 @@ jobs:
         run: npm install --global typescript@6.0.3
       - name: Install the verified host release
         run: npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
+      # `dsh plugin add` forwards to pnpm, and the host does not bundle it. Before
+      # Round 7 this job was allowed to fail, so its absence was invisible: every
+      # install step failed with "pnpm was not found" and nobody saw it. Pinned like
+      # TypeScript, for the same reason (Batch 7 Phase 5).
+      - name: Install pnpm (pinned)
+        run: npm install --global pnpm@12.9.1
       - name: Point the test loader at the installed host
         run: |
           DSH_PACKAGES="$(npm root -g)/@deepseek-ai/dsh/node_modules/@deepseek-ai"
