@@ -18,6 +18,15 @@
 import { createProjectState } from '../modules/project-governance.js';
 /** The model-facing tool that records orientation. */
 export declare const ORIENTATION_TOOL_NAME = "record_orientation";
+/**
+ * The model-facing tool that *requests* user confirmation of a term (R8-01).
+ *
+ * It is registered like any other tool, but the host routes every call through its
+ * approval service before the body below runs, so the model cannot manufacture a
+ * confirmed entry: the user's approval is the authority, and a denial means
+ * `confirmTerm` is never reached.
+ */
+export declare const CONFIRM_TOOL_NAME = "confirm_terminology";
 /** Raised when a tool call supplies an orientation the contract rejects. */
 export declare class OrientationError extends Error {
     constructor(message: string);
@@ -25,6 +34,13 @@ export declare class OrientationError extends Error {
 /** The orientation store's public surface. */
 interface OrientationStore {
     record(input: unknown): Record<string, unknown>;
+    /** Promote a term with user authority. Reachable only from an approved tool call. */
+    confirmTerm(input: {
+        term: string;
+        definition?: string;
+        aliases?: string[];
+        scope?: string;
+    }): Record<string, unknown>;
     snapshot(): Record<string, unknown>;
     hydrate(value: unknown): boolean;
     state(): ReturnType<typeof createProjectState>;
@@ -68,4 +84,17 @@ export declare function orientationRequirement(classification: {
     kind: 'deny';
     reason: string;
 } | null;
+/**
+ * The tool definition for {@link CONFIRM_TOOL_NAME} (R8-01).
+ *
+ * `run` is supplied by the host entry point and is only ever reached after the host has
+ * approved the call, which is why the kernel can expose a promotion path at all without
+ * giving the model authority.
+ */
+export declare function confirmationToolDefinition(run: (exec: unknown, input: {
+    term: string;
+    definition?: string;
+    aliases?: string[];
+    scope?: string;
+}) => Record<string, unknown>): Omit<IegToolDefinition, 'output'>;
 export {};

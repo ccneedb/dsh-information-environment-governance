@@ -150,8 +150,8 @@ test('IEG requests the tool registry through ctx.inject, not eagerly', () => {
   assert.match(String(stub.guards[0]({ name: 'write', arguments: { file_path: '/repo/secrets/k' } })), /protected path/)
   assert.deepEqual(
     stub.tools.map((tool) => tool.name).sort(),
-    ['ieg_status', 'maintain_environment', 'record_orientation'],
-    'IEG registers exactly its own three tools: orientation capture, the read-only status surface, and the read-only maintenance round',
+    ['confirm_terminology', 'ieg_status', 'maintain_environment', 'record_orientation'],
+    'IEG registers exactly its own four tools: orientation capture, the gated terminology confirmation, the read-only status surface, and the read-only maintenance round',
   )
 })
 
@@ -637,4 +637,40 @@ test('the pre-step handler counts direct user instruction batches, not steps', a
   await handler({ agent: other, messages: [{ role: 'user' }], turn: 0, step: 0 }, next)
   const after = stub.logs.filter((entry) => entry.message.includes('maintenance_due'))
   assert.equal(after.length, due.length, 'another agent does not inherit a due round')
+})
+
+/* ── R8-01: the model cannot manufacture user confirmation ──────────────────── */
+
+test('R8-01: confirming terminology is asked of the user even when the workspace policy allows', async () => {
+  // The gate is unconditional by design: terminology confirmation is a user-authority
+  // operation, not a workspace mutation, so a deployment that sets `policy: allow`
+  // (which is the recommended first-trial setting) must not thereby let the model
+  // promote its own inferred terms to authority.
+  const stub = stubContext()
+  ieg.apply(stub.ctx, { workspace: { policy: 'allow' } })
+  const gate = stub.listeners.get('tools/pre-execute')[0]
+  const next = async () => ({ kind: 'allow' })
+
+  const asked = await gate({ name: 'confirm_terminology', arguments: { term: 'scope' }, agent: { id: 'a1' } }, next)
+  assert.equal(asked.kind, 'ask', 'confirmation must always be routed through the approval service')
+  assert.match(asked.reason, /explicit approval/)
+
+  // The same policy does let an ordinary mutation through, so the `ask` above is the
+  // confirmation rule and not the workspace policy.
+  const allowed = await gate({ name: 'write', arguments: { file_path: 'notes/x.md', content: 'body' }, agent: { id: 'a1' } }, next)
+  assert.equal(allowed.kind, 'allow')
+})
+
+test('R8-01: the confirmation tool is registered, and its body carries user provenance', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, {})
+  stub.mountTools()
+  const tool = stub.tools.find((entry) => entry.name === 'confirm_terminology')
+  assert.ok(tool, 'the confirmation tool must be registered')
+  assert.deepEqual(Object.keys(tool.parameters.properties).sort(), ['aliases', 'definition', 'scope', 'term'])
+
+  const result = await tool.execute({ term: 'Information Environment', definition: 'the persistent information an agent works with' }, { agent: { id: 'a1' } })
+  assert.equal(result.confirmed, true)
+  assert.equal(result.status, 'CONFIRMED')
+  assert.equal(result.source, 'user', 'a confirmed entry is user-sourced, never agent-inferred')
 })

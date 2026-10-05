@@ -259,7 +259,7 @@ surface — the evaluation must run against the post-Batch-8 revision.
 | Task | Status | Commit | Files | Tests / evidence |
 |---|---|---|---|---|
 | R8-00 baseline | **done** | this commit | this section | baseline table above |
-| R8-01 authority boundary | not started | — | — | — |
+| R8-01 authority boundary | **done** | this commit | `src/kernel/orientation.ts`, `src/index.ts`, `src/kernel/diagnostics.ts`, `test/unit/glossary.test.js`, `test/integration/wiring.test.js` | the model-facing `confirmedByUser` flag is gone (orientation capture is always inference); promotion moved to `confirm_terminology`, gated unconditionally through the host approval service; 3 regression tests (self-attestation ignored, `ask` under `policy: allow`, user-sourced promotion); 287/287 |
 | R8-02 information-integrity loop | not started | — | — | — |
 | R8-03 mutation governance | not started | — | — | — |
 | R8-04 supported scope | not started | — | — | — |

@@ -207,7 +207,7 @@ test('terminology: persisted state round-trips, and invalid entries are dropped'
 
 /* ── the orientation path: how terms actually reach the glossary ───────────── */
 
-test('terminology: orientation captures inferred terms as provisional and user-stated terms as confirmed', async () => {
+test('R8-01: orientation capture is inference only, and cannot self-attest confirmation', async () => {
   const { createOrientationStore } = await import('../../lib/kernel/orientation.js')
   const store = createOrientationStore()
   const result = store.record({
@@ -215,22 +215,44 @@ test('terminology: orientation captures inferred terms as provisional and user-s
     objective: 'keep the repository coherent',
     scope: 'this repository',
     terminology: [
+      // The model asserts confirmation. Before R8-01 that made an entry authoritative;
+      // the field is no longer part of the schema, so it must change nothing.
       { term: 'Information Environment', definition: 'the persistent information an agent works with', confirmedByUser: true, aliases: ['IE'] },
       { term: 'maintenance round', definition: 'one inventory and planning pass', confidence: 0.4 },
     ],
     plan: ['audit', 'clean up'],
   })
 
+  for (const entry of result.glossary) {
+    assert.equal(entry.status, 'PROVISIONAL', `${entry.canonicalTerm} must stay provisional`)
+    assert.equal(entry.confirmedByUser, false, `${entry.canonicalTerm} must not be user-confirmed`)
+    assert.equal(entry.source, 'agent-inferred')
+  }
   const entries = Object.fromEntries(result.glossary.map((entry) => [entry.canonicalTerm, entry]))
-  assert.equal(entries['Information Environment'].status, 'CONFIRMED')
-  assert.equal(entries['Information Environment'].confirmedByUser, true)
-  assert.equal(entries['Information Environment'].source, 'user')
-  assert.deepEqual(entries['Information Environment'].aliases, ['IE'])
-
-  assert.equal(entries['maintenance round'].status, 'PROVISIONAL', 'an unconfirmed term is inference, not authority')
-  assert.equal(entries['maintenance round'].confirmedByUser, false)
-  assert.equal(entries['maintenance round'].source, 'agent-inferred')
+  assert.deepEqual(entries['Information Environment'].aliases, ['IE'], 'aliases are still captured')
   assert.equal(entries['maintenance round'].confidence, 0.4)
+})
+
+test('R8-01: only the host-approved confirmation path promotes a term', async () => {
+  const { createOrientationStore } = await import('../../lib/kernel/orientation.js')
+  const store = createOrientationStore()
+  store.record({
+    intent: 'i', objective: 'o', scope: 's',
+    terminology: [{ term: 'workspace', definition: 'the agent\'s guess' }],
+    plan: [],
+  })
+  // The inferred entry is provisional...
+  assert.equal(findEntry(store.state().glossary, 'workspace')?.status, 'PROVISIONAL')
+
+  // ...and the confirmation path promotes it with user provenance. In the host this
+  // body is reached only after the approval service says yes; the kernel cannot tell,
+  // so the *gate* is what enforces it, and the gate is tested separately.
+  const confirmed = store.confirmTerm({ term: 'workspace', definition: 'the project directory the session is scoped to' })
+  assert.equal(confirmed.confirmed, true)
+  assert.equal(confirmed.status, 'CONFIRMED')
+  assert.equal(confirmed.confirmedByUser, true)
+  assert.equal(confirmed.source, 'user')
+  assert.equal(findEntry(store.state().glossary, 'workspace')?.status, 'CONFIRMED')
 })
 
 test('terminology: an inferred orientation term cannot revise a confirmed one', () => {

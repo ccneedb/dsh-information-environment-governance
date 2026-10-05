@@ -36,6 +36,8 @@ import {
   guardBackstop,
 } from './modules/workspace-governance.js'
 import {
+  CONFIRM_TOOL_NAME,
+  confirmationToolDefinition,
   ORIENTATION_TOOL_NAME,
   orientationRequirement,
   orientationToolDefinition,
@@ -793,6 +795,21 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     const agent = exec?.agent
     const { orientation } = governance.forAgent(agent)
 
+    // R8-01: confirming project terminology is a *user-authority* operation, not a
+    // workspace mutation, so it is routed through the host's approval service
+    // unconditionally — independent of `workspace.policy`, which a deployment may set
+    // to `allow`. The tool body that promotes the entry therefore runs only after the
+    // user approves, and a missing approval channel degrades the call to a denial.
+    // The model can request confirmation; it cannot manufacture it.
+    if (exec.name === CONFIRM_TOOL_NAME) {
+      note(
+        'ieg.terminology_confirmation_requested',
+        { agentId: agentIdOf(agent) },
+        'ieg: terminology_confirmation_requested — awaiting the user\'s decision',
+      )
+      return { kind: 'ask', reason: 'Confirming project terminology requires your explicit approval.' }
+    }
+
     const classification = classifyMutation(exec.name, exec.arguments, config.workspace)
     if (classification.kind === 'read-only') {
       return next()
@@ -1063,6 +1080,24 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
         },
       })
     })
+    // R8-01: the confirmation path. The gate above returns `ask` for every call, so
+    // this body is reached only once the user has approved.
+    guarded('tools.confirm_terminology', () => {
+      toolCtx.tools?.register({
+        ...confirmationToolDefinition((exec, input) => {
+          const store = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).orientation
+          const result = store.confirmTerm(input)
+          note(
+            'ieg.terminology_confirmed',
+            { term: input.term, status: result.status, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) },
+            `ieg: terminology_confirmed term=${input.term} status=${String(result.status)}`,
+          )
+          return result
+        }),
+        output: { schema: { type: 'object' }, render: renderJson },
+      })
+    })
+
     const guard = (execution: IegToolExecution): string | undefined => guardBackstop(execution, config.workspace)
     guarded('tools.guard', () => {
       toolCtx.tools?.guard(guard)

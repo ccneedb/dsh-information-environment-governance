@@ -362,7 +362,7 @@ assert.deepEqual(
 good.mountTools()
 assert.deepEqual(
   good.tools.map((tool) => tool.name).sort(),
-  ['ieg_status', 'maintain_environment', 'record_orientation'],
+  ['confirm_terminology', 'ieg_status', 'maintain_environment', 'record_orientation'],
 )
 // Positive proof: the shipped config must ACTIVATE, not merely not throw. An
 // inert fault surface would leave `mounted: false` and a populated `degraded`.

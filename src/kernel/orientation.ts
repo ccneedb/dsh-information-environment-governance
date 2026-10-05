@@ -22,6 +22,16 @@ import { applyProjectEvent, createProjectState, orientationStatus } from '../mod
 /** The model-facing tool that records orientation. */
 export const ORIENTATION_TOOL_NAME = 'record_orientation'
 
+/**
+ * The model-facing tool that *requests* user confirmation of a term (R8-01).
+ *
+ * It is registered like any other tool, but the host routes every call through its
+ * approval service before the body below runs, so the model cannot manufacture a
+ * confirmed entry: the user's approval is the authority, and a denial means
+ * `confirmTerm` is never reached.
+ */
+export const CONFIRM_TOOL_NAME = 'confirm_terminology'
+
 /** Raised when a tool call supplies an orientation the contract rejects. */
 export class OrientationError extends Error {
   constructor(message: string) {
@@ -43,6 +53,8 @@ function requireText(value: unknown, field: string): string {
 /** The orientation store's public surface. */
 interface OrientationStore {
   record(input: unknown): Record<string, unknown>
+  /** Promote a term with user authority. Reachable only from an approved tool call. */
+  confirmTerm(input: { term: string, definition?: string, aliases?: string[], scope?: string }): Record<string, unknown>
   snapshot(): Record<string, unknown>
   hydrate(value: unknown): boolean
   state(): ReturnType<typeof createProjectState>
@@ -78,7 +90,6 @@ export function createOrientationStore(): OrientationStore {
       aliases: string[]
       scope: string
       confidence: number
-      confirmedByUser: boolean
     }> = []
     if (payload.terminology !== undefined) {
       if (!Array.isArray(payload.terminology)) throw new OrientationError('"terminology" must be an array')
@@ -96,10 +107,6 @@ export function createOrientationStore(): OrientationStore {
           aliases,
           scope: typeof term.scope === 'string' ? term.scope : '',
           confidence: typeof term.confidence === 'number' && term.confidence >= 0 && term.confidence <= 1 ? term.confidence : 0.5,
-          // Only an explicit user statement makes an entry authoritative. The agent
-          // asserts that; the assertion is recorded and visible, never assumed
-          // (Batch 7 Phase 8/9).
-          confirmedByUser: term.confirmedByUser === true,
         }
       })
     }
@@ -115,11 +122,10 @@ export function createOrientationStore(): OrientationStore {
     next = applyProjectEvent(next, { type: 'set-objective', value: objective })
     next = applyProjectEvent(next, { type: 'set-scope', value: scope })
     for (const entry of terminology) {
-      // A user-stated term is confirmed; anything the agent inferred enters the
-      // glossary as PROVISIONAL and can never revise a confirmed entry.
-      next = entry.confirmedByUser
-        ? applyProjectEvent(next, { type: 'glossary-confirm', term: entry.term, definition: entry.definition, aliases: entry.aliases, scope: entry.scope, source: 'user' })
-        : applyProjectEvent(next, { type: 'glossary-define', term: entry.term, definition: entry.definition, aliases: entry.aliases, scope: entry.scope, confidence: entry.confidence, source: 'agent-inferred' })
+      // Orientation capture is **inference**, always (R8-01). It enters the glossary
+      // as PROVISIONAL and can never revise a confirmed entry. Confirmation has its
+      // own path: a tool call the host has already approved.
+      next = applyProjectEvent(next, { type: 'glossary-define', term: entry.term, definition: entry.definition, aliases: entry.aliases, scope: entry.scope, confidence: entry.confidence, source: 'agent-inferred' })
     }
     for (const step of steps) next = applyProjectEvent(next, { type: 'add-plan-step', value: step })
     next = applyProjectEvent(next, { type: 'set-phase', value: 'executing' })
@@ -203,8 +209,39 @@ export function createOrientationStore(): OrientationStore {
     return true
   }
 
+  /**
+   * Promote a term with user authority — the only path to `CONFIRMED`.
+   *
+   * The model cannot reach this directly: the caller (the host entry point) exposes it
+   * exclusively through {@link CONFIRM_TOOL_NAME}, whose every invocation is routed
+   * through the host's approval service first. That is the R8-01 boundary — the agent
+   * requests, the user decides, the host enforces.
+   */
+  function confirmTerm(input: { term: string, definition?: string, aliases?: string[], scope?: string }): Record<string, unknown> {
+    const term = requireText(input.term, 'term')
+    if (input.definition !== undefined) requireText(input.definition, 'definition')
+    const aliases = (input.aliases ?? []).map((alias, at) => requireText(alias, `aliases[${at}]`))
+    state = applyProjectEvent(state, {
+      type: 'glossary-confirm',
+      term,
+      ...(input.definition === undefined ? {} : { definition: input.definition }),
+      aliases,
+      ...(input.scope === undefined ? {} : { scope: input.scope }),
+      source: 'user',
+    })
+    const entry = state.glossary.entries.find((candidate) => candidate.canonicalTerm === term)
+    return {
+      confirmed: entry !== undefined,
+      status: entry?.status ?? 'UNKNOWN',
+      confirmedByUser: entry?.confirmedByUser ?? false,
+      source: entry?.source ?? '',
+      glossary: serialiseGlossary(state.glossary),
+    }
+  }
+
   return {
     record,
+    confirmTerm,
     snapshot,
     hydrate,
     state: () => state,
@@ -250,10 +287,6 @@ export function orientationToolDefinition(
               aliases: { type: 'array', items: { type: 'string' }, description: 'Known harmless synonyms for the same project meaning.' },
               scope: { type: 'string', description: 'The project area the term belongs to, if it is not project-wide.' },
               confidence: { type: 'number', description: 'How strongly the evidence supports an inferred term, 0 to 1.' },
-              confirmedByUser: {
-                type: 'boolean',
-                description: 'Set true ONLY when the user stated this term and meaning explicitly. A term you inferred must leave this unset: it is recorded as provisional and is never treated as authority.',
-              },
             },
             required: ['term', 'definition'],
           },
@@ -304,5 +337,34 @@ export function orientationRequirement(
     reason:
       `ieg: record the project orientation before changing the workspace — call ${ORIENTATION_TOOL_NAME} ` +
       'with the intent, objective, scope, terminology, and ordered task flow',
+  }
+}
+
+/**
+ * The tool definition for {@link CONFIRM_TOOL_NAME} (R8-01).
+ *
+ * `run` is supplied by the host entry point and is only ever reached after the host has
+ * approved the call, which is why the kernel can expose a promotion path at all without
+ * giving the model authority.
+ */
+export function confirmationToolDefinition(
+  run: (exec: unknown, input: { term: string, definition?: string, aliases?: string[], scope?: string }) => Record<string, unknown>,
+): Omit<IegToolDefinition, 'output'> {
+  return {
+    name: CONFIRM_TOOL_NAME,
+    description:
+      'Ask the user to confirm a project term and, on approval, record it as CONFIRMED project terminology. Use it when the user has stated a term and its meaning, or when an inferred term needs to become authoritative. This call always asks the user: their approval is the only authority, so never treat your own reading as consent, and keep the wording you attribute to them faithful.',
+    parameters: {
+      type: 'object',
+      properties: {
+        term: { type: 'string', description: 'The canonical term to confirm.' },
+        definition: { type: 'string', description: 'The meaning the user gave, faithful in substance.' },
+        aliases: { type: 'array', items: { type: 'string' }, description: 'Harmless synonyms the user accepted for this meaning.' },
+        scope: { type: 'string', description: 'The project area the term belongs to, if it is not project-wide.' },
+      },
+      required: ['term'],
+    },
+    execute: async (input: unknown, exec: unknown) =>
+      run(exec, (input ?? {}) as { term: string, definition?: string, aliases?: string[], scope?: string }),
   }
 }

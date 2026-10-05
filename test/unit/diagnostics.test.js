@@ -33,6 +33,8 @@ const EXPECTED_CODES = [
   'ieg.prompt_override_missing',
   'ieg.diagnostics_export_failed',
   'ieg.maintenance_round',
+  'ieg.terminology_confirmation_requested',
+  'ieg.terminology_confirmed',
   'ieg.maintenance_due',
   'ieg.orientation_recorded',
   'ieg.orientation_restored',
