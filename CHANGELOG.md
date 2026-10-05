@@ -1,12 +1,12 @@
 ---
 doc_type: changelog
 project: information-environment-governance
-version: 0.12.0
-plugin_version: 0.12.0
+version: 0.12.1
+plugin_version: 0.12.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.0-batch-7
+revision: 0.12.1-batch-7
 audience: everyone
 language: en
 ---
@@ -32,6 +32,39 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.12.1] — 2026-10-05
+
+**The frozen evaluation baseline, on a commit whose required job is green.**
+
+### Fixed
+
+- **CI never installed pnpm.** `dsh plugin add` forwards to pnpm and the host does
+  not bundle it, so every install step in the verification chain failed with
+  `dsh: pnpm was not found; install pnpm and make it available on PATH`. The earlier
+  `continue-on-error` had hidden this completely; making the job required surfaced it
+  on the first run. pnpm is now installed and pinned (`12.9.1`), like TypeScript.
+
+### Changed
+
+- **The frozen baseline moved from v0.12.0 to v0.12.1.** v0.12.0's tag points at a
+  commit whose required compatibility job was red, and a frozen baseline must be a
+  state that actually passed its checks. This is the same rule the project applies to
+  superseded information: correct it at the source rather than note it in passing.
+
+### Recorded, not yet fixed
+
+- `scripts/verify.sh` prints "0 tests passed" on a non-TTY runner: it counts `^✔`
+  while `node --test` emits TAP when stdout is not a terminal. The suite still runs
+  and a real failure still fails the step, but the reported number is wrong there.
+  It is recorded in `MAINTENANCE-HANDOFF.md` §3 rather than quietly left.
+
+### Verification
+
+- CI on this commit: **all five jobs green**, including the now-required
+  `full verification chain (verified host 0.2.1-alpha.1)`, which exercises the
+  release gate end to end against the baseline the package actually declares.
+- Locally: `node --test` 284/284, `scripts/verify.sh` 23/23, `check-docs` green.
 
 ## [0.12.0] — 2026-10-05
 

@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.12.0
+plugin_version: 0.12.1
 version: 0.8.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.0-batch-7
+revision: 0.12.1-batch-7
 host_baseline_verified: dsh-0.2.1-alpha.1
 supersedes: none
 language: en
@@ -261,10 +261,20 @@ behavioural result exists for this revision and none is claimed. Locally, the ho
 integration tests skip rather than fail when no DSH installation is present; CI
 installs the verified release, so they run there.
 
-**Frozen evaluation baseline.** **v0.12.0**, the release whose tag records the exact
-commit. From here, any change to governance behaviour invalidates the baseline: it
+**Frozen evaluation baseline.** **v0.12.1**, the release whose tag records the exact
+commit. v0.12.0 was superseded as the baseline because its required compatibility job
+failed: the job had never installed **pnpm**, which `dsh plugin add` forwards to, so
+every install step in the chain failed while `continue-on-error` hid it. v0.12.0's own
+tag therefore points at a commit whose required job was red, and a baseline must be a
+state that actually passed its checks. From here, any change to governance behaviour invalidates the baseline: it
 must be re-frozen and the evaluation re-run, because a result measured on one
 revision may not be reported as a result for another (Batch 7 §20.7).
+
+**One reporting defect found by the newly-required CI job** and not yet fixed:
+`verify.sh` prints "0 tests passed" on a non-TTY runner, because it counts `^✔`
+lines while `node --test` emits TAP (`ok n - …`) when stdout is not a terminal. The
+suite still runs and still fails the step on a real failure, but the number it
+reports is wrong there. Recorded rather than quietly left.
 
 **Known limitations carried forward**, each with its evidence above: Gates C and D
 are unmeasured; `confirmedByUser` is asserted by the agent and cannot be

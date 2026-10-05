@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.12.0
+plugin_version: 0.12.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.0-batch-7
+revision: 0.12.1-batch-7
 verified_against: dsh-v0.2.1-alpha.1
 language: en
 format_note: conservative-machine-readable-markdown
