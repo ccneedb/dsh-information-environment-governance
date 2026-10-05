@@ -234,6 +234,75 @@ assertion, attributes it as `user`-sourced, and exposes it on the status surface
 but it cannot independently verify that the user said it. An agent that mis-asserts
 confirmation could grant a term authority the user never gave it.
 
+### Phase 13 — behavioural evaluation: assessed, and blocked for a stated reason
+
+**Status: not executed. Gates C and D remain unmeasured, and no behavioural result is
+claimed for this revision.** Batch 7 §22 permits this only as an explicitly documented,
+evidence-based blocker, which is what follows.
+
+**What the instrumentation can and cannot do.** `eval/harness.mjs seed` creates a
+sandbox per arm, writes the seed files and writes the exact prompt the subject
+receives (control = framing + task + reporting; treatment = the compiled governance
+section + the same). `measure` scores the outcome from the **filesystem**, not from the
+subject's narration, so scoring is mechanical. Step 2, however, is *"the subject is a
+real agent run"* — and nothing in this repository performs it.
+
+**Why the runs could not be made here.** A delegated trial agent inherits *this*
+session's profile. Under the shipped `workspace.policy: ask`, a delegated agent has no
+approval channel, so `tools/pre-execute` fails closed and it cannot write in its
+sandbox at all — verified twice in this project's history, most recently in Batch 6.
+Relaxing that policy means editing the live profile, and two attempts were made and
+both **reverted** rather than left in place:
+
+1. a partial override (`workspace.policy` only) — withdrawn once the plugin's own patch
+   documentation was read: *"a patch replaces the whole config, it does not merge"*, so
+   it would have silently dropped `sectionOrder`, `modules`, `preStep`, `prompt` and
+   `diagnostics`;
+2. a **complete** restatement generated programmatically from the plugin's own row, which
+   composed correctly under `dsh --profile web --dump-config` but then produced
+   `ieg.config_invalid` in the live session. The cause was not established, and the
+   change was reverted immediately rather than diagnosed by trial and error on a
+   running session.
+
+**What would unblock it**, in order of preference:
+
+1. **the operator runs the trials.** Seed each pair with the harness, drive a real agent
+   in each sandbox, return the Action Logs; the scoring stays mechanical. This keeps the
+   live profile untouched and both arms fully governed.
+2. **a throwaway profile.** A dedicated profile carrying the complete IEG row with
+   `workspace.policy: allow`, verified in isolation before use. Delegated agents cannot
+   be pointed at it from this session, so it needs an operator or a separate driver.
+
+**Limitation that would remain even then:** IEG's runtime workspace gate is a property of
+the *host profile*, so it applies to both arms. Trials run under a relaxed gate measure
+the **compiled prompt section's** effect, not the runtime gates'. A complete Gate C
+measurement must state which of the two it measured.
+
+### Phase 14 — release-readiness decision
+
+**No-go, and not determinable for the two gates that matter most.** Stated as verified
+facts, inferences and limitations rather than as a single verdict.
+
+**Verified facts.** 284/284 tests; `verify.sh` 23/23; `check-docs` green; all five CI
+jobs green, including the required verified-host chain against `0.2.1-alpha.1`;
+packaging verified from a fresh profile; 17 terminology acceptance tests covering the
+ten required scenarios with their non-overreach counterparts; the release artifact is
+reproducible with pinned tooling (TypeScript 6.0.3, pnpm 12.9.1).
+
+**Inferences, marked as such.** The engineering baseline is coherent and the declared
+compatibility claim now matches what CI actually exercises. Neither of those says
+anything about whether IEG improves outcomes for a governed agent.
+
+**Limitations.** Gates C and D unmeasured; `confirmedByUser` is asserted by the agent
+and not independently verifiable; cross-document contradiction detection is absent;
+`feature` behaviour has never been exercised by an external user.
+
+**Recommendation for the next phase.** Do **not** publish or claim product validation.
+Run the Phase 13 protocol first — repeated trials, blind judging, at least two models,
+one non-English scenario, across the four scenario families — and treat inconclusive
+results as inconclusive. The engineering baseline is ready to carry that evaluation;
+the product hypothesis is not yet tested.
+
 ### Round 7 verification record and frozen evaluation baseline (Phases 11-12)
 
 A **fresh** record, taken after every implementation change in this round — an old
