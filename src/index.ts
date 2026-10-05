@@ -41,6 +41,7 @@ import {
   decideMutation,
   guardBackstop,
 } from './modules/workspace-governance.js'
+import { registerInformationTools } from './host/information-tools.js'
 import { registerMaintenanceTool } from './host/maintenance-tool.js'
 import {
   CONFIRM_INFORMATION_TOOL_NAME,
@@ -1008,82 +1009,12 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     // R8-02: information capture and lifecycle transitions. The model supplies what is
     // claimed and which transition it proposes; it never supplies user confirmation, so
     // it cannot promote its own claim to authority.
-    guarded('tools.record_information', () => {
-      toolCtx.tools?.register({
-        name: RECORD_INFORMATION_TOOL_NAME,
-        description:
-          'Record a piece of project information, or move it through its lifecycle. Use a status to mark an item invalid, superseded, deprecated or suspect, and a disposition to record how a wrong item was corrected, replaced, quarantined or removed. Recording never makes information authoritative: promotion to AUTHORITATIVE requires evidence or the user\'s explicit confirmation, which is a separate, approved call.',
-        parameters: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: 'A stable identifier for the information item.' },
-            value: { type: 'string', description: 'The information itself, or the replacement when correcting.' },
-            status: { type: 'string', description: 'A lifecycle status to move to. Omit when recording a new item.' },
-            evidence: { type: 'string', description: 'What justifies the transition, when evidence exists.' },
-            disposition: { type: 'string', description: 'For a wrong item: CORRECTED | REPLACED | QUARANTINED | REMOVED.' },
-          },
-          required: ['id'],
-        },
-        output: { schema: { type: 'object' }, render: renderJson },
-        execute: async (args, exec) => {
-          const raw = (args ?? {}) as { id?: unknown, value?: unknown, status?: unknown, evidence?: unknown, disposition?: unknown }
-          const id = typeof raw.id === 'string' ? raw.id.trim() : ''
-          if (id === '') return { ok: false, reason: 'id is required' }
-          const ledger = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).information
-          const value = typeof raw.value === 'string' ? raw.value : ''
-          const evidence = typeof raw.evidence === 'string' ? raw.evidence : undefined
-
-          if (typeof raw.disposition === 'string' && raw.disposition.trim() !== '') {
-            const disposed = disposeRecord(ledger, id, raw.disposition.trim().toUpperCase() as 'CORRECTED' | 'REPLACED' | 'QUARANTINED' | 'REMOVED', value)
-            note('ieg.information_invalidated', { id, disposition: raw.disposition, ok: disposed.ok, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) },
-              `ieg: information_invalidated id=${id} disposition=${String(raw.disposition)}`)
-            return disposed
-          }
-          if (typeof raw.status === 'string' && raw.status.trim() !== '') {
-            const moved = applyTransition(ledger, id, raw.status.trim().toUpperCase(), evidence === undefined ? {} : { evidence })
-            note('ieg.information_invalidated', { id, to: raw.status, ok: moved.ok, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) },
-              `ieg: information_transition id=${id} to=${String(raw.status)} ok=${moved.ok}`)
-            return moved
-          }
-          return { ok: true, record: addRecord(ledger, { id, value, provenance: 'agent' }) }
-        },
-      })
+    registerInformationTools({
+      tools: toolCtx.tools,
+      guarded,
+      note,
+      ledgerFor: (agent) => governance.forAgent(agent).information,
     })
-
-    // R8-02 §5: revalidation. The gate above returns `ask` for every call, so this body
-    // is reached only once the user has approved — which is what makes the promotion
-    // below legitimate rather than self-granted.
-    guarded('tools.confirm_information', () => {
-      toolCtx.tools?.register({
-        name: CONFIRM_INFORMATION_TOOL_NAME,
-        description:
-          'Ask the user to revalidate a piece of project information and, on approval, promote it to AUTHORITATIVE. Use it only when the user has actually confirmed the item; a denial leaves the current status untouched.',
-        parameters: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: 'The information item to revalidate.' },
-            evidence: { type: 'string', description: 'What the user relied on, faithful in substance.' },
-          },
-          required: ['id'],
-        },
-        output: { schema: { type: 'object' }, render: renderJson },
-        execute: async (args, exec) => {
-          const raw = (args ?? {}) as { id?: unknown, evidence?: unknown }
-          const id = typeof raw.id === 'string' ? raw.id.trim() : ''
-          const ledger = governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).information
-          const promoted = applyTransition(ledger, id, 'AUTHORITATIVE', {
-            evidence: typeof raw.evidence === 'string' ? raw.evidence : undefined,
-            userConfirmation: true,
-          })
-          note('ieg.information_invalidated', { id, revalidated: promoted.ok, agentId: agentIdOf(((exec ?? {}) as { agent?: unknown }).agent) },
-            `ieg: information_revalidated id=${id} ok=${promoted.ok}`)
-          return promoted
-        },
-      })
-    })
-
-    // R8-01: the confirmation path. The gate above returns `ask` for every call, so
-    // this body is reached only once the user has approved.
     guarded('tools.confirm_terminology', () => {
       toolCtx.tools?.register({
         ...confirmationToolDefinition((exec, input) => {
