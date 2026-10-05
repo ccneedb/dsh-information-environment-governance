@@ -303,6 +303,28 @@ The single actionable proposal is `IMPLEMENTATION-VALIDATION-HANDOFF.md`, which 
 **proposal**: the round does not apply destructive actions, and R8-13 is where artifact and
 stale-information cleanup is decided.
 
+#### R8-13 measurement baseline (measured, not assumed)
+
+R8-13 asks for **actual before/after storage measurements** rather than an assumed
+reduction. Its cleanup is gated behind R8-07/R8-08/R8-12, but the measurement is
+independent, so the *before* state is recorded here:
+
+| Measure | Value (2026-10-05, before any R8-13 cleanup) |
+|---|---|
+| Git-tracked `*.tgz` files | **0** |
+| `.gitignore` rules blocking tarballs | **2** (`*.tgz`, `*.tgz.sha256`) |
+| `*.tgz` ever added in history | **1** (a single historical blob; absent from the tree) |
+| Working tree excluding `.git` | **2.4 MB** |
+| `.git` | **2.3 MB** |
+| Published tarballs | Release assets (v0.9.x … v0.12.1), not repository objects |
+
+The honest reading: **there is nothing to remove from the tracked tree**, and the
+measurable Git impact of the tracked-artifact portion of R8-13 is therefore **zero**. The
+only remaining artefact is the single historical blob, and R8-13 §6 forbids rewriting
+history for cleanliness without a separate justified migration plan. A "size reduction"
+claim for this task would be fabricated; the correct report is that the premise is already
+satisfied.
+
 #### U8-02 — the user-confirmation seam: **verified, not invented**
 
 The host seam is the **tool-registry approval path**: `tools/pre-execute` returns
