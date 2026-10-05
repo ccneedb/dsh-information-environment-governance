@@ -303,6 +303,32 @@ The single actionable proposal is `IMPLEMENTATION-VALIDATION-HANDOFF.md`, which 
 **proposal**: the round does not apply destructive actions, and R8-13 is where artifact and
 stale-information cleanup is decided.
 
+#### R8-06 verification: the reproducible install path was exercised, not just asserted
+
+R8-06's claim is that a build does not depend on what the registry serves that day. That
+was asserted by a test and used by CI, but with CI unable to schedule a run (see below) the
+path was exercised directly:
+
+```
+npm ci --ignore-scripts   ->  added 1 package in 3s
+./node_modules/.bin/tsc --version  ->  Version 6.0.3
+npm test                  ->  301/301 pass
+```
+
+So a **clean install from the committed lockfile resolves exactly one package — the pinned
+compiler — and builds and passes the full suite from it.** That is the same path CI's jobs
+take.
+
+**What this does *not* replace:** CI's Node 20/22/24 matrix and its job that installs
+`dsh@0.2.1-alpha.1` + `pnpm@12.9.1` and runs the release gate against a *real* host. The
+local run used the host checkout already present in this environment.
+
+**CI state at the time of writing:** the run for `5cacbce` had been **queued for ten minutes
+with no job started**, and runs for `6ce0169`, `eb5b3e8` and `9eb8b79` were **cancelled**
+(the first two by my own successive pushes; the third — the R8-05 extraction — by the push
+that followed it). Therefore **no completed CI run exists for the last code change**, and
+this document does not claim one.
+
 #### R8-12 status: Gates C and D recorded **unmet**, with the blocking cause
 
 Batch 8 §12 is explicit: *"If either gate cannot honestly be met, record it as unmet with the
