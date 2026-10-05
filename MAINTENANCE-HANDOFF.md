@@ -273,6 +273,22 @@ surface — the evaluation must run against the post-Batch-8 revision.
 | R8-12 Gate C/D closure | not started | — | — | blocked by U8-01 until the predecessors are done |
 | R8-13 artifact cleanup | not started | — | — | U8-03 verified below |
 
+#### Maintenance round run on the Batch 8 tree (2026-10-05)
+
+The runtime marked maintenance due during this work — seven direct user instruction
+batches, counted by the Batch 6 trigger through the host's turn accounting — so a round
+was run at the next safe boundary, as the plugin's own rule requires.
+
+Result, on the current revision: **24 artifacts scanned**; inventory
+`configuration=9, implementation-documentation=9, unknown=3, authoritative-specification=2,
+historical=1`; findings `LEAVE_UNCHANGED=22, KEEP=1, DEPRECATE=1`; **unresolved = 0**, no
+false positives.
+
+The single actionable proposal is `IMPLEMENTATION-VALIDATION-HANDOFF.md`, which declares
+`status: retired` — correctly identified as history rather than current guidance. It is a
+**proposal**: the round does not apply destructive actions, and R8-13 is where artifact and
+stale-information cleanup is decided.
+
 #### U8-02 — the user-confirmation seam: **verified, not invented**
 
 The host seam is the **tool-registry approval path**: `tools/pre-execute` returns
