@@ -100,6 +100,19 @@ if grep -q '"build"' "${PACKAGE_DIR}/package.json"; then
   fi
 fi
 
+# ── 0b. generated-source drift (R8-05 §2-3) ───────────────────────────────────
+# `lib/**` is generated output. A fresh build has just run, so any difference between it
+# and the committed tree means someone hand-edited the generated output, forgot to commit
+# a rebuild, or the build is not deterministic. All three are defects, and none of them
+# is visible from the test suite alone.
+step "Generated output matches a fresh build of the sources"
+if (cd "$PACKAGE_DIR" && git diff --quiet -- lib); then
+  pass "lib/ is identical to a fresh build of src/ (no generated-source drift)"
+else
+  fail "lib/ drifted from src/ — rebuild and commit the generated output"
+  (cd "$PACKAGE_DIR" && git diff --stat -- lib | tail -8) || true
+fi
+
 # ── 1. typecheck ─────────────────────────────────────────────────────────────
 step "Typecheck (strict checkJs)"
 if (cd "$PACKAGE_DIR" && npm run --silent typecheck); then pass "tsc --checkJs strict"; else fail "tsc --checkJs strict"; fi
