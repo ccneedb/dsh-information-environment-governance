@@ -38,6 +38,14 @@ export interface InformationRecord {
     provenance: string;
     disposition: string | null;
     revision: number;
+    /**
+     * The text a correction or replacement disposed of.
+     *
+     * Retained because reintroduction detection must still recognise the *stale* text:
+     * after `CORRECTED`, `value` holds the replacement, so without this the original —
+     * the very thing that must not come back — would be undetectable.
+     */
+    disposedValue?: string;
 }
 export declare function createRecord(input: {
     id: string;
@@ -99,3 +107,67 @@ export declare const informationIntegrityModule: Readonly<{
     enabledByDefault: true;
     addresses: readonly string[];
 }>;
+/**
+ * The per-agent information ledger.
+ *
+ * It holds the canonical `InformationRecord`s, so the runtime path and the persisted
+ * path share one model (R8-02 §6) — the ledger is what the tools mutate and what the
+ * durable snapshot round-trips, and no second representation is introduced.
+ */
+export interface InformationLedger {
+    records: InformationRecord[];
+}
+/** An empty ledger. */
+export declare function createLedger(): InformationLedger;
+/** Find a record by id. */
+export declare function findRecord(ledger: InformationLedger, id: string): InformationRecord | undefined;
+/**
+ * Record information, or replace the record of the same id.
+ *
+ * The caller supplies *what is claimed*; authority is not a parameter. A new record
+ * starts `PROVISIONAL`, and any later promotion goes through
+ * {@link applyTransition}, whose `AUTHORITATIVE` rule cannot be satisfied by the model
+ * alone (R8-01's boundary, applied to information).
+ */
+export declare function addRecord(ledger: InformationLedger, input: {
+    id: string;
+    value: string;
+    provenance?: string;
+    status?: string;
+}): InformationRecord;
+/**
+ * Apply a lifecycle transition.
+ *
+ * `justification.userConfirmation` is **not** reachable from model input: the caller
+ * decides. The host entry point passes it only for a call the host has already routed
+ * through its approval service, so a model cannot promote its own claim to authority
+ * by asserting consent.
+ */
+export declare function applyTransition(ledger: InformationLedger, id: string, to: string, justification?: {
+    evidence?: string;
+    userConfirmation?: boolean;
+}): {
+    ok: boolean;
+    record?: InformationRecord;
+    reason?: string;
+};
+/** Dispose a record (the D14 policy), leaving its provenance and disposition intact. */
+export declare function disposeRecord(ledger: InformationLedger, id: string, disposition: 'CORRECTED' | 'REPLACED' | 'QUARANTINED' | 'REMOVED', replacement?: string): {
+    ok: boolean;
+    record?: InformationRecord;
+    reason?: string;
+};
+/**
+ * Detect an attempt to reuse a disposed or non-authoritative value.
+ *
+ * This is the runtime's check, run at the point a persistent write is proposed — the
+ * earliest seam the host gives IEG that can see the incoming content. It reports; it
+ * does not silently repair, and it never claims the stale value was rewritten.
+ */
+export declare function reintroductionOf(ledger: InformationLedger, incoming: string): InformationRecord | null;
+/** The records that may be presented as current guidance. */
+export declare function authoritativeRecords(ledger: InformationLedger): InformationRecord[];
+/** A serialisable snapshot for durable storage. */
+export declare function serialiseLedger(ledger: InformationLedger): InformationRecord[];
+/** Restore a ledger, dropping entries that are not well formed. */
+export declare function deserialiseLedger(stored: unknown): InformationLedger;

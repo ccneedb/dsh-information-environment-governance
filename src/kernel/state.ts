@@ -20,6 +20,7 @@
  */
 
 import { MAINTENANCE_BATCH_THRESHOLD } from './maintenance.js'
+import { createLedger, type InformationLedger } from '../modules/information-integrity.js'
 import { createOrientationStore } from './orientation.js'
 
 /**
@@ -92,6 +93,8 @@ export function completeMaintenanceRound(counter: BatchCounter): void {
 interface AgentState {
   orientation: ReturnType<typeof createOrientationStore>
   batches: BatchCounter
+  /** The information ledger (R8-02): the runtime's working set over the canonical records. */
+  information: InformationLedger
 }
 
 /**
@@ -101,6 +104,7 @@ export function createAgentState(): AgentState {
   return {
     orientation: createOrientationStore(),
     batches: createBatchCounter(),
+    information: createLedger(),
   }
 }
 

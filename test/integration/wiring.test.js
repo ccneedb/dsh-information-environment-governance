@@ -150,7 +150,7 @@ test('IEG requests the tool registry through ctx.inject, not eagerly', () => {
   assert.match(String(stub.guards[0]({ name: 'write', arguments: { file_path: '/repo/secrets/k' } })), /protected path/)
   assert.deepEqual(
     stub.tools.map((tool) => tool.name).sort(),
-    ['confirm_terminology', 'ieg_status', 'maintain_environment', 'record_orientation'],
+    ['confirm_information', 'confirm_terminology', 'ieg_status', 'maintain_environment', 'record_information', 'record_orientation'],
     'IEG registers exactly its own four tools: orientation capture, the gated terminology confirmation, the read-only status surface, and the read-only maintenance round',
   )
 })
@@ -673,4 +673,67 @@ test('R8-01: the confirmation tool is registered, and its body carries user prov
   assert.equal(result.confirmed, true)
   assert.equal(result.status, 'CONFIRMED')
   assert.equal(result.source, 'user', 'a confirmed entry is user-sourced, never agent-inferred')
+})
+
+/* ── R8-02: the information-integrity lifecycle, end to end ─────────────────── */
+
+test('R8-02: the lifecycle runs in the real path, and stale reuse is detected', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, { workspace: { policy: 'allow' } })
+  stub.mountTools()
+  const agent = { id: 'a1' }
+  const record = stub.tools.find((entry) => entry.name === 'record_information')
+  const confirm = stub.tools.find((entry) => entry.name === 'confirm_information')
+  const gate = stub.listeners.get('tools/pre-execute')[0]
+  const next = async () => ({ kind: 'allow' })
+
+  // 1. valid information: recorded as PROVISIONAL, never authoritative by recording
+  const created = await record.execute({ id: 'api-version', value: 'The API is v1' }, { agent })
+  assert.equal(created.ok, true)
+  assert.equal(created.record.status, 'PROVISIONAL')
+
+  // 2. promotion without evidence is refused by the lifecycle itself
+  const premature = await record.execute({ id: 'api-version', status: 'AUTHORITATIVE' }, { agent })
+  assert.equal(premature.ok, false)
+  assert.match(premature.reason, /requires evidence or explicit user confirmation/)
+
+  // 3. promotion with evidence is legitimate
+  const promoted = await record.execute({ id: 'api-version', status: 'AUTHORITATIVE', evidence: 'upstream release notes' }, { agent })
+  assert.equal(promoted.ok, true)
+  assert.equal(promoted.record.status, 'AUTHORITATIVE')
+
+  // 4. invalidation + correction: the stale text is retained for detection
+  const corrected = await record.execute({ id: 'api-version', value: 'The API is v2', disposition: 'CORRECTED' }, { agent })
+  assert.equal(corrected.ok, true)
+  assert.equal(corrected.record.status, 'INVALID')
+  assert.equal(corrected.record.value, 'The API is v2')
+  assert.equal(corrected.record.disposedValue, 'The API is v1')
+
+  // 5. supersession
+  await record.execute({ id: 'endpoint', value: 'use /v1/items' }, { agent })
+  const superseded = await record.execute({ id: 'endpoint', status: 'SUPERSEDED' }, { agent })
+  assert.equal(superseded.record.status, 'SUPERSEDED')
+
+  // 6. attempted stale reuse is surfaced in the real write path
+  await gate({ name: 'write', arguments: { file_path: 'notes/api.md', content: 'The API is v1' }, agent }, next)
+  const reintroduced = stub.logs.filter((entry) => entry.message.includes('information_reintroduced'))
+  assert.equal(reintroduced.length, 1, 're-writing the corrected value must be reported')
+  assert.match(reintroduced[0].message, /id=api-version/)
+
+  // 7. reintroduction of the superseded value is caught too
+  await gate({ name: 'write', arguments: { file_path: 'notes/endpoints.md', content: 'use /v1/items' }, agent }, next)
+  assert.equal(stub.logs.filter((entry) => entry.message.includes('information_reintroduced')).length, 2)
+
+  // A legitimate document that reuses nothing is not reported.
+  await gate({ name: 'write', arguments: { file_path: 'notes/other.md', content: 'something else entirely' }, agent }, next)
+  assert.equal(stub.logs.filter((entry) => entry.message.includes('information_reintroduced')).length, 2)
+
+  // 8. legitimate revalidation requires user authority: the call is always asked of the
+  // user, and its body — reached only on approval — restores authoritative status.
+  const asked = await gate({ name: 'confirm_information', arguments: { id: 'api-version' }, agent }, next)
+  assert.equal(asked.kind, 'ask')
+  const revalidated = await confirm.execute({ id: 'api-version', evidence: 'the user confirmed v2 is current' }, { agent })
+  assert.equal(revalidated.ok, true)
+  assert.equal(revalidated.record.status, 'AUTHORITATIVE')
+  assert.equal(revalidated.record.value, 'The API is v2')
 })

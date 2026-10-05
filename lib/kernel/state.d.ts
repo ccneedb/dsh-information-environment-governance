@@ -18,6 +18,7 @@
  * property: `ScopedLayers` would require importing `@deepseek-ai/dsh-scope`
  * (§25.3, assumption B3).
  */
+import { type InformationLedger } from '../modules/information-integrity.js';
 import { createOrientationStore } from './orientation.js';
 /**
  * The live agent id, when the subject carries one.
@@ -66,6 +67,8 @@ export declare function completeMaintenanceRound(counter: BatchCounter): void;
 interface AgentState {
     orientation: ReturnType<typeof createOrientationStore>;
     batches: BatchCounter;
+    /** The information ledger (R8-02): the runtime's working set over the canonical records. */
+    information: InformationLedger;
 }
 /**
  * One agent's governance state.

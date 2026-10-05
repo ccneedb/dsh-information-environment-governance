@@ -260,7 +260,7 @@ surface — the evaluation must run against the post-Batch-8 revision.
 |---|---|---|---|---|
 | R8-00 baseline | **done** | this commit | this section | baseline table above |
 | R8-01 authority boundary | **done** | this commit | `src/kernel/orientation.ts`, `src/index.ts`, `src/kernel/diagnostics.ts`, `test/unit/glossary.test.js`, `test/integration/wiring.test.js` | the model-facing `confirmedByUser` flag is gone (orientation capture is always inference); promotion moved to `confirm_terminology`, gated unconditionally through the host approval service; 3 regression tests (self-attestation ignored, `ask` under `policy: allow`, user-sourced promotion); 287/287 |
-| R8-02 information-integrity loop | not started | — | — | — |
+| R8-02 information-integrity loop | **done** | this commit | `src/modules/information-integrity.ts`, `src/kernel/state.ts`, `src/index.ts`, `test/integration/wiring.test.js` | ledger on the canonical model in per-agent state; `record_information` (capture + transitions, no model-supplied confirmation) and the approval-gated `confirm_information` (revalidation); write-time reintroduction detection; one end-to-end test covering valid → invalidation → supersession → stale reuse → correction → reintroduction → revalidation; 288/288 |
 | R8-03 mutation governance | not started | — | — | — |
 | R8-04 supported scope | not started | — | — | — |
 | R8-05 TS migration + decomposition | not started | — | — | — |
@@ -308,6 +308,37 @@ So R8-13's premise is already satisfied for the tracked tree, and its measurable
 impact is **zero for Git** — the later decision is whether to rewrite history to purge the
 single historical blob, which R8-13 §6 forbids without a separate justified migration plan.
 Release assets are governed by the release policy, not by repository size.
+
+#### Information-integrity runtime boundary (R8-02)
+
+**What is implemented, in the real runtime path** — not as pure functions awaiting a
+caller, which is the gap R8-02 named:
+
+- a **ledger** over the canonical `InformationRecord` model, held in per-agent state, so
+  the runtime path and the durable path share one representation;
+- **`record_information`** captures a claim and moves it through the lifecycle
+  (`PROVISIONAL` → `SUSPECT`/`INVALID`/`DEPRECATED`/`SUPERSEDED`, and `AUTHORITATIVE`
+  only with evidence). **The model never supplies user confirmation**, so it cannot
+  promote its own claim: the same boundary R8-01 established for terminology, applied
+  where the original code exposed the identical hole (`transition(…, { userConfirmation })`
+  was model-reachable);
+- **`confirm_information`**, whose every call is routed through the host's approval
+  service unconditionally, and whose body — reached only on approval — is what performs a
+  *legitimate revalidation*;
+- **reintroduction detection in the write path**: when a persistent write proposes text
+  matching a disposed or non-authoritative record, the runtime records
+  `ieg.information_reintroduced`. A correction retains the text it displaced
+  (`disposedValue`), because the replacement is current and the *original* is the claim
+  that must not return.
+
+**What is deliberately not implemented, and therefore not claimed.** IEG has **no
+read-time enforcement**. The host's `tools/result` is an emit-only event whose result is
+frozen before observers run — verified in `dsh-tools`' own type documentation — so there
+is no channel to inject a warning into a read, and no host seam by which IEG could mark or
+withhold a document at retrieval time. The consequence is stated plainly: IEG can record
+status, gate writes, and report attempted reuse, but it cannot prevent a model from acting
+on stale text it reads. Any claim of "invalid information is non-authoritative at
+retrieval" would be exactly the unsupported capability R8-02 §8 forbids.
 
 ### Phase 13 — behavioural evaluation: assessed, and blocked for a stated reason
 

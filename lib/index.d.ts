@@ -48,6 +48,16 @@ export declare const STATUS_TOOL_NAME = "ieg_status";
  * needs no mutation gate — an unknown tool is read-only by construction.
  */
 export declare const MAINTENANCE_TOOL_NAME = "maintain_environment";
+/** The model-facing tool that captures information and moves it through the lifecycle. */
+export declare const RECORD_INFORMATION_TOOL_NAME = "record_information";
+/**
+ * The model-facing tool that requests *revalidation* of information (R8-02 §5).
+ *
+ * Revalidation is promotion to `AUTHORITATIVE`, which the lifecycle already refuses
+ * without evidence or explicit user confirmation. The model may ask; only the host's
+ * approval service can supply the confirmation, exactly as for terminology (R8-01).
+ */
+export declare const CONFIRM_INFORMATION_TOOL_NAME = "confirm_information";
 /**
  * Version of the compiled governance prompt. It changes whenever the injected
  * model-facing text changes, so a behavioural regression is attributable to one

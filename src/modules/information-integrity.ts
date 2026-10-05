@@ -71,6 +71,14 @@ export interface InformationRecord {
   provenance: string
   disposition: string | null
   revision: number
+  /**
+   * The text a correction or replacement disposed of.
+   *
+   * Retained because reintroduction detection must still recognise the *stale* text:
+   * after `CORRECTED`, `value` holds the replacement, so without this the original —
+   * the very thing that must not come back — would be undetectable.
+   */
+  disposedValue?: string
 }
 
 export function createRecord(input: {
@@ -141,11 +149,13 @@ export function dispose(
   replacement = '',
 ): InformationRecord {
   if (!INFORMATION_DISPOSITIONS.includes(disposition)) throw new Error(`unknown disposition "${disposition}"`)
+  const replacesValue = disposition === 'CORRECTED' || disposition === 'REPLACED'
   return {
     ...record,
     status: 'INVALID',
     disposition,
-    value: disposition === 'CORRECTED' || disposition === 'REPLACED' ? replacement : record.value,
+    value: replacesValue ? replacement : record.value,
+    ...(replacesValue ? { disposedValue: record.value } : {}),
     revision: record.revision + 1,
   }
 }
@@ -180,7 +190,10 @@ export function findReintroduced(records: readonly InformationRecord[], incoming
   for (const record of records) {
     if (record.status === 'AUTHORITATIVE') continue
     if (!['INVALID', 'DEPRECATED', 'SUPERSEDED'].includes(record.status)) continue
-    if (record.value.trim().toLowerCase() === needle) return record
+    // Match the current value or the text a correction displaced, so a corrected claim
+    // is still recognised if it is reintroduced.
+    const candidates = [record.value, record.disposedValue ?? '']
+    if (candidates.some((candidate) => candidate.trim().toLowerCase() === needle)) return record
   }
   return null
 }
@@ -205,3 +218,129 @@ export const informationIntegrityModule = Object.freeze({
   enabledByDefault: true,
   addresses: Object.freeze(['FC-2.3']),
 })
+
+/* ── the ledger: the runtime's working set over the canonical records (R8-02) ── */
+
+/**
+ * The per-agent information ledger.
+ *
+ * It holds the canonical `InformationRecord`s, so the runtime path and the persisted
+ * path share one model (R8-02 §6) — the ledger is what the tools mutate and what the
+ * durable snapshot round-trips, and no second representation is introduced.
+ */
+export interface InformationLedger {
+  records: InformationRecord[]
+}
+
+/** An empty ledger. */
+export function createLedger(): InformationLedger {
+  return { records: [] }
+}
+
+/** Find a record by id. */
+export function findRecord(ledger: InformationLedger, id: string): InformationRecord | undefined {
+  return ledger.records.find((record) => record.id === id)
+}
+
+/**
+ * Record information, or replace the record of the same id.
+ *
+ * The caller supplies *what is claimed*; authority is not a parameter. A new record
+ * starts `PROVISIONAL`, and any later promotion goes through
+ * {@link applyTransition}, whose `AUTHORITATIVE` rule cannot be satisfied by the model
+ * alone (R8-01's boundary, applied to information).
+ */
+export function addRecord(
+  ledger: InformationLedger,
+  input: { id: string, value: string, provenance?: string, status?: string },
+): InformationRecord {
+  const existing = findRecord(ledger, input.id)
+  const record = createRecord({
+    id: input.id,
+    value: input.value,
+    ...(input.provenance === undefined ? {} : { provenance: input.provenance }),
+    status: input.status ?? existing?.status ?? 'PROVISIONAL',
+  })
+  if (existing === undefined) ledger.records.push(record)
+  else ledger.records[ledger.records.indexOf(existing)] = { ...record, revision: existing.revision + 1 }
+  return findRecord(ledger, input.id) as InformationRecord
+}
+
+/**
+ * Apply a lifecycle transition.
+ *
+ * `justification.userConfirmation` is **not** reachable from model input: the caller
+ * decides. The host entry point passes it only for a call the host has already routed
+ * through its approval service, so a model cannot promote its own claim to authority
+ * by asserting consent.
+ */
+export function applyTransition(
+  ledger: InformationLedger,
+  id: string,
+  to: string,
+  justification: { evidence?: string, userConfirmation?: boolean } = {},
+): { ok: boolean, record?: InformationRecord, reason?: string } {
+  const existing = findRecord(ledger, id)
+  if (existing === undefined) return { ok: false, reason: `no information record with id "${id}"` }
+  const result = transition(existing, to, justification)
+  if (!result.ok) return { ok: false, reason: result.reason }
+  ledger.records[ledger.records.indexOf(existing)] = result.record
+  return { ok: true, record: result.record }
+}
+
+/** Dispose a record (the D14 policy), leaving its provenance and disposition intact. */
+export function disposeRecord(
+  ledger: InformationLedger,
+  id: string,
+  disposition: 'CORRECTED' | 'REPLACED' | 'QUARANTINED' | 'REMOVED',
+  replacement = '',
+): { ok: boolean, record?: InformationRecord, reason?: string } {
+  const existing = findRecord(ledger, id)
+  if (existing === undefined) return { ok: false, reason: `no information record with id "${id}"` }
+  const next = dispose(existing, disposition, replacement)
+  ledger.records[ledger.records.indexOf(existing)] = next
+  return { ok: true, record: next }
+}
+
+/**
+ * Detect an attempt to reuse a disposed or non-authoritative value.
+ *
+ * This is the runtime's check, run at the point a persistent write is proposed — the
+ * earliest seam the host gives IEG that can see the incoming content. It reports; it
+ * does not silently repair, and it never claims the stale value was rewritten.
+ */
+export function reintroductionOf(ledger: InformationLedger, incoming: string): InformationRecord | null {
+  return findReintroduced(ledger.records, incoming)
+}
+
+/** The records that may be presented as current guidance. */
+export function authoritativeRecords(ledger: InformationLedger): InformationRecord[] {
+  return ledger.records.filter(isUsableAsAuthoritative)
+}
+
+/** A serialisable snapshot for durable storage. */
+export function serialiseLedger(ledger: InformationLedger): InformationRecord[] {
+  return ledger.records.map((record) => ({ ...record }))
+}
+
+/** Restore a ledger, dropping entries that are not well formed. */
+export function deserialiseLedger(stored: unknown): InformationLedger {
+  const ledger = createLedger()
+  if (!Array.isArray(stored)) return ledger
+  for (const raw of stored) {
+    if (typeof raw !== 'object' || raw === null) continue
+    const candidate = raw as InformationRecord
+    if (typeof candidate.id !== 'string' || candidate.id.trim() === '') continue
+    if (!INFORMATION_STATUSES.includes(String(candidate.status))) continue
+    ledger.records.push({
+      id: candidate.id,
+      status: String(candidate.status),
+      value: String(candidate.value ?? ''),
+      provenance: String(candidate.provenance ?? ''),
+      disposition: candidate.disposition === undefined || candidate.disposition === null ? null : String(candidate.disposition),
+      revision: Number.isFinite(candidate.revision) ? Number(candidate.revision) : 1,
+      ...(typeof candidate.disposedValue === 'string' ? { disposedValue: candidate.disposedValue } : {}),
+    })
+  }
+  return ledger
+}
