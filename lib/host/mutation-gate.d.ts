@@ -25,6 +25,14 @@ export interface MutationGateSurface {
     ctx: IegContext;
     /** Restore an agent's orientation from durable storage before evaluating the gate. */
     hydrateOrientation: (agent: unknown) => Promise<boolean>;
+    /**
+     * Whether the composition exposes an approval service.
+     *
+     * Detected through the same optional `get` seam IEG already uses for `fs`; the host
+     * contract declares no `approval` member on the injected context. This changes no
+     * approval semantics — the gate still returns `ask` and the host still decides.
+     */
+    approvalAvailable: boolean;
 }
 /** Register the mutation gate. */
 export declare function registerMutationGate(surface: MutationGateSurface): void;

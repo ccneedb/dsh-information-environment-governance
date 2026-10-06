@@ -18,6 +18,17 @@ import { checkDocumentOverlap, headingsMateriallyDistinct } from '../kernel/over
 import { disposeRecord, reintroductionOf } from '../modules/information-integrity.js'
 import { orientationRequirement } from '../kernel/orientation.js'
 
+/**
+ * Appended to an `ask` when this session has no approval channel (P1-2).
+ *
+ * `policy: ask` routes the decision to the host's approval service; with no such service the
+ * host degrades `ask` to a denial. The agent then sees a refusal whose cause is invisible —
+ * the "silent stall", which reads as a broken tool rather than a policy decision. The remedy
+ * is named here, at the point of failure, instead of only in the documentation.
+ */
+const NO_APPROVAL_CHANNEL =
+  ' This session has no approval channel, so the host refuses the call: use a session with an approval channel, or set workspace.policy: allow for that session.'
+
 /** What the mutation gate needs from the composition. */
 export interface MutationGateSurface {
   /** Record one diagnostic. */
@@ -34,6 +45,14 @@ export interface MutationGateSurface {
   ctx: IegContext
   /** Restore an agent's orientation from durable storage before evaluating the gate. */
   hydrateOrientation: (agent: unknown) => Promise<boolean>
+  /**
+   * Whether the composition exposes an approval service.
+   *
+   * Detected through the same optional `get` seam IEG already uses for `fs`; the host
+   * contract declares no `approval` member on the injected context. This changes no
+   * approval semantics — the gate still returns `ask` and the host still decides.
+   */
+  approvalAvailable: boolean
 }
 
 /** Register the mutation gate. */
@@ -55,7 +74,12 @@ export function registerMutationGate(surface: MutationGateSurface): void {
         { tool: exec.name, agentId: agentIdOf(agent) },
         `ieg: user_authority_requested tool=${exec.name}`,
       )
-      return { kind: 'ask', reason: `${exec.name} confers user authority and requires your explicit approval.` }
+      return {
+        kind: 'ask',
+        reason:
+          `${exec.name} confers user authority and requires your explicit approval.` +
+          (surface.approvalAvailable ? '' : NO_APPROVAL_CHANNEL),
+      }
     }
 
     const classification = classifyMutation(exec.name, exec.arguments, surface.workspace)
@@ -157,7 +181,10 @@ export function registerMutationGate(surface: MutationGateSurface): void {
       { tool: exec.name, outcome, targets: classification.targets, agentId: agentIdOf(agent) },
       `ieg: workspace_mutation_${outcome} tool=${exec.name} targets=${classification.targets.join(',') || '-'}`,
     )
-    return decision
+    // P1-2: a fail-closed `ask` must say why it will be refused, and what to do about it.
+    return decision.kind === 'ask' && !surface.approvalAvailable
+      ? { kind: 'ask', reason: decision.reason + NO_APPROVAL_CHANNEL }
+      : decision
   }
   surface.guarded('tools/pre-execute', () => {
     surface.ctx.on('tools/pre-execute', onPreExecute)

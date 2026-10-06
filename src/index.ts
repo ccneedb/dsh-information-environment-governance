@@ -722,6 +722,10 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     preStep: config.preStep,
     ctx,
     hydrateOrientation,
+    // No declared `approval` member exists on the injected context; the service is reached
+    // through the same optional `get` seam IEG uses for `fs`. Absent means the host will
+    // degrade any `ask` to a denial, which the gate now says out loud (P1-2).
+    approvalAvailable: ctx.get?.('approval') !== undefined,
   })
 
   /* ── 4. tool registry: the orientation tool and the guard backstop ────── */

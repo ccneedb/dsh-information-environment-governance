@@ -831,3 +831,49 @@ test('P1-1: a complete restatement of the shipped row validates and mounts clean
   // schema rejects would explain `ieg.config_invalid` exactly. It does not.
   assert.doesNotThrow(() => ieg.resolveConfig(ieg.resolveConfig(RESTATED_ROW)))
 })
+
+/* ── P1-2: a fail-closed `ask` must explain itself ──────────────────────────── */
+
+test('P1-2: with no approval channel the ask names the missing channel and the remedy', async () => {
+  const stub = stubContext()
+  // The stub's `get` returns undefined for every service — the shipped default: `policy: ask`
+  // with no approval channel, where the host degrades the ask to a denial.
+  ieg.apply(stub.ctx, { workspace: { policy: 'ask' } })
+  const decision = await stub.listeners.get('tools/pre-execute')[0](
+    { name: 'write', arguments: { file_path: '/repo/x' } },
+    async () => ({ kind: 'allow' }),
+  )
+  assert.equal(decision.kind, 'ask', 'the policy decision itself is unchanged: still an ask')
+  assert.match(decision.reason, /no approval channel/, 'the refusal must name its cause')
+  assert.match(decision.reason, /workspace\.policy: allow/, 'and must name the remedy')
+  assert.match(decision.reason, /approval channel/, 'including the alternative remedy')
+})
+
+test('P1-2: with an approval channel present the reason is not padded', async () => {
+  const stub = stubContext()
+  const approval = { request: async () => true }
+  const ctx = /** @type {any} */ (stub.ctx)
+  ctx.get = (/** @type {string} */ name) => (name === 'approval' ? approval : undefined)
+  ieg.apply(stub.ctx, { workspace: { policy: 'ask' } })
+  const decision = await stub.listeners.get('tools/pre-execute')[0](
+    { name: 'write', arguments: { file_path: '/repo/x' } },
+    async () => ({ kind: 'allow' }),
+  )
+  assert.equal(decision.kind, 'ask')
+  assert.doesNotMatch(
+    decision.reason,
+    /no approval channel/,
+    'a session that can resolve the ask must not be told it cannot',
+  )
+})
+
+test('P1-2: the user-authority gate explains itself the same way', async () => {
+  const stub = stubContext()
+  ieg.apply(stub.ctx, { workspace: { policy: 'allow' } })
+  const decision = await stub.listeners.get('tools/pre-execute')[0](
+    { name: 'confirm_terminology', arguments: {} },
+    async () => ({ kind: 'allow' }),
+  )
+  assert.equal(decision.kind, 'ask', 'user authority is asked for regardless of workspace policy')
+  assert.match(decision.reason, /no approval channel/)
+})
