@@ -17,12 +17,30 @@ eval/runs/
 eval/e2e-results.json
 eval/e2e-analysis.json
 
-# Credentials and session data — never commit these, anywhere
+# Credentials and session data — never commit these, anywhere.
+# P0-1 widened this list: it previously covered only `.credentials.yaml` and `.dsh/`, so a
+# `git add -A` could have committed a `.env`, a private key or an auth file by accident.
 .credentials.yaml
 *.credentials.yaml
+.credentials
+.credentials.*
 .dsh/
 sessions/
 storages/
+.env
+.env.*
+*.env
+.netrc
+auth.json
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+id_ecdsa*
 
 # Release tarballs are regenerable build output (`npm pack`) and are attached to
 # a GitHub release; never commit one.

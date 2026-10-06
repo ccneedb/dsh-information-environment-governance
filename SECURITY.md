@@ -126,6 +126,41 @@ When reporting a *task* failure rather than a vulnerability, use the
 [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml)
 issue form.
 
+## Credential-exposure audit (P0-1)
+
+**Result: clean.** No credential is present in the current tree or in git history, and the
+current tree contains no credential-shaped file at all. No history rewrite is needed, and no
+key needs to be revoked on the basis of this audit.
+
+What was inspected, and what it showed:
+
+| Scope | Finding |
+|---|---|
+| Every tracked file, scanned for token / API-key / private-key / credential-assignment patterns | **0 matches** |
+| Working tree including untracked files, for `.credentials*`, `.env*`, `id_rsa*`, `*.pem`, `auth.json` | **no such file exists** |
+| Git history: `--all`, every revision, every path | **1 match, and it is not a credential** (below) |
+| `.ieg-e2e/` in the repository | only the two evaluation overlays, `ieg-config.yml` and `ieg-off.yml`; the throwaway home `.ieg-e2e/dsh-home/` is ignored and absent |
+| `.ieg-verify/` scratch tree | present locally, gitignored, **contains no credentials file** |
+| Committed `*.tgz` | none; release tarballs are built from this tree and attached to releases |
+| `CHANGELOG.md` and `docs/**` | no pasted logs containing credentials |
+
+The single historical match is a **test fixture, not a secret**: a synthetic `token` field in
+a diagnostic-code fixture in `plugin/test/unit/feedback.test.js` (a retired path, added in
+`6fa0c77`), sitting alongside plainly fabricated values — a fixed timestamp, `agentId:
+'agent-42'`, `sessionId: 'session-7'` and a `/home/alice/…` path. Its value was redacted when
+inspected and is deliberately not reproduced here. Recorded as a match so the audit does not
+claim a clean scan of history that silently ignored it.
+
+**Recurrence prevention.** `.gitignore` previously covered only `.credentials.yaml` and
+`.dsh/`. It now also ignores `.env`, `.env.*`, `*.env`, `.netrc`, `auth.json`,
+`credentials.json`, `service-account*.json`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`,
+`id_ed25519*` and `id_ecdsa*`, so the usual credential file names cannot be committed by a
+`git add -A` accident. No history was rewritten.
+
+The evaluation workflow's cleanup assertion — `test ! -e
+.ieg-e2e/dsh-home/.credentials.yaml` — is documented in `eval/README.md` and holds for the
+current tree.
+
 ## The `protectedPaths` boundary (R8-03)
 
 **`protectedPaths` is an advisory governance layer above the host sandbox. It is not a
