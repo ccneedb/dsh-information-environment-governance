@@ -26,7 +26,7 @@ in [`PRODUCT-SPEC.md` §1](PRODUCT-SPEC.md#1-product-positioning); this README
 links there rather than restating them.
 
 > **Status: prototype, not production-ready.** The package is
-> `dsh-information-environment-governance` **0.9.1** — publishable and verified
+> `dsh-information-environment-governance` **0.12.1** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
 > integrity (Gate D) have no valid measurement for the current prompt revision
@@ -178,8 +178,8 @@ Part B.
 ## Interface: the `dsh-ieg` terminal command
 
 The supported interface is a terminal command, `dsh-ieg`, run from a Debian
-shell. Running it with no arguments opens an ANSI numbered menu; every command
-also works non-interactively with flags, because CI and scripts call it. The
+shell. Running it with no arguments prints its usage; every command also works
+non-interactively with flags, because CI and scripts call it. The
 entry file is [`bin/ieg`](bin/ieg).
 
 ```text
@@ -206,9 +206,11 @@ Precedence is the operator `prompt.md` > config `prompt.file` (when
 `prompt.mode: replace`) > `prompt.append` > the compiled default.
 
 The plugin contributes **one** additive prompt section, `ieg:governance`
-(`order: 8500`, `interpolate: false`, `complete` never set) and **two**
-model-facing tools — `record_orientation`, read-only `ieg_status`, and read-only
-`maintain_environment`. At `PROMPT_VERSION`
+(`order: 8500`, `interpolate: false`, `complete` never set) and **six** tools —
+`record_orientation`, `record_information`, `confirm_terminology` and
+`confirm_information`, plus the read-only `ieg_status` and `maintain_environment`.
+The two confirmations are gated through the host's approval service, so the model
+cannot supply the user's authority itself. At `PROMPT_VERSION`
 0.5.0 the compiled section is **2,806 bytes** against a **2,945-byte** ceiling.
 It reports its own state through the `ieg:status` runtime-context line and the
 `ieg.*` diagnostic codes. Full runtime detail is in
@@ -427,7 +429,7 @@ installation is present. Point the loader at a non-default install with
 ## Working prototype
 
 The repository root **is** an installable **`dsh-information-environment-governance`**
-`0.9.1` (publishable and verified, **not published**) that realizes the architecture above
+`0.12.1` (publishable and verified, **not published**) that realizes the architecture above
 with zero runtime dependencies. It contributes one additive prompt section and
 enforces through `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`; it reports its own state through a bounded runtime-context
@@ -439,11 +441,11 @@ The runtime is authored in TypeScript under `src/**`; `lib/**` is its committed
 [`TYPESCRIPT-MIGRATION.md`](TYPESCRIPT-MIGRATION.md)).
 
 The evidence chain — run per [`CONTRIBUTING.md`](CONTRIBUTING.md) §Running the
-checks — covers strict typechecking, the full test suite (**272 tests, all pass**
-no todo, no skip; unit
+checks — covers strict typechecking, the full test suite (all pass, no todo and no skip; the
+current count is reported in [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3; unit
 prompt conformance, and integration mounting the **real** `dsh-system-prompt`
 `dsh-tools`, `dsh-fs-local`, and the
-`dsh-storage`/`dsh-storage-json`/`dsh-storage-domain` stack) and the **27 checks**
+`dsh-storage`/`dsh-storage-json`/`dsh-storage-domain` stack) and the **24 checks**
 of [`scripts/verify.sh`](scripts/verify.sh): a real install into
 a throwaway profile, composition of the `ieg` row, and positive proof that the
 **installed** plugin binds its section, listeners, and tools — and absorbs a bad

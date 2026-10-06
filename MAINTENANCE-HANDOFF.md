@@ -2,7 +2,7 @@
 doc_type: maintenance-handoff
 project: information-environment-governance
 plugin_version: 0.12.1
-version: 0.8.0
+version: 0.12.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
@@ -14,7 +14,7 @@ language: en
 
 # IEG Maintenance Handoff
 
-> **This is the maintained status record (package 0.8.0).** §3–§4 are the single
+> **This is the maintained status record (package 0.12.1).** §3–§4 are the single
 > source of truth for current status and numbers; other documents link here rather
 > than restate them. §13 is **history** (the rename, the withdrawn capability, the
 > old→new gate mapping, the `0.1.0`/v0.2.0 rounds, and the open-item closures).
