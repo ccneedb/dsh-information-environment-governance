@@ -323,11 +323,22 @@ take.
 `dsh@0.2.1-alpha.1` + `pnpm@12.9.1` and runs the release gate against a *real* host. The
 local run used the host checkout already present in this environment.
 
-**CI state at the time of writing:** the run for `5cacbce` had been **queued for ten minutes
-with no job started**, and runs for `6ce0169`, `eb5b3e8` and `9eb8b79` were **cancelled**
-(the first two by my own successive pushes; the third — the R8-05 extraction — by the push
-that followed it). Therefore **no completed CI run exists for the last code change**, and
-this document does not claim one.
+**CI state (P0-2, verified 2026-10-06): green on the latest `main` commit** — all five jobs
+completed successfully, including the required `full verification chain (verified host
+0.2.1-alpha.1)`. That job installs the pinned `dsh@0.2.1-alpha.1` and `pnpm@12.9.1`, so the
+green run is also the evidence that the pinned toolchain remains installable.
+
+One earlier run, on `aea534c`, concluded **failure** for an environmental reason rather than
+a code defect: three of its five jobs (`Node 20`, `Node 24`, and the required verified-host
+job) were **cancelled after exactly 15 minutes with no runner ever assigned**, while `Node 22`
+and `documentation health` did obtain runners and passed. The workflow's `concurrency` group
+(`cancel-in-progress: true`) cancels superseded runs, but that was not the cause: no push
+followed for nineteen hours. The cause is **runner starvation** — GitHub cancels a job that
+cannot obtain a runner within fifteen minutes — and it cleared by itself.
+
+*Superseded statement, kept for the record:* the previous text here said no completed CI run
+existed for the last code change. That was accurate when written — successive pushes had
+cancelled the earlier runs and the remainder sat queued — and it is no longer true.
 
 #### R8-12 status: Gates C and D recorded **unmet**, with the blocking cause
 
