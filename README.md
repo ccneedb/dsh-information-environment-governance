@@ -519,3 +519,5 @@ Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 [MIT](LICENSE) © 2026 IEG contributors. The plugin package carries the same
 license at [`LICENSE`](LICENSE).
+
+Not affiliated with or endorsed by DeepSeek-AI.
