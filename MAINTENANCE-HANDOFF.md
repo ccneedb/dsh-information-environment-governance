@@ -591,11 +591,13 @@ state that actually passed its checks. From here, any change to governance behav
 must be re-frozen and the evaluation re-run, because a result measured on one
 revision may not be reported as a result for another (Batch 7 §20.7).
 
-**One reporting defect found by the newly-required CI job** and not yet fixed:
-`verify.sh` prints "0 tests passed" on a non-TTY runner, because it counts `^✔`
-lines while `node --test` emits TAP (`ok n - …`) when stdout is not a terminal. The
-suite still runs and still fails the step on a real failure, but the number it
-reports is wrong there. Recorded rather than quietly left.
+**One reporting defect found by the newly-required CI job — since fixed (P2-1).**
+`verify.sh` used to print "0 tests passed" on a non-TTY runner, because it counted `^✔`
+lines while `node --test` emits TAP (`ok n - …`) when stdout is not a terminal. It now
+prefers the runner's own summary (`^# pass N`) and falls back to the checkmark count, so
+both modes report the true number. Verified by running the gate twice — once piped
+(`| cat`) and once under a pty (`script -qec`) — both reporting **305 tests passed**.
+Recorded while it was open; corrected here rather than left standing as a live defect.
 
 **Known limitations carried forward**, each with its evidence above: Gates C and D
 are unmeasured; `confirmedByUser` is asserted by the agent and cannot be
