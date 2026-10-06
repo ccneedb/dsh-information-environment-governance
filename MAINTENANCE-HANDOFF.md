@@ -340,6 +340,36 @@ cannot obtain a runner within fifteen minutes — and it cleared by itself.
 existed for the last code change. That was accurate when written — successive pushes had
 cancelled the earlier runs and the remainder sat queued — and it is no longer true.
 
+#### P1-1: the Phase 13 `ieg.config_invalid` — non-reproduction, and what it rules out
+
+Phase 13 recorded that a complete config restated from IEG's own row passed `--dump-config`
+but produced `ieg.config_invalid` in a live session. The cause was never established. What
+is now established, by test rather than by recollection:
+
+**A complete restatement validates and mounts cleanly.** `test/integration/wiring.test.js`
+builds the row with every top-level key explicit (`enabled`, `sectionOrder`, `modules`,
+`workspace`, `preStep`, `prompt`, `diagnosticsExport`, `diagnostics`), asserts those keys are
+exactly the ones the shipped `cordis.patch.yml` declares, and then asserts that it
+`resolveConfig`s, `buildGovernance`s, mounts with `mounted: true`, reports no `configError`,
+and produces **no `ieg.config_invalid`**.
+
+Two candidate causes are therefore **ruled out**:
+
+| Tried | Result |
+|---|---|
+| The restated row as an override layer writes it | validates, mounts, no `config_invalid` |
+| A *resolved* config fed back into `resolveConfig` (the restatement was generated programmatically, so a resolved shape carrying keys the input schema rejects would explain the fault exactly) | accepted; the resolved shape's keys are a subset of what the validator takes |
+| A key-coverage mismatch between the restatement and the shipped row | not present; asserted equal, and it fails loudly if the shipped row gains a key |
+
+**What remains unexplained, and why it is out of scope here.** The live path differs from
+these tests in exactly one respect: in a live profile the config reaches IEG through the
+Cordis **loader's patch mechanism**, not through `apply(ctx, rawConfig)`. Reproducing that
+requires mounting into a real profile — and Batch 9 §12 forbids touching the live profile.
+The residual hypothesis is therefore **patch-layer semantics** (a second `insert` layer for
+`id: ieg`, or last-write-wins interaction), not the validator: the validator is exercised by
+the tests above and accepts every shape tried. This is recorded as a non-reproduction with
+its boundary, not as a fix, and no validator change was made — none was warranted.
+
 #### R8-12 status: Gates C and D recorded **unmet**, with the blocking cause
 
 Batch 8 §12 is explicit: *"If either gate cannot honestly be met, record it as unmet with the

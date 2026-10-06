@@ -11,7 +11,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -736,4 +736,98 @@ test('R8-02: the lifecycle runs in the real path, and stale reuse is detected', 
   assert.equal(revalidated.ok, true)
   assert.equal(revalidated.record.status, 'AUTHORITATIVE')
   assert.equal(revalidated.record.value, 'The API is v2')
+})
+
+/* ── P1-1: a complete restatement of the shipped row must mount cleanly ─────── */
+
+/**
+ * The top-level keys the shipped patch declares under `config:`.
+ *
+ * Read textually rather than through a YAML parser: the parser is only available when the
+ * DSH-installed `yaml` happens to resolve, and a check that skips itself is not a check.
+ *
+ * @returns {string[]}
+ */
+function shippedRowKeys() {
+  const text = readFileSync(new URL('../../cordis.patch.yml', import.meta.url), 'utf8')
+  const lines = text.split('\n')
+  const start = lines.findIndex((line) => /^\s*config:\s*$/.test(line))
+  assert.ok(start >= 0, 'the shipped patch must declare a config block')
+  /** @param {string} line */
+  const indentOf = (line) => (line.match(/^\s*/) ?? [''])[0].length
+  const base = indentOf(lines[start])
+  /** @type {string[]} */
+  const keys = []
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const line = lines[i]
+    const trimmed = line.trim()
+    if (trimmed === '' || trimmed.startsWith('#')) continue
+    if (indentOf(line) <= base) break
+    const match = /^([A-Za-z_][A-Za-z0-9_]*):/.exec(trimmed)
+    if (match !== null && indentOf(line) === base + 2) keys.push(match[1])
+  }
+  return keys
+}
+
+/**
+ * The shipped row, restated in full.
+ *
+ * Phase 13 recorded an unexplained `ieg.config_invalid` when a complete restatement of the
+ * plugin's own row was mounted, while `--dump-config` accepted it: a patch replaces a row's
+ * whole config rather than merging, so the restatement is exactly what an override layer
+ * writes. This is that input, with every top-level key explicit.
+ */
+const RESTATED_ROW = {
+  enabled: true,
+  sectionOrder: 8500,
+  modules: {
+    'project-governance': { enabled: true },
+    'information-integrity': { enabled: true },
+    'workspace-governance': { enabled: true },
+  },
+  workspace: {
+    policy: 'ask',
+    mutatingTools: ['write', 'edit', 'str_replace_editor'],
+    protectedPaths: [],
+    classifyShellCommands: true,
+    overlapCheck: 'ask',
+  },
+  preStep: { orientationGate: 'off', requireBeforeMutation: false },
+  prompt: { mode: 'compiled', append: '', file: '', allowOverBudget: false },
+  diagnosticsExport: { file: '', limit: 50 },
+  diagnostics: true,
+}
+
+test('P1-1: a complete restatement of the shipped row validates and mounts cleanly', async () => {
+  // Drift protection: if the shipped row gains a top-level key, this fails until the
+  // restatement is updated too — so the incident's exact input cannot silently go stale.
+  assert.deepEqual(
+    Object.keys(RESTATED_ROW).sort(),
+    shippedRowKeys().sort(),
+    'the restatement must name every top-level key the shipped row declares',
+  )
+
+  assert.doesNotThrow(() => ieg.resolveConfig(RESTATED_ROW), 'the restatement must validate')
+  // `buildGovernance` is what threw on the shipped configuration in the earlier test.
+  assert.doesNotThrow(() => ieg.buildGovernance(RESTATED_ROW), 'the restatement must compile')
+
+  const stub = stubContext()
+  ieg.apply(stub.ctx, RESTATED_ROW)
+  stub.mountTools()
+  const status = stub.tools.find((tool) => tool.name === ieg.STATUS_TOOL_NAME)
+  assert.ok(status, 'the status tool must be registered')
+  const report = await status.execute({}, {})
+
+  assert.equal(report.mount.mounted, true, 'a complete restatement must mount')
+  assert.equal(report.mount.configError, undefined, 'a complete restatement must report no configuration error')
+  assert.ok(
+    !report.diagnostics.some((entry) => entry.code === 'ieg.config_invalid'),
+    'a complete restatement must not produce ieg.config_invalid',
+  )
+  assert.ok(stub.sections.length > 0, 'a mounted row contributes its prompt section')
+
+  // A second class of cause is ruled out: feeding a *resolved* config back in. Phase 13's
+  // restatement was generated programmatically, and a resolved shape carrying keys the input
+  // schema rejects would explain `ieg.config_invalid` exactly. It does not.
+  assert.doesNotThrow(() => ieg.resolveConfig(ieg.resolveConfig(RESTATED_ROW)))
 })
