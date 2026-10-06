@@ -14,6 +14,8 @@ format_note: conservative-machine-readable-markdown
 
 # Information Environment Governance (IEG)
 
+Status: prototype, paused (maintenance-only). Used only by its author so far. Not published to npm.
+
 [![CI](https://github.com/ccneedb/dsh-information-environment-governance/actions/workflows/ci.yml/badge.svg)](https://github.com/ccneedb/dsh-information-environment-governance/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status: prototype](https://img.shields.io/badge/status-prototype-orange.svg)](#status)
