@@ -69,10 +69,31 @@ node eval/e2e-analyze.mjs              # derives ordering from tool/call events
 
 ## 3. Verified state (single source of truth for status and numbers)
 
-**Mechanisms — 3 modules, 2 model-facing tools.** The plugin ships
+### Batch 10 validation baseline (frozen 2026-10-07)
+
+Every Batch 10 validation result references exactly this target. A behaviour-affecting
+change after this freeze invalidates the affected result and requires re-validation; no
+substitution of another commit, prompt revision, DSH version or evaluation configuration is
+permitted.
+
+| Baseline item | Value |
+|---|---|
+| Repository commit | `a71a4401dfa67f1f50943757447ad6e4d3792ae1` (`a71a440`) |
+| Package version | `0.12.1` |
+| `PROMPT_VERSION` | `0.5.0` |
+| Verified DSH baseline | `0.2.1-alpha.1` (peer range `>=0.2.1-alpha.1 <0.3.0`) |
+| Validation method revision | the commit above; the method is defined by `eval/README.md` and `eval/harness.mjs` |
+| Rubric revision | **none frozen** — `eval/README.md` requires a rubric frozen before the runs; no rubric has been frozen, which is a first-class reason Gates C and D cannot pass (below) |
+| Evaluation configuration ids | scenario families `doc-consolidation`, `auth-doc-request`, `vague-continuation`, `bounded-repair`; arms `control` / `treatment` |
+| Validation start (UTC) | 2026-10-07T12:06Z |
+| Working tree at freeze | clean (`git status --short` empty) |
+
+
+**Mechanisms — 3 modules, 6 tools.** The plugin ships
 `project-governance` (`FC-2.1`), `information-integrity` (`FC-2.3`), and
 `workspace-governance` (`FC-2.2`), all enabled by default, and registers exactly
-two model-facing tools: `record_orientation` and `ieg_status`. It compiles
+six tools: `record_orientation`, `record_information`, `confirm_terminology`,
+`confirm_information`, `ieg_status` and `maintain_environment`. It compiles
 **one** prompt section, `ieg:governance` (`order: 8500`, `interpolate: false`
 `complete` never set), at **`PROMPT_VERSION` 0.5.0**. The compiled section is
 **2,806 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
