@@ -86,7 +86,7 @@ references the frozen baseline above: commit `a71a440`, package `0.12.1`, `PROMP
 | **F** Diagnosability | mount and gate decisions observable without a logger exporter | `diagnostics.test.js`; `ieg_status`; `ieg:status` line — pass | **PASS** | — |
 | **G** Agent isolation | two live agents in one composition never share governance state | `agent-isolation.test.js`; `state.test.js` — pass | **PASS** | — |
 | **H** Compatibility baseline | the adapter reports a verdict and detects a simulated host section change | `compatibility.test.js` — pass | **PASS** | — |
-| **I** Packaging | installable, licensed, changelogged, peer-range enforced | `verify.sh` phase 3b (pack real tarball → fresh profile → compose); `test/integration/packaging.test.js` — 10/10 pass | **BLOCKED / UNVERIFIED — Evidence Insufficient** | Clauses 1–3 are evidenced. **Clause 4 is not met:** see §4.3. **Unblock:** a maintainer decides in Batch 11 to enforce the range or to re-scope the clause; Batch 10 does not decide it and does not act on publication |
+| **I** Packaging | installable, licensed, changelogged, peer-range enforced | `verify.sh` phase 3b (pack the real tarball → fresh profile → compose the `ieg` row) — pass; `test/integration/packaging.test.js` — pass; the host's own `evaluatePluginCompatibility`, executed against this manifest, returns *compatible*, and against an out-of-range declaration **refuses** it with the exemption remedy | **PASSED — Evidence Complete** | Publication is release authorization (Batch 11), not one of the four conditions. A satisfied version range says nothing about seam drift, which is why the adapter still observes seam facts |
 | **J** Withdrawal integrity | three modules ship with no dangling reference to the removed `user-attention` capability | withdrawal tests — pass | **PASS** | — |
 
 **No gate was passed by inference, and no criterion was weakened.** C, D and I end blocked
@@ -106,7 +106,7 @@ substitution Batch 10 §6 prohibits, and each was rejected for that reason:
 | `eval/e2e.mjs` at its defaults (3 repetitions, 2 English scenarios, one model) | reduced repetitions; single-model evidence presented as generalizable |
 | Re-scoring existing sandboxes or citing earlier results | historical results presented as evidence for this baseline |
 | The R8-02 lifecycle integration test as Gate D's evidence | unit tests standing in for behavioural improvement |
-| `compatibility.test.js` as proof the peer range is "enforced" | not enforcement; asserting it would be a weakened criterion |
+| `compatibility.test.js` as proof the peer range is "enforced" | not enforcement on its own — the clause is evidenced by the `peerDependencies` declaration plus the host's own evaluator refusing an out-of-range declaration |
 
 One baseline item is recorded as absent rather than invented: **no rubric is frozen**, and the
 method requires a rubric frozen before the runs. That absence is a first-class reason Gates C
@@ -743,20 +743,19 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
    read-time enforcement, because the host freezes tool results, so a measurement can
    evidence write-time invalidation and reintroduction control only.
    *Unblock:* as Gate C, plus that scenario.
-3. **Packaging (Gate I) — BLOCKED / UNVERIFIED at the Batch 10 baseline.** Clauses 1-3
-   (installable, licensed, changelogged) are evidenced at this baseline by `verify.sh`
-   phase 3b (pack the real tarball, install it into a fresh profile, compose the row)
-   and `test/integration/packaging.test.js`. **Clause 4, "peer-range enforced", is not
-   met:** IEG declares the range at the non-standard `dsh.engines.dsh` path and declares
-   no `peerDependencies`, while the installed host's `evaluatePluginCompatibility()`
-   returns immediately when `peerDependencies` is absent — so nothing refuses an
-   out-of-range host on the strength of IEG's declaration. The earlier sentence here
-   that `"private": true` remained was also stale: `package.json` has no `private`
-   field. Publication and §34.2 Q5 are release-authorization matters reserved for
-   Batch 11, and are **not** among the gate's four conditions.
-   *Unblock:* Batch 11 either enforces the range (declare `peerDependencies`) or
-   explicitly re-scopes the clause. Batch 10 does neither: one changes product
-   behaviour, the other reinterprets a gate to obtain a pass.
+3. **Packaging (Gate I) — closed in Batch 10 (P0-02 enforcement).** The clause that
+   was unmet was "peer-range enforced": the range was declared only under
+   `dsh.engines.dsh`, which the host never reads, so an out-of-range host was not
+   refused. The range is now also declared in `peerDependencies`, the field the host's
+   `evaluatePluginCompatibility` actually enforces (it throws for a profile bundle and
+   returns a denial reason for a plugin row). Evidence at this baseline: the host's own
+   evaluator returns *compatible* for this manifest and **refuses** an out-of-range
+   declaration with the exact-version exemption remedy; `verify.sh` phase 3b still packs,
+   installs into a fresh profile and composes the row; and `packaging.test.js` keeps the
+   enforced range and the documented one from drifting apart. The earlier sentence here
+   that `"private": true` remained was stale — `package.json` has no `private` field.
+   Publication and §34.2 Q5 remain release authorization for Batch 11, and are **not**
+   among the gate's four conditions.
 4. **The compatibility baseline for the installed host — closed in 0.8.0.** The
    declared peer range is now `>=0.2.1-alpha.1 <0.3.0`, and
    `dsh.compatibility.dshReleases` records `0.2.1-alpha.1` as `verified`.
@@ -801,7 +800,7 @@ record it requires. Nothing here is silently converted into a pass.
 | No valid equivalent validation approach exists for C or D | Validation blocker | Original condition, the nine attempted alternatives and the Batch 10 §6 prohibition each violates, all in the §3 register |
 | Eight contradicted current-state claims (versions, `PROMPT_VERSION`, counts, check-list, gate vocabulary, stale backlog item) | Information-integrity issue | Authoritative evidence and the corrected state, corrected in commit `8ae376a` and listed in that commit; an independent audit produced the original list |
 | Ambiguous `.tgz` artifact | Cleanup blocker | **None.** The single artifact is unambiguously 0.12.1 and protected, so no file required a judgement call (§12) |
-| Peer-range enforcement gap (Gate I clause 4) | Deferred defect | Evidence: the range is declared but nothing enforces it (§4.3). Out of Batch 10 scope: fixing it changes product behaviour, and re-scoping it would reinterpret a gate |
+| Peer-range enforcement gap (Gate I clause 4) | **Resolved in Batch 10** | Enforced by declaring the range in `peerDependencies`; the host's own evaluator returns *compatible* for this manifest and refuses an out-of-range declaration. Kept here as a closed entry so the record of what was wrong survives |
 | `CHANGELOG.md`'s `[0.12.1]` entry says the non-TTY count defect was "recorded, not yet fixed" | Deferred defect (historical record) | Faithful to what shipped in 0.12.1; the fix landed in Batch 9. Rewriting it would falsify release history, which Batch 10 §8 forbids |
 | R8-05 `src/index.ts` decomposition unfinished (826 lines, 7 host modules) | Deferred defect | Explicitly out of Batch 10 scope ("TypeScript decomposition or architectural cleanup"); no half-extracted code, tree green |
 | The `aea534c` CI failure's per-job cancellation mechanism | Unverified detail | The run's **failure** conclusion is confirmed by API; the 15-minute queued-job cancellation is the recorded explanation, not a re-executed observation. Batch 11 can confirm from the run page if it matters |
@@ -1242,7 +1241,7 @@ verified DSH `0.2.1-alpha.1`.
 | A, B, E, F, G, H, J | **Passed — Evidence Complete** |
 | C (behavioural improvement) | **Blocked / Unverified — Evidence Insufficient** |
 | D (information integrity) | **Blocked / Unverified — Evidence Insufficient** |
-| I (packaging) | **Blocked / Unverified — Evidence Insufficient** — clauses 1–3 evidenced, clause 4 not met |
+| I (packaging) | **Passed — Evidence Complete** — Batch 10 closed clause 4 by declaring the range in `peerDependencies`, which the host enforces |
 
 Evidence: the gate evidence register (§3), the blockers and their unblock conditions
 (§4.1–4.3), and the independent boundary audit (§12).
@@ -1272,9 +1271,10 @@ described as released.
    scenario families, ≥2 models, one non-English scenario, and blind judging — and re-validate
    on the revision that will be released, or carry them forward as blocked. **v1.0.0 must not
    be described as behaviourally validated until that exists.**
-2. **Decide Gate I's fourth clause.** Either enforce the peer range (declare
-   `peerDependencies`, so the host's own check actually fires) or explicitly re-scope the
-   clause in the architecture spec; then re-run `./scripts/verify.sh`.
+2. **Gate I needs no further decision.** Its fourth clause was closed in Batch 10 by
+   declaring the range in `peerDependencies`, so the host's own check fires and an
+   out-of-range plugin is refused. Publication remains the only packaging action, and it is
+   taken under item 3.
 3. **Decide the publish target** (§34.2 Q5) and, if publishing, execute the release workflow.
 4. **Re-freeze a Batch 11 baseline.** Any behaviour-affecting commit changes the frozen
    target in §3, and the affected gates must be re-validated rather than inherited.
@@ -1284,7 +1284,8 @@ described as released.
 ### Must not be inherited as settled
 
 - Gates C, D and I are **not** passed; no document may imply otherwise.
-- The DSH peer range is **declared, not enforced** (§4.3).
+- The DSH peer range is now **declared and enforced** through `peerDependencies`; what
+  remains unobservable is prompt-surface drift, which the adapter detects by seam facts.
 - IEG has **no read-time enforcement**: the host freezes tool results, so enforcement is
   write-time and retrieval-time marking is impossible by design.
 - Gates A, B, E, F, G, H and J pass on the evidence named in the register; they say nothing

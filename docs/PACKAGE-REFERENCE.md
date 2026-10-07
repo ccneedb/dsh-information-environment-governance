@@ -26,7 +26,7 @@ This is a **verifiable prototype** of the design specified in
 and Part B).
 
 - Package: `dsh-information-environment-governance`, version `0.12.1` (publishable,
-  not published),
+  peer-range enforced, not published),
   MIT, **ESM**, **zero runtime dependencies**, Node `>=20`.
 - CLI: `dsh-ieg` (`bin/ieg`; the interface is authored in `src/bin/ieg.ts` and
   compiled to `lib/bin/ieg.js`).
@@ -383,7 +383,7 @@ gaps:
 | F | diagnosability | **Passed — Evidence Complete** |
 | G | agent isolation | **Passed — Evidence Complete** |
 | H | compatibility baseline | **Passed — Evidence Complete** |
-| I | packaging | **Blocked / Unverified — Evidence Insufficient** |
+| I | packaging | **Passed — Evidence Complete** |
 | J | withdrawal integrity | **Passed — Evidence Complete** |
 
 ## Not verified by this prototype
@@ -406,10 +406,10 @@ Honest boundaries:
   `0.2.1-alpha.1` host (identical section order and host prompt hash `ceb63ee5`).
   There is no legacy compatibility layer; the adapter observes seam facts against
   the committed baseline rather than branching on a version string.
-- **Packaging (Gate I) is Blocked / Unverified — Evidence Insufficient.** The
-  installable, licensed and changelogged clauses are evidenced by `scripts/verify.sh`
-  phase 3b and the packaging suite. The "peer-range enforced" clause is not met: the
-  range is declared at `dsh.engines.dsh` and no `peerDependencies` is declared, and the
-  host enforces only `peerDependencies`. Publication is a release-authorization
-  matter reserved for Batch 11, not one of the gate's conditions. See
+- **Packaging (Gate I) is Passed — Evidence Complete.** Installable (the release gate
+  packs the tarball and installs it into a fresh profile), licensed, changelogged, and
+  **peer-range enforced**: the range is declared in `peerDependencies`, which the host's
+  `evaluatePluginCompatibility` enforces (Batch 10), alongside the documented
+  `dsh.engines.dsh` mirror. Publication is a release-authorization matter reserved for
+  Batch 11, not one of the gate's conditions. See
   [`MAINTENANCE-HANDOFF.md`](../MAINTENANCE-HANDOFF.md) §4.3.

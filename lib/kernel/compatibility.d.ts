@@ -1,12 +1,12 @@
 /**
  * IEG kernel — host compatibility adapter (ARCHITECTURE-SPEC §29, PR-07).
  *
- * A DSH peer range is **declared** (`dsh.engines.dsh`), but it is not enforced and
- * nothing observes whether the **running** host's prompt surface still matches what
- * IEG was verified against (§29.1). Batch 10 established the first half of that
- * sentence's replacement: the installed host enforces only `peerDependencies`, which
- * IEG does not declare, so an out-of-range host is not refused on the strength of the
- * declaration (MAINTENANCE-HANDOFF.md §4.3). This module closes that gap without
+ * The DSH peer range is **declared and enforced**: the host's
+ * `evaluatePluginCompatibility` reads `peerDependencies` and refuses an out-of-range
+ * plugin (Batch 10 declared it there, having found that a range under `dsh.engines.dsh`
+ * alone is never checked). What enforcement cannot do is observe whether the **running**
+ * host's prompt surface still matches what IEG was verified against (§29.1) — a
+ * satisfied version range says nothing about seam drift. This module closes that gap without
  * depending on a version string — the installed `0.2.1-alpha.1` exposes no
  * plugin-facing version service (§29.2) — by observing the seam facts that would
  * actually change a decision:

@@ -218,3 +218,26 @@ test('R8-06: zero runtime dependencies, and an exactly pinned build toolchain', 
   assert.ok(existsSync(at('package-lock.json')), 'a committed lockfile is what makes the install reproducible')
   assert.notEqual(manifest.packageManager, undefined, 'the package manager itself is declared')
 })
+
+/**
+ * B10-P0-02 / Gate I clause 4: the peer range must be *enforced*, not merely declared.
+ *
+ * The installed host enforces a plugin's `peerDependencies` (`evaluatePluginCompatibility`,
+ * `dsh-app-boot`): with the field absent it returns immediately and nothing is checked, which
+ * is why the gate's "peer-range enforced" clause was unmet while the range sat only under
+ * `dsh.engines.dsh`. These assertions keep the declared range and the enforced range from
+ * drifting apart, and keep the enforced one present.
+ */
+test('B10-P0-02: the peer range is declared where the host enforces it, matching dsh.engines.dsh', () => {
+  const peers = manifest.peerDependencies ?? {}
+  assert.ok(
+    Object.hasOwn(peers, '@deepseek-ai/dsh'),
+    'the host checks peerDependencies; a range declared anywhere else is not enforced',
+  )
+  assert.equal(
+    peers['@deepseek-ai/dsh'],
+    manifest.dsh?.engines?.dsh,
+    'the enforced range and the documented dsh.engines.dsh range must be identical strings',
+  )
+  assert.match(String(peers['@deepseek-ai/dsh']), /^\s*>=\s*\d+\.\d+\.\d+/, 'the enforced range is a lower-bounded range')
+})

@@ -31,8 +31,8 @@ links there rather than restating them.
 > `dsh-information-environment-governance` **0.12.1** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
-> integrity (Gate D) are **Blocked / Unverified — Evidence Insufficient**, and
-> packaging (Gate I) is blocked on its "peer-range enforced" clause. It is not recommended for a working
+> integrity (Gate D) are **Blocked / Unverified — Evidence Insufficient**;
+> packaging (Gate I) is **Passed — Evidence Complete**. It is not recommended for a working
 > profile. Current numbers are in
 > [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4; see [Status](#status).
 
@@ -468,8 +468,8 @@ re-run rather than superseded numbers.
 **Prototype. Not production-ready.**
 
 1. **Gates C and D are unmeasured** for the current three-module prompt — **no
-   behavioural claim is made** — and **Gate I
-   (packaging) is blocked on its "peer-range enforced" clause**. Gate C needs a model-backed run of
+   behavioural claim is made** — and packaging (Gate I) is
+   **Passed — Evidence Complete**. Gate C needs a model-backed run of
    [`eval/`](eval/README.md) with a rubric frozen beforehand and a judge that
    does not see the arm. Gate D needs the same kind of run for information
    integrity. Superseded measurements were deleted, not annotated, because a
