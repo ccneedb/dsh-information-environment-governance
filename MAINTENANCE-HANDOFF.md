@@ -168,9 +168,10 @@ accepted rather than handled.
 here were measured against earlier prompt revisions that no longer exist (a
 five-module and then a four-module prompt). Those numbers and their sandboxes
 were deleted as superseded rather than annotated, because a stale number still
-reads as a standing result. **Gates C and D are therefore unmet for the current
-revision**; a fresh `eval/` run with a rubric frozen beforehand and a judge that
-does not see the arm is what produces a valid number.
+reads as a standing result. **Gates C and D are therefore Blocked / Unverified —
+Evidence Insufficient at the current revision**; a fresh `eval/` run with a rubric
+frozen beforehand and a judge that does not see the arm is what produces a valid
+number (§4.1, §4.2).
 
 **Acceptance gates (A–J).** Renumbered in 0.7.0 after the withdrawal of the
 `user-attention` gate; the old→new mapping is in §13. The maintained table is
@@ -789,6 +790,24 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
    to denial where no approval channel exists (the fail-closed path), which is why
    the evaluation arms its gates explicitly.
 
+### Batch 10 unresolved / conflict register
+
+Issues that Batch 10 cannot conclusively resolve, each with its classification and the
+record it requires. Nothing here is silently converted into a pass.
+
+| Item | Classification | Record |
+|---|---|---|
+| Gates C and D lack trustworthy current evidence | Validation blocker | Reason and unblock condition in §4.1 and §4.2; terminal status **Blocked / Unverified** in the §3 register |
+| No valid equivalent validation approach exists for C or D | Validation blocker | Original condition, the nine attempted alternatives and the Batch 10 §6 prohibition each violates, all in the §3 register |
+| Eight contradicted current-state claims (versions, `PROMPT_VERSION`, counts, check-list, gate vocabulary, stale backlog item) | Information-integrity issue | Authoritative evidence and the corrected state, corrected in commit `8ae376a` and listed in that commit; an independent audit produced the original list |
+| Ambiguous `.tgz` artifact | Cleanup blocker | **None.** The single artifact is unambiguously 0.12.1 and protected, so no file required a judgement call (§12) |
+| Peer-range enforcement gap (Gate I clause 4) | Deferred defect | Evidence: the range is declared but nothing enforces it (§4.3). Out of Batch 10 scope: fixing it changes product behaviour, and re-scoping it would reinterpret a gate |
+| `CHANGELOG.md`'s `[0.12.1]` entry says the non-TTY count defect was "recorded, not yet fixed" | Deferred defect (historical record) | Faithful to what shipped in 0.12.1; the fix landed in Batch 9. Rewriting it would falsify release history, which Batch 10 §8 forbids |
+| R8-05 `src/index.ts` decomposition unfinished (826 lines, 7 host modules) | Deferred defect | Explicitly out of Batch 10 scope ("TypeScript decomposition or architectural cleanup"); no half-extracted code, tree green |
+| The `aea534c` CI failure's per-job cancellation mechanism | Unverified detail | The run's **failure** conclusion is confirmed by API; the 15-minute queued-job cancellation is the recorded explanation, not a re-executed observation. Batch 11 can confirm from the run page if it matters |
+| The claim that the host enforces only `peerDependencies` | Unverified detail | From static inspection of the installed distribution, not an executed out-of-range install |
+| Local `origin/main` remote-tracking ref is stale | Local environment, not a repository defect | `git status -sb` can report a large "ahead" count while pushes succeed; GitHub's API is the remote truth. No fetch was run under the read-only audit |
+
 ## 5. Architecture map
 
 `src/**/*.ts` is the source of truth; `lib/**` below is the committed `tsc` build
@@ -1002,6 +1021,49 @@ an isolated `DSH_HOME`. Recorded here so a future maintainer does not
 re-investigate it as a side effect of this work.
 
 ## 12. Workspace layout and regeneration
+
+### Batch 10 legacy-artifact inventory, removal record and boundary audit (B10-P1-01, B10-P2-01)
+
+**Inventory — complete, including ignored and untracked files, `node_modules` excluded.**
+
+| Path | Version | Tracked | Regenerable | Referenced by a tracked file or workflow | Class | Deleted |
+|---|---|---|---|---|---|---|
+| `.ieg-verify/pack/dsh-information-environment-governance-0.12.1.tgz` | 0.12.1 | no (ignored) | yes — `verify.sh` regenerates it with `npm pack` | no | **0.12.1 or later** | **no — protected** |
+
+**Removal record: empty.** No `.tgz` in the workspace is a 0.12.0-or-earlier installation
+package, so Batch 10's deletion authority was **not exercised**. The single `.tgz` present is
+the current version, produced by the release gate and gitignored. No file was deleted, no
+`git rm` was issued, and no history, tag, release metadata or release asset was touched. The
+`0.12.1` tarball attached to GitHub release `v0.12.1` is a separate protected release asset,
+not this scratch copy.
+
+**Post-cleanup verification:** the workspace contains no 0.12.0-or-earlier `.tgz` — and
+contained none before the inventory either; no current-version or required artifact was
+removed; the build, test and packaging workflows remain functional (final regression below).
+
+**Independent boundary audit (B10-P2-01).** A separate read-only reviewer was given the same
+task and *not* my numbers, and reproduced the boundary independently. The two accounts agree:
+
+- **one** `.tgz` in the entire workspace, version 0.12.1, untracked and gitignored,
+  regenerated by `verify.sh` during the audit, referenced by no tracked file → **0 files
+  qualify for deletion**;
+- protected classes all present and unmodified: 26 tracked `src` files, `package.json`,
+  `cordis.patch.yml`, both `tsconfig` files, `package-lock.json`, 15 tracked documents (13
+  governed), 54 tracked `lib` files with the `src`↔`lib` drift check passing, `bin/ieg`
+  executable, **12 local tags matching the 12 remote tags**, 12 GitHub releases all marked
+  `prerelease`, and **no `v1.0.0` tag or release**;
+- every `.gitignore` reintroduction pattern holds, checked with `git check-ignore`:
+  `.ieg-verify/`, `.pnpm-store/`, `.ieg-e2e/dsh-home/`, `.env`/`.env.local`, `*.tgz`,
+  `id_rsa`, `.credentials.yaml`, `eval/runs/`, `node_modules/`;
+- the independent reviewer also confirmed the frozen baseline's package version and
+  `PROMPT_VERSION` by reading `package.json` and `src/index.ts` directly, and found **no
+  incorrect figure** in the baseline table.
+
+**Two limits on this audit, stated rather than glossed.** The reviewer confirmed the
+`aea534c` CI run's *failure* conclusion through the API but not the per-job cancellation
+mechanism; and the claim that the host enforces only `peerDependencies` rests on static
+inspection of the installed distribution, not on an executed out-of-range install. Both are
+recorded as unverified detail in the §4 unresolved/conflict register.
 
 The tree is trimmed to sources, documents, and regenerable scaffolding. Its size
 is deliberately not recorded here: it is dominated by regenerable artifacts and

@@ -406,5 +406,10 @@ Honest boundaries:
   `0.2.1-alpha.1` host (identical section order and host prompt hash `ceb63ee5`).
   There is no legacy compatibility layer; the adapter observes seam facts against
   the committed baseline rather than branching on a version string.
-- **Packaging (Gate I) is partial.** The package is publishable but is not
-  published to a registry; only the GitHub release tarball is a supported channel.
+- **Packaging (Gate I) is Blocked / Unverified — Evidence Insufficient.** The
+  installable, licensed and changelogged clauses are evidenced by `scripts/verify.sh`
+  phase 3b and the packaging suite. The "peer-range enforced" clause is not met: the
+  range is declared at `dsh.engines.dsh` and no `peerDependencies` is declared, and the
+  host enforces only `peerDependencies`. Publication is a release-authorization
+  matter reserved for Batch 11, not one of the gate's conditions. See
+  [`MAINTENANCE-HANDOFF.md`](../MAINTENANCE-HANDOFF.md) §4.3.
