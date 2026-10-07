@@ -410,6 +410,7 @@ Honest boundaries:
   packs the tarball and installs it into a fresh profile), licensed, changelogged, and
   **peer-range enforced**: the range is declared in `peerDependencies`, which the host's
   `evaluatePluginCompatibility` enforces (Batch 10), alongside the documented
-  `dsh.engines.dsh` mirror. Publication is a release-authorization matter reserved for
+  `dsh.engines.dsh` mirror. It is marked **optional** for npm because DSH supplies the
+  host, while the host's own check reads the range. Publication is a release-authorization matter reserved for
   Batch 11, not one of the gate's conditions. See
   [`MAINTENANCE-HANDOFF.md`](../MAINTENANCE-HANDOFF.md) §4.3.

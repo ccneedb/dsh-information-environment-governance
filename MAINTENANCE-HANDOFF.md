@@ -748,7 +748,7 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
    `dsh.engines.dsh`, which the host never reads, so an out-of-range host was not
    refused. The range is now also declared in `peerDependencies`, the field the host's
    `evaluatePluginCompatibility` actually enforces (it throws for a profile bundle and
-   returns a denial reason for a plugin row). Evidence at this baseline: the host's own
+   returns a denial reason for a plugin row). The peer is declared **optional** (`peerDependenciesMeta`) so npm does not try to install the host itself: DSH supplies the host, and the host's check reads `peerDependencies` only, never the npm meta. Evidence at this baseline: the host's own
    evaluator returns *compatible* for this manifest and **refuses** an out-of-range
    declaration with the exact-version exemption remedy; `verify.sh` phase 3b still packs,
    installs into a fresh profile and composes the row; and `packaging.test.js` keeps the
@@ -850,6 +850,7 @@ record it requires. Nothing here is silently converted into a pass.
 | Gates C and D lack trustworthy current evidence | Validation blocker | Reason and unblock condition in §4.1 and §4.2; terminal status **Blocked / Unverified** in the §3 register |
 | No valid equivalent validation approach exists for C or D | Validation blocker | Original condition, the nine attempted alternatives and the Batch 10 §6 prohibition each violates, all in the §3 register |
 | Eight contradicted current-state claims (versions, `PROMPT_VERSION`, counts, check-list, gate vocabulary, stale backlog item) | Information-integrity issue | Authoritative evidence and the corrected state, corrected in commit `8ae376a` and listed in that commit; an independent audit produced the original list |
+| Batch 10 regression: `npm ci` went red after the peer-range declaration | **Batch 10 defect — corrected** | Affected change: the `peerDependencies` declaration (`bbd66109`) left `package-lock.json` out of sync, failing the immutable install step in four CI jobs. Correction: `peerDependenciesMeta["@deepseek-ai/dsh"].optional` plus a regenerated lockfile (`62939c3`); affected verification re-run: `npm ci` PASS, 306/306 tests, 24/24 checks |
 | Ambiguous `.tgz` artifact | Cleanup blocker | **None.** The single artifact is unambiguously 0.12.1 and protected, so no file required a judgement call (§12) |
 | Peer-range enforcement gap (Gate I clause 4) | **Resolved in Batch 10** | Enforced by declaring the range in `peerDependencies`; the host's own evaluator returns *compatible* for this manifest and refuses an out-of-range declaration. Kept here as a closed entry so the record of what was wrong survives |
 | `CHANGELOG.md`'s `[0.12.1]` entry says the non-TTY count defect was "recorded, not yet fixed" | Deferred defect (historical record) | Faithful to what shipped in 0.12.1; the fix landed in Batch 9. Rewriting it would falsify release history, which Batch 10 §8 forbids |
