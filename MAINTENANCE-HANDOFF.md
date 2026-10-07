@@ -69,6 +69,49 @@ node eval/e2e-analyze.mjs              # derives ordering from tool/call events
 
 ## 3. Verified state (single source of truth for status and numbers)
 
+### Batch 10 gate evidence register (B10-P0-02, B10-P0-03)
+
+Terminal status vocabulary is Batch 10 §13 — **PASS** (current evidence demonstrates the
+original condition) or **BLOCKED / UNVERIFIED** (evidence insufficient). Every row
+references the frozen baseline above: commit `a71a440`, package `0.12.1`, `PROMPT_VERSION`
+`0.5.0`, DSH `0.2.1-alpha.1`.
+
+| Gate | Original condition | Execution method / evidence at the frozen baseline | Terminal status | Limitations, and unblock condition when blocked |
+|---|---|---|---|---|
+| **A** Host compatibility | IEG is additive and the host prompt survives | `test/integration/composition.test.js`; `verify.sh` compose phase — pass | **PASS** | — |
+| **B** Semantic non-conflict | no module contradicts an identified host semantic | executable prompt-conformance suite — pass | **PASS** | — |
+| **C** Behavioural improvement | at least one target failure mode improves measurably against baseline | **Not executable at this baseline.** The §32.5 protocol needs real control/treatment `dsh` runs; no rubric is frozen, `eval/runs/` does not exist and never has, `eval/harness.mjs` seeds and scores but does not execute a subject, `eval/e2e.mjs` defaults to 3 repetitions over 2 of 4 scenarios and has no model parameter, and no non-English scenario exists | **BLOCKED / UNVERIFIED — Evidence Insufficient** | Any run would evidence a filesystem-derived proxy, not the full requirement; §4.1. **Unblock:** an operator-driven run at this baseline with a rubric frozen first, ≥8 repetitions per arm per scenario across all four families, ≥2 models, one non-English scenario, and blind judging |
+| **D** Information integrity | known-invalid information is no longer authoritative by default, and the D14 deletion policy is applied | **Capability implemented and tested, not measured.** R8-02 puts the lifecycle in the real runtime path (`test/integration/wiring.test.js`); no invalidated-information scenario exists in `eval/scenarios.mjs` | **BLOCKED / UNVERIFIED — Evidence Insufficient** | IEG has no read-time enforcement — the host's `tools/result` is emit-only with a frozen result — so any measurement can evidence write-time invalidation and reintroduction control only; §4.2. **Unblock:** as Gate C, plus the dedicated invalidated-information scenario |
+| **E** Regression resilience | compaction, resume and fork preserve governance state | `durability-storage.test.js` (real storage stack) — pass | **PASS** | — |
+| **F** Diagnosability | mount and gate decisions observable without a logger exporter | `diagnostics.test.js`; `ieg_status`; `ieg:status` line — pass | **PASS** | — |
+| **G** Agent isolation | two live agents in one composition never share governance state | `agent-isolation.test.js`; `state.test.js` — pass | **PASS** | — |
+| **H** Compatibility baseline | the adapter reports a verdict and detects a simulated host section change | `compatibility.test.js` — pass | **PASS** | — |
+| **I** Packaging | installable, licensed, changelogged, peer-range enforced | `verify.sh` phase 3b (pack real tarball → fresh profile → compose); `test/integration/packaging.test.js` — 10/10 pass | **BLOCKED / UNVERIFIED — Evidence Insufficient** | Clauses 1–3 are evidenced. **Clause 4 is not met:** see §4.3. **Unblock:** a maintainer decides in Batch 11 to enforce the range or to re-scope the clause; Batch 10 does not decide it and does not act on publication |
+| **J** Withdrawal integrity | three modules ship with no dangling reference to the removed `user-attention` capability | withdrawal tests — pass | **PASS** | — |
+
+**No gate was passed by inference, and no criterion was weakened.** C, D and I end blocked
+because the evidence does not exist — which Batch 10 §1 and §14 explicitly accept as the
+correct outcome.
+
+**No equivalent validation method was adopted.** Every candidate proposed for C and D is a
+substitution Batch 10 §6 prohibits, and each was rejected for that reason:
+
+| Candidate substitute | Prohibition violated |
+|---|---|
+| `npm test`, including the simulated `gate-precision.test.js` | unit tests standing in for behavioural improvement |
+| Structural integration tests and `verify.sh` phases | same — and `eval/README.md` states a green structural suite is not evidence of behavioural improvement |
+| Prompt-conformance tests (byte ceiling, content rules) | unit tests standing in for behavioural improvement |
+| A scripted, synthetic or delegated agent as the subject | synthetic agent behaviour standing in for required real-agent behaviour |
+| Model narration or IEG's own `ieg.information_invalidated` diagnostics as the outcome | model self-reports standing in for filesystem/observable outcome evidence |
+| `eval/e2e.mjs` at its defaults (3 repetitions, 2 English scenarios, one model) | reduced repetitions; single-model evidence presented as generalizable |
+| Re-scoring existing sandboxes or citing earlier results | historical results presented as evidence for this baseline |
+| The R8-02 lifecycle integration test as Gate D's evidence | unit tests standing in for behavioural improvement |
+| `compatibility.test.js` as proof the peer range is "enforced" | not enforcement; asserting it would be a weakened criterion |
+
+One baseline item is recorded as absent rather than invented: **no rubric is frozen**, and the
+method requires a rubric frozen before the runs. That absence is a first-class reason Gates C
+and D cannot pass.
+
 ### Batch 10 validation baseline (frozen 2026-10-07)
 
 Every Batch 10 validation result references exactly this target. A behaviour-affecting
@@ -683,16 +726,36 @@ are corrected: the job pins the verified release and is required.
 Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
 **closed** keeps its entry so the record of what was wrong survives.
 
-1. **Behavioural improvement (Gate C) has no valid measurement — open.** The only
-   measurements ever taken were against superseded prompt revisions and were
-   deleted. Gate C needs a fresh `eval/` run with a rubric frozen beforehand and
-   a judge that does not see the arm.
-2. **Information integrity (Gate D) has no valid measurement — open.** The same
-   fresh-run requirement applies to whether known-invalid information stops being
-   reused as authoritative.
-3. **Not a publishable package (Gate I) — partial.** `LICENSE`, `CHANGELOG.md`
-   the `files` allowlist, and the narrowed peer range have landed; `"private":
-   true` and the publish target remain until Gates C and D pass.
+1. **Behavioural improvement (Gate C) — BLOCKED / UNVERIFIED at the Batch 10
+   baseline.** No valid measurement exists and none can be produced under current
+   conditions: the method needs real control/treatment `dsh` runs, and no rubric has
+   been frozen, `eval/runs/` does not exist, the harness does not execute a subject,
+   and no non-English scenario exists. No equivalent method was adopted, because every
+   candidate is a Batch 10 §6-prohibited substitution (the register lists each one).
+   *Unblock:* an operator-driven run at the frozen baseline — rubric frozen first, ≥8
+   repetitions per arm per scenario across four families, ≥2 models, one non-English
+   scenario, blind judging.
+2. **Information integrity (Gate D) — BLOCKED / UNVERIFIED at the Batch 10 baseline.**
+   The capability is implemented and tested in the real runtime path (R8-02), but
+   *implemented is not measured*, and the dedicated invalidated-information scenario
+   does not exist. One boundary must travel with any future result: IEG has no
+   read-time enforcement, because the host freezes tool results, so a measurement can
+   evidence write-time invalidation and reintroduction control only.
+   *Unblock:* as Gate C, plus that scenario.
+3. **Packaging (Gate I) — BLOCKED / UNVERIFIED at the Batch 10 baseline.** Clauses 1-3
+   (installable, licensed, changelogged) are evidenced at this baseline by `verify.sh`
+   phase 3b (pack the real tarball, install it into a fresh profile, compose the row)
+   and `test/integration/packaging.test.js`. **Clause 4, "peer-range enforced", is not
+   met:** IEG declares the range at the non-standard `dsh.engines.dsh` path and declares
+   no `peerDependencies`, while the installed host's `evaluatePluginCompatibility()`
+   returns immediately when `peerDependencies` is absent — so nothing refuses an
+   out-of-range host on the strength of IEG's declaration. The earlier sentence here
+   that `"private": true` remained was also stale: `package.json` has no `private`
+   field. Publication and §34.2 Q5 are release-authorization matters reserved for
+   Batch 11, and are **not** among the gate's four conditions.
+   *Unblock:* Batch 11 either enforces the range (declare `peerDependencies`) or
+   explicitly re-scopes the clause. Batch 10 does neither: one changes product
+   behaviour, the other reinterprets a gate to obtain a pass.
 4. **The compatibility baseline for the installed host — closed in 0.8.0.** The
    declared peer range is now `>=0.2.1-alpha.1 <0.3.0`, and
    `dsh.compatibility.dshReleases` records `0.2.1-alpha.1` as `verified`.
