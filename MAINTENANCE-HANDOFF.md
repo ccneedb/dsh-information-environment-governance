@@ -80,8 +80,8 @@ references the frozen baseline above: commit `a71a440`, package `0.12.1`, `PROMP
 |---|---|---|---|---|
 | **A** Host compatibility | IEG is additive and the host prompt survives | `test/integration/composition.test.js`; `verify.sh` compose phase — pass | **PASS** | — |
 | **B** Semantic non-conflict | no module contradicts an identified host semantic | executable prompt-conformance suite — pass | **PASS** | — |
-| **C** Behavioural improvement | at least one target failure mode improves measurably against baseline | **Not executable at this baseline.** The §32.5 protocol needs real control/treatment `dsh` runs; no rubric is frozen, `eval/runs/` does not exist and never has, `eval/harness.mjs` seeds and scores but does not execute a subject, `eval/e2e.mjs` defaults to 3 repetitions over 2 of 4 scenarios and has no model parameter, and no non-English scenario exists | **BLOCKED / UNVERIFIED — Evidence Insufficient** | Any run would evidence a filesystem-derived proxy, not the full requirement; §4.1. **Unblock:** an operator-driven run at this baseline with a rubric frozen first, ≥8 repetitions per arm per scenario across all four families, ≥2 models, one non-English scenario, and blind judging |
-| **D** Information integrity | known-invalid information is no longer authoritative by default, and the D14 deletion policy is applied | **Capability implemented and tested, not measured.** R8-02 puts the lifecycle in the real runtime path (`test/integration/wiring.test.js`); no invalidated-information scenario exists in `eval/scenarios.mjs` | **BLOCKED / UNVERIFIED — Evidence Insufficient** | IEG has no read-time enforcement — the host's `tools/result` is emit-only with a frozen result — so any measurement can evidence write-time invalidation and reintroduction control only; §4.2. **Unblock:** as Gate C, plus the dedicated invalidated-information scenario |
+| **C** Behavioural improvement | at least one target failure mode improves measurably against baseline | **Attempted and not executable at this baseline (§4 attempt table).** The §32.5 protocol needs real control/treatment `dsh` runs; no rubric is frozen, `eval/runs/` does not exist and never has, `eval/harness.mjs` seeds and scores but does not execute a subject, `eval/e2e.mjs` defaults to 3 repetitions over 2 of 4 scenarios and has no model parameter, and no non-English scenario exists | **BLOCKED / UNVERIFIED — Evidence Insufficient** | Any run would evidence a filesystem-derived proxy, not the full requirement; §4.1. **Unblock:** an operator-driven run at this baseline with a rubric frozen first, ≥8 repetitions per arm per scenario across all four families, ≥2 models, one non-English scenario, and blind judging |
+| **D** Information integrity | known-invalid information is no longer authoritative by default, and the D14 deletion policy is applied | **Attempted and not measurable at this baseline (§4 attempt table); capability implemented and tested, not measured.** R8-02 puts the lifecycle in the real runtime path (`test/integration/wiring.test.js`); no invalidated-information scenario exists in `eval/scenarios.mjs` | **BLOCKED / UNVERIFIED — Evidence Insufficient** | IEG has no read-time enforcement — the host's `tools/result` is emit-only with a frozen result — so any measurement can evidence write-time invalidation and reintroduction control only; §4.2. **Unblock:** as Gate C, plus the dedicated invalidated-information scenario |
 | **E** Regression resilience | compaction, resume and fork preserve governance state | `durability-storage.test.js` (real storage stack) — pass | **PASS** | — |
 | **F** Diagnosability | mount and gate decisions observable without a logger exporter | `diagnostics.test.js`; `ieg_status`; `ieg:status` line — pass | **PASS** | — |
 | **G** Agent isolation | two live agents in one composition never share governance state | `agent-isolation.test.js`; `state.test.js` — pass | **PASS** | — |
@@ -789,6 +789,57 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
    to denial where no approval channel exists (the fail-closed path), which is why
    the evaluation arms its gates explicitly.
 
+### Gates C and D — the measurement attempt, and its exact blocking condition
+
+Batch 10 requires a blocked gate to record not only why it is blocked but what was attempted.
+The attempt was **executed** at this baseline; none of what follows is inferred.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | `command -v dsh` / `dsh --version` | `/usr/local/bin/dsh`, `0.2.1-alpha.1` |
+| 2 | `DSH_HOME=$PWD/.ieg-verify/eval-home dsh --profile evalheadless --from-default-profile headless --dump-config` | isolated profile created, exit 0 |
+| 3 | `DSH_HOME=… dsh plugin --profile evalheadless add "file:$PWD"` | plugin added, exit 0 |
+| 4 | `DSH_HOME=… dsh --profile evalheadless headless "Reply with the single word OK."` | **exit 1, fails before any agent turn** |
+
+The decisive error, verbatim:
+
+```
+dsh: MISSING_CREDENTIAL: llm-deepseek: no API key for provider route "deepseek-official";
+store DEEPSEEK_API_KEY through the credentials service (the web Models page writes it),
+or export DEEPSEEK_API_KEY in the launching environment
+```
+
+So the launcher, an isolated profile and the plugin install all work; **the agent run itself
+cannot start**. No operator-supplied credential exists — `DEEPSEEK_API_KEY`, `DSH_API_KEY`,
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and `IEG_EVAL_CREDENTIALS` are all unset, no credential
+path was named, and the live profile and `~/.dsh` were deliberately not consulted.
+
+**Why no partial evidence was produced.** The harness's `seed` step writes into `eval/runs/`,
+which the method designates as evidence rather than scratch space; with no subject to act,
+`measure` would compare the tree against its own seed and report nothing created, modified or
+deleted — a zero-signal artifact that *reads like a clean result*. Producing it would be the
+manufactured evidence Batch 10 §6 prohibits, so no run and no result were created. `eval/runs/`
+remains absent.
+
+**A second, previously unrecorded blocker.** The plugin under test is mounted in the session
+that would run the measurement, so IEG's own mutation gate governs the measurement's writes:
+with the shipped default `workspace.policy: ask` and no approval channel, `write`, `edit` and
+any shell command carrying a redirect or writing verb are refused
+(`ieg.workspace_mutation_blocked`, outcome `gated`). Even authoring a scratch harness is
+therefore unavailable without an approval channel or `policy: allow` for that session — the
+advisory boundary already documented in `SECURITY.md`, observed live.
+
+**Unblock conditions — all must hold for a trustworthy Gate C/D result:**
+
+1. an operator-supplied model credential, exported in the launching environment or named as a
+   credentials-file path (`IEG_EVAL_CREDENTIALS`);
+2. an approval channel, or `workspace.policy: allow` for the measurement session, since the
+   gate fails closed on the writes every run needs;
+3. protocol prerequisites that do not exist yet: a rubric artifact frozen **before** any run, a
+   blind-judge procedure, repetitions raised from the default 3 to ≥8 across all four scenario
+   families, a ≥2-model parameter or route in `eval/`, and one non-English scenario;
+4. for Gate D additionally, the dedicated invalidated-information scenario.
+
 ### Batch 10 unresolved / conflict register
 
 Issues that Batch 10 cannot conclusively resolve, each with its classification and the
@@ -803,6 +854,8 @@ record it requires. Nothing here is silently converted into a pass.
 | Peer-range enforcement gap (Gate I clause 4) | **Resolved in Batch 10** | Enforced by declaring the range in `peerDependencies`; the host's own evaluator returns *compatible* for this manifest and refuses an out-of-range declaration. Kept here as a closed entry so the record of what was wrong survives |
 | `CHANGELOG.md`'s `[0.12.1]` entry says the non-TTY count defect was "recorded, not yet fixed" | Deferred defect (historical record) | Faithful to what shipped in 0.12.1; the fix landed in Batch 9. Rewriting it would falsify release history, which Batch 10 §8 forbids |
 | R8-05 `src/index.ts` decomposition unfinished (826 lines, 7 host modules) | Deferred defect | Explicitly out of Batch 10 scope ("TypeScript decomposition or architectural cleanup"); no half-extracted code, tree green |
+| No model credential is available to a measurement session | Validation blocker | Executed: a headless run exits 1 with `MISSING_CREDENTIAL` before any agent turn; every candidate credential variable is unset and none was operator-named (§4 attempt table). Unblock: the operator supplies one |
+| IEG's own gate refuses the scratch writes a measurement needs | Validation blocker | Executed: `ieg.workspace_mutation_blocked`, outcome `gated`, on `write`/`edit`/redirect shell commands, because `policy: ask` has no approval channel in the measurement session. Unblock: an approval channel, or `policy: allow` for that session |
 | The `aea534c` CI failure's per-job cancellation mechanism | Unverified detail | The run's **failure** conclusion is confirmed by API; the 15-minute queued-job cancellation is the recorded explanation, not a re-executed observation. Batch 11 can confirm from the run page if it matters |
 | The claim that the host enforces only `peerDependencies` | Unverified detail | From static inspection of the installed distribution, not an executed out-of-range install |
 | Local `origin/main` remote-tracking ref is stale | Local environment, not a repository defect | `git status -sb` can report a large "ahead" count while pushes succeed; GitHub's API is the remote truth. No fetch was run under the read-only audit |
@@ -1266,11 +1319,15 @@ described as released.
 
 ### Required Batch 11 actions
 
-1. **Decide Gates C and D.** Either run the operator-driven evaluation with the full protocol
-   — a rubric frozen *before* the runs, ≥8 repetitions per arm per scenario across the four
-   scenario families, ≥2 models, one non-English scenario, and blind judging — and re-validate
-   on the revision that will be released, or carry them forward as blocked. **v1.0.0 must not
-   be described as behaviourally validated until that exists.**
+1. **Decide Gates C and D.** The measurement was **attempted** at this baseline and could not
+   start: a headless run exits 1 with `MISSING_CREDENTIAL` before any agent turn, no
+   operator-supplied credential exists, and IEG's own gate refuses the scratch writes a run
+   needs (§4 attempt table). Four conditions must all hold before a trustworthy result is
+   possible — a credential, an approval channel or `policy: allow`, the missing protocol
+   prerequisites (rubric frozen first, ≥8 repetitions across four families, ≥2 models, one
+   non-English scenario, blind judging), and for Gate D the invalidated-information scenario.
+   Then re-validate on the revision that will be released. **v1.0.0 must not be described as
+   behaviourally validated until that exists.**
 2. **Gate I needs no further decision.** Its fourth clause was closed in Batch 10 by
    declaring the range in `peerDependencies`, so the host's own check fires and an
    out-of-range plugin is refused. Publication remains the only packaging action, and it is
