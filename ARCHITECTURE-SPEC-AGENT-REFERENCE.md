@@ -504,12 +504,12 @@ prompt versions
 state-schema versions
 ```
 
-The shipped `0.9.1` artifact versions are:
+The shipped `0.12.1` artifact versions are:
 
 ```text
-artifact                      field                    0.9.1 value
+artifact                      field                    0.12.1 value
 ──────────────────────────────────────────────────────────────────────
-package                       package.json `version`   0.9.1 (publishable; not published)
+package                       package.json `version`   0.12.1 (publishable; not published)
 compiled prompt               PROMPT_VERSION           0.5.0
 governance state              DOMAIN_VERSION           1
 module semantics              `module.version`         0.2.0 in the three shipped
@@ -1689,9 +1689,9 @@ returns no question-batch decision (§8).
 
 ### 31.1 Package
 
-| Item | 0.9.1 |
+| Item | 0.12.1 |
 |---|---|
-| package | `dsh-information-environment-governance`, `version: 0.9.1`; `bin: { "dsh-ieg": "bin/ieg" }` |
+| package | `dsh-information-environment-governance`, `version: 0.12.1`; `bin: { "dsh-ieg": "bin/ieg" }` |
 | repository | the repository root **is** the package; there is no `plugin/` subdirectory (removed in 0.8.0) |
 | `private` | **removed** (Batch 4): the package is publishable. Publication itself stays the release action, withheld until Gates C and D pass and §34.2 Q5 is decided |
 | `license` | `MIT`, with `LICENSE` |

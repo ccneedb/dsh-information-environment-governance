@@ -287,27 +287,27 @@ JavaScript. Migrating `test/**` to `.ts` is **not** a planned work item: the
 suite is not shipped, it is typechecked against the same ambient contract, and
 `node --test` remains the runner.
 
-## 7. Verification of the migration (CURRENT numbers)
+## 7. Verification of the migration
 
-The counts below are the current tree's; re-derive them from the tree rather than
-trusting this sentence, and see [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md)
+The excerpt below was re-captured at the Batch 10 baseline (commit `a71a440`);
+re-derive the numbers from the tree rather than trusting this sentence, and see [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md)
 §3–§4 for the maintained status record.
 
 ```console
 $ npm run typecheck          # tsc against the ambient contract, tsconfig.json  → exit 0
-$ npm test                   # pretest builds, then node --test                → 272 pass, 0 fail
-$ ./scripts/verify.sh        # the full evidence chain                         → 27/27 checks passed
+$ npm test                   # pretest builds, then node --test                → 305 pass, 0 fail
+$ ./scripts/verify.sh        # the full evidence chain                         → 24/24 checks passed
 $ npm pack                   # prepack asserts the artifacts, pack ships lib/**
 ```
 
 Three independent checks back the claim that the package still works:
 
-- **272 tests, 0 failures** — the current suite, which added the packaging
+- **305 tests, 0 failures** — the current suite, which added the packaging
   regression and the `0.8.0` baseline work on top of the earlier rounds.
   (The migration slice recorded 284 tests against the then-current tree; that
   number is **HISTORICAL**, and the 0.7.0 withdrawal removed the tests that
   carried the difference.)
-- **`verify.sh` 27/27** — step 1 runs `npm run build` before the typecheck and
+- **`verify.sh` 24/24** — step 1 runs `npm run build` before the typecheck and
   tests, so a fresh checkout regenerates the artifacts first. The installed-artifact
   check imports the **installed** copy's `lib/index.js` (a real directory in a
   throwaway profile, not a link back to the source tree), applies the **installed

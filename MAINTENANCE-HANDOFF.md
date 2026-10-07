@@ -180,15 +180,15 @@ does not see the arm is what produces a valid number.
 | Gate | Statement | Status |
 |---|---|---|
 | A — Host compatibility | IEG is additive and the host prompt survives | met |
-| B — Semantic non-conflict | no module contradicts an identified host semantic | met |
-| C — Behavioural improvement | at least one target failure mode improves measurably against baseline | **unmet** |
-| D — Information integrity | known-invalid information is no longer authoritative by default | **unmet** |
-| E — Regression resilience | compaction, resume, and fork preserve governance state | met |
-| F — Diagnosability | mount and gate decisions are observable without a logger exporter | met |
-| G — Agent isolation | two live agents in one composition never share governance state | met |
-| H — Compatibility baseline | the adapter reports a verdict and detects a simulated host change | met |
-| I — Packaging | installable, licensed, changelogged, peer-range enforced | **partial** |
-| J — Withdrawal integrity | the plugin ships three modules with no dangling reference to the removed one | met |
+| B — Semantic non-conflict | no module contradicts an identified host semantic | **Passed — Evidence Complete** |
+| C — Behavioural improvement | at least one target failure mode improves measurably against baseline | **Blocked / Unverified — Evidence Insufficient** |
+| D — Information integrity | known-invalid information is no longer authoritative by default | **Blocked / Unverified — Evidence Insufficient** |
+| E — Regression resilience | compaction, resume, and fork preserve governance state | **Passed — Evidence Complete** |
+| F — Diagnosability | mount and gate decisions are observable without a logger exporter | **Passed — Evidence Complete** |
+| G — Agent isolation | two live agents in one composition never share governance state | **Passed — Evidence Complete** |
+| H — Compatibility baseline | the adapter reports a verdict and detects a simulated host change | **Passed — Evidence Complete** |
+| I — Packaging | installable, licensed, changelogged, peer-range enforced | **Blocked / Unverified — Evidence Insufficient** |
+| J — Withdrawal integrity | the plugin ships three modules with no dangling reference to the removed one | **Passed — Evidence Complete** |
 
 **Mount resilience (2026-10-02).** `apply()` does not throw: a configuration
 fault mounts an inert but observable surface (`mounted: false`, `configError`
@@ -327,7 +327,7 @@ surface — the evaluation must run against the post-Batch-8 revision.
 | R8-02 information-integrity loop | **done** | this commit | `src/modules/information-integrity.ts`, `src/kernel/state.ts`, `src/index.ts`, `test/integration/wiring.test.js` | ledger on the canonical model in per-agent state; `record_information` (capture + transitions, no model-supplied confirmation) and the approval-gated `confirm_information` (revalidation); write-time reintroduction detection; one end-to-end test covering valid → invalidation → supersession → stale reuse → correction → reintroduction → revalidation; 288/288 |
 | R8-03 mutation governance | **done** | this commit | `src/modules/workspace-governance.ts`, `test/unit/workspace-governance.test.js`, `test/unit/shell-classification.test.js`, `SECURITY.md` | lexical canonicalisation of `.`/`..` (closed a protected-path bypass), root-boundary fix, execution-prefix recognition for wrapped shells (closed a `sudo bash -c` blind spot), 400-variant fuzz + adversarial cases, and an explicit advisory-boundary statement; the runtime-assembled-payload limit is asserted as a limitation, not papered over |
 | R8-04 supported scope | **done** | this commit | `src/modules/workspace-governance.ts`, `src/kernel/config.ts`, `test/unit/shell-classification.test.js`, `PRODUCT-SPEC.md`, `README.md`, `SECURITY.md`, `docs/PACKAGE-REFERENCE.md`, `ARCHITECTURE-SPEC-AGENT-REFERENCE.md` | PowerShell runtime surface and tests removed (the generic tool-list abstraction is retained, not replaced by hardcoding); scope stated as Debian/Linux + DSH in product, security, architecture and onboarding docs; two doc claims that R8-03 had made false were corrected |
-| R8-05 TS migration + decomposition | **in progress** | `536b8dd`, this commit | `scripts/verify.sh`, `src/host/tool-surface.ts`, `src/index.ts` | **done:** drift protection in the release gate (24 checks), falsified against committed drift; the tool surface (names, `renderJson`, the user-authority set) extracted into `src/host/`, establishing the layer boundary, with the public names re-exported so the API is unchanged. **Further:** the maintenance tool registration (115 lines) extracted into `src/host/maintenance-tool.ts` behind an explicit `MaintenanceToolSurface` — the dependency that was captured by the closure is now named and passed in, and a version pair travels through the surface so the host module never imports the entry point (no cycle). The information-tools registration (76 lines) followed into `src/host/information-tools.ts` behind `InformationToolSurface`. The governance tool registrations (orientation, status, terminology, the guard and the audit wrapper `observed`) followed into `src/host/governance-tools.ts` behind `GovernanceToolSurface`. The pre-step orientation gate followed into `src/host/pre-step-gate.ts`, and the mutation gate into `src/host/mutation-gate.ts` behind `MutationGateSurface`. The durable-state section followed into `src/host/durable-state.ts` as `createDurableState`. `src/index.ts` is 822 lines from 1287, with seven host modules. **Extractions must be committed one at a time**: the durable-state work was verified green and then lost when the next, uncommitted attempt was reverted, and had to be redone. **Remaining, with the order the next attempt needs** — the earlier attempts failed partly for a structural reason worth recording: `note`, `guarded` and `livePromptFacts` are defined in the **observability block** (lines 438-573) and consumed by every later section, so they must be extracted **first**, as a factory the entry point calls, and then passed to the other sections through their surfaces. In `src/index.ts` today:
+| R8-05 TS migration + decomposition | **in progress** | `536b8dd`, this commit | `scripts/verify.sh`, `src/host/tool-surface.ts`, `src/index.ts` | **done:** drift protection in the release gate (24 checks), falsified against committed drift; the tool surface (names, `renderJson`, the user-authority set) extracted into `src/host/`, establishing the layer boundary, with the public names re-exported so the API is unchanged. **Further:** the maintenance tool registration (115 lines) extracted into `src/host/maintenance-tool.ts` behind an explicit `MaintenanceToolSurface` — the dependency that was captured by the closure is now named and passed in, and a version pair travels through the surface so the host module never imports the entry point (no cycle). The information-tools registration (76 lines) followed into `src/host/information-tools.ts` behind `InformationToolSurface`. The governance tool registrations (orientation, status, terminology, the guard and the audit wrapper `observed`) followed into `src/host/governance-tools.ts` behind `GovernanceToolSurface`. The pre-step orientation gate followed into `src/host/pre-step-gate.ts`, and the mutation gate into `src/host/mutation-gate.ts` behind `MutationGateSurface`. The durable-state section followed into `src/host/durable-state.ts` as `createDurableState`. `src/index.ts` is 826 lines from 1287, with seven host modules. **Extractions must be committed one at a time**: the durable-state work was verified green and then lost when the next, uncommitted attempt was reverted, and had to be redone. **Remaining, with the order the next attempt needs** — the earlier attempts failed partly for a structural reason worth recording: `note`, `guarded` and `livePromptFacts` are defined in the **observability block** (lines 438-573) and consumed by every later section, so they must be extracted **first**, as a factory the entry point calls, and then passed to the other sections through their surfaces. In `src/index.ts` today:
 
 | Section | Lines | Depends on |
 |---|---|---|
@@ -938,8 +938,10 @@ These each cost real time. Do not rediscover them.
    authoritative.
 3. **False-positive confirmation with real agents** — the simulated matrix shows
    `false_block_rate = 0`; only a model run can confirm it beyond the matrix.
-4. **Packaging close-out (Gate I)** — remove `private` and choose the publish
-   target once Gates C and D pass.
+4. **Packaging close-out (Gate I)** — `private` is already absent (Batch 10 §4.3);
+   the remaining clause is "peer-range enforced", which is declared but not enforced
+   (§4.3). Batch 11 decides to enforce it or to re-scope the clause. Publication and
+   the publish target are release authorization, not gate conditions.
 5. **Orientation Consistency direction** — named terminology only (declared
    constraints → observed actions → consistency/drift evaluation). **Not
    implemented in this batch**; do not build or promise it without a scope

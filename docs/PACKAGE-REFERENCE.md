@@ -25,7 +25,7 @@ This is a **verifiable prototype** of the design specified in
 (a **RETIRED** pointer; its content now lives in the architecture spec's §32 gates
 and Part B).
 
-- Package: `dsh-information-environment-governance`, version `0.9.1` (publishable,
+- Package: `dsh-information-environment-governance`, version `0.12.1` (publishable,
   not published),
   MIT, **ESM**, **zero runtime dependencies**, Node `>=20`.
 - CLI: `dsh-ieg` (`bin/ieg`; the interface is authored in `src/bin/ieg.ts` and
@@ -142,7 +142,7 @@ the plugin adds text and never claims the section is complete.
 
 | Property | Value |
 |---|---|
-| `PROMPT_VERSION` | `0.3.0` |
+| `PROMPT_VERSION` | `0.5.0` |
 | Compiled section size | **2,806 bytes** |
 | Recorded ceiling | **2,945 bytes** |
 | Floor | 1400 bytes |
@@ -375,16 +375,16 @@ gaps:
 
 | Gate | Subject | Status |
 |---|---|---|
-| A | host compatibility | met |
-| B | semantic non-conflict | met |
-| C | behavioural improvement | **unmet — no current measurement** |
-| D | information integrity | **unmet — no current measurement** |
-| E | regression resilience | met |
-| F | diagnosability | met |
-| G | agent isolation | met |
-| H | compatibility baseline | met |
-| I | packaging | partial |
-| J | withdrawal integrity | met |
+| A | host compatibility | **Passed — Evidence Complete** |
+| B | semantic non-conflict | **Passed — Evidence Complete** |
+| C | behavioural improvement | **Blocked / Unverified — Evidence Insufficient** |
+| D | information integrity | **Blocked / Unverified — Evidence Insufficient** |
+| E | regression resilience | **Passed — Evidence Complete** |
+| F | diagnosability | **Passed — Evidence Complete** |
+| G | agent isolation | **Passed — Evidence Complete** |
+| H | compatibility baseline | **Passed — Evidence Complete** |
+| I | packaging | **Blocked / Unverified — Evidence Insufficient** |
+| J | withdrawal integrity | **Passed — Evidence Complete** |
 
 ## Not verified by this prototype
 
