@@ -1010,10 +1010,11 @@ These each cost real time. Do not rediscover them.
    authoritative.
 3. **False-positive confirmation with real agents** — the simulated matrix shows
    `false_block_rate = 0`; only a model run can confirm it beyond the matrix.
-4. **Packaging close-out (Gate I)** — `private` is already absent (Batch 10 §4.3);
-   the remaining clause is "peer-range enforced", which is declared but not enforced
-   (§4.3). Batch 11 decides to enforce it or to re-scope the clause. Publication and
-   the publish target are release authorization, not gate conditions.
+4. **Packaging close-out (Gate I) — closed in Batch 10.** `private` was already absent;
+   the "peer-range enforced" clause is now met by declaring the range in
+   `peerDependencies`, the field the host's `evaluatePluginCompatibility` actually
+   enforces (§4.3). The only packaging action left is publication, which is release
+   authorization for Batch 11.
 5. **Orientation Consistency direction** — named terminology only (declared
    constraints → observed actions → consistency/drift evaluation). **Not
    implemented in this batch**; do not build or promise it without a scope
