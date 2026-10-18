@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.13.0
+plugin_version: 0.15.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.13.0-batch-13
+revision: 0.15.0-batch-14
 verified_against: dsh-v0.2.1-rc.2
 language: en
 format_note: conservative-machine-readable-markdown
@@ -28,7 +28,7 @@ in [`PRODUCT-SPEC.md` §1](PRODUCT-SPEC.md#1-product-positioning); this README
 links there rather than restating them.
 
 > **Status: prototype, not production-ready.** The package is
-> `dsh-information-environment-governance` **0.13.0** — publishable and verified
+> `dsh-information-environment-governance` **0.15.0** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
 > integrity (Gate D) are **Blocked / Unverified — Evidence Insufficient**;
@@ -432,7 +432,7 @@ installation is present. Point the loader at a non-default install with
 ## Working prototype
 
 The repository root **is** an installable **`dsh-information-environment-governance`**
-`0.13.0` (publishable and verified, **not published**) that realizes the architecture above
+`0.15.0` (publishable and verified, **not published**) that realizes the architecture above
 with zero runtime dependencies. It contributes one additive prompt section and
 enforces through `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`; it reports its own state through a bounded runtime-context

@@ -2,11 +2,11 @@
 doc_type: migration-record
 project: information-environment-governance
 version: 1.0.0
-plugin_version: 0.13.0
+plugin_version: 0.15.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.13.0-batch-13
+revision: 0.15.0-batch-14
 audience: contributors
 language: en
 ---

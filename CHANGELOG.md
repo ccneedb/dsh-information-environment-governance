@@ -2,11 +2,11 @@
 doc_type: changelog
 project: information-environment-governance
 version: 0.12.1
-plugin_version: 0.13.0
+plugin_version: 0.15.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.13.0-batch-13
+revision: 0.15.0-batch-14
 audience: everyone
 language: en
 ---
@@ -33,7 +33,7 @@ names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
 
-## [0.13.0] — 2026-10-18
+## [0.15.0] — 2026-10-18
 
 **Target host raised to `@deepseek-ai/dsh 0.2.1-rc.2`; release identity and the
 remaining 0.12.1 defects are being closed in this round.**
@@ -57,12 +57,15 @@ remaining 0.12.1 defects are being closed in this round.**
   shims, and are retained deliberately (see `MAINTENANCE-HANDOFF.md` §4).
   The only host-version-specific staleness was metadata and prose pinned to
   `0.2.1-alpha.1`, all updated here.
-- **Release identity repaired (0.13.0).** The package version, `PLUGIN_VERSION`,
-  every document's `plugin_version` front matter and this changelog heading now
-  agree on `0.13.0`, and the tag `v0.13.0` is cut on the final commit of this
-  round so the released artifact has a name that identifies one tree
-  (assessment finding IEG-01). The untagged 43-commit gap after `v0.12.1` is
-  recorded, not rewritten.
+- **Release identity repaired.** The package version, `PLUGIN_VERSION`, every
+  document's `plugin_version` front matter and this changelog heading agree on
+  one version, and the annotated tag is cut on the final commit so the released
+  artifact has a name that identifies one tree (assessment finding IEG-01). The
+  untagged 43-commit gap after `v0.12.1` is recorded, not rewritten.
+  **Pre-publication renumbering:** the round first produced `0.13.0`; before the
+  first push the release was renumbered to **`0.15.0`** at the maintainer's
+  request (same content, same `PROMPT_VERSION` 0.6.0), so no tree ever shipped
+  under two versions.
 
 ### Security and authority (Workstream 2)
 
@@ -112,7 +115,7 @@ remaining 0.12.1 defects are being closed in this round.**
 
 ### Release and documentation truth
 
-- **The release identity is one tree (IEG-01).** Version `0.13.0`, `PLUGIN_VERSION`,
+- **The release identity is one tree (IEG-01).** Version `0.15.0`, `PLUGIN_VERSION`,
   every document's `plugin_version`, and the changelog heading agree; a packaging
   test fails when a version tag on `HEAD` names another version.
 - **The release workflow runs the gate (IEG-09).** Before packing/attaching, it runs
