@@ -1,6 +1,6 @@
 {
   "name": "dsh-information-environment-governance",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Information Environment Governance (IEG): an additive project-work governance layer for DeepSeek Harness. Contributes one system-prompt section and uses deterministic runtime seams (agent/pre-step, tools/pre-execute, tools.guard) for enforcement, plus the `dsh-ieg` terminal interface for control (start/pause/restart/exit), prompt.md editing and the npm lifecycle. Zero runtime dependencies.",
   "type": "module",
   "main": "lib/index.js",
@@ -33,7 +33,7 @@
     "node": ">=20"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh": ">=0.2.1-alpha.1 <0.3.0"
+    "@deepseek-ai/dsh": ">=0.2.1-rc.2 <0.3.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {
@@ -45,11 +45,11 @@
       "patch": "cordis.patch.yml"
     },
     "engines": {
-      "dsh": ">=0.2.1-alpha.1 <0.3.0"
+      "dsh": ">=0.2.1-rc.2 <0.3.0"
     },
     "compatibility": {
       "dshReleases": {
-        "0.2.1-alpha.1": "verified"
+        "0.2.1-rc.2": "verified"
       }
     }
   },

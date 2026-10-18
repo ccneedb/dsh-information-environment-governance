@@ -9,7 +9,7 @@
  * registry and observes, rather than mocks, the host's own `context()`,
  * `assemble()`, and rendering code.
  *
- * Observed on `@deepseek-ai/dsh-system-prompt` 0.2.1-alpha.1 (the same seam IEG
+ * Observed on `@deepseek-ai/dsh-system-prompt` 0.2.1-rc.2 (the same seam IEG
  * declares in `lib/contract.d.ts`):
  *
  * - `context()` accepts **any finite `order`**, enumerated or not; only

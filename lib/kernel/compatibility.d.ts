@@ -7,7 +7,7 @@
  * alone is never checked). What enforcement cannot do is observe whether the **running**
  * host's prompt surface still matches what IEG was verified against (§29.1) — a
  * satisfied version range says nothing about seam drift. This module closes that gap without
- * depending on a version string — the installed `0.2.1-alpha.1` exposes no
+ * depending on a version string — the installed `0.2.1-rc.2` exposes no
  * plugin-facing version service (§29.2) — by observing the seam facts that would
  * actually change a decision:
  *
@@ -109,7 +109,7 @@ export declare function stableHash(text: unknown): string;
  * The committed baseline, mirroring `lib/compatibility-baseline.json` exactly.
  *
  * Captured by `scripts/capture-baseline.mjs` against the installed
- * `@deepseek-ai/dsh` `0.2.1-alpha.1` with a minimal real composition (the prompt
+ * `@deepseek-ai/dsh` `0.2.1-rc.2` with a minimal real composition (the prompt
  * registry, the tool registry, and IEG's own section). Section *texts* are not
  * recorded: only the ordered names and the hash of the non-IEG texts, so IEG's
  * own prompt wording can evolve without a baseline update.
@@ -124,7 +124,7 @@ export declare function stableHash(text: unknown): string;
  */
 export declare const DEFAULT_BASELINE: Readonly<{
     version: 1;
-    hostVersion: "0.2.1-alpha.1";
+    hostVersion: "0.2.1-rc.2";
     sectionNames: readonly string[];
     hostPromptHash: "ceb63ee5";
     capabilities: readonly string[];

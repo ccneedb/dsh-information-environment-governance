@@ -1,20 +1,20 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.12.1
-version: 0.12.1
+plugin_version: 0.12.2
+version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
-host_baseline_verified: dsh-0.2.1-alpha.1
+revision: 0.12.2-batch-12
+host_baseline_verified: dsh-0.2.1-rc.2
 supersedes: none
 language: en
 ---
 
 # IEG Maintenance Handoff
 
-> **This is the maintained status record (package 0.12.1).** §3–§4 are the single
+> **This is the maintained status record (package 0.12.2).** §3–§4 are the single
 > source of truth for current status and numbers; other documents link here rather
 > than restate them. §13 is **history** (the rename, the withdrawn capability, the
 > old→new gate mapping, the `0.1.0`/v0.2.0 rounds, and the open-item closures).
@@ -122,9 +122,9 @@ permitted.
 | Baseline item | Value |
 |---|---|
 | Repository commit | `a71a4401dfa67f1f50943757447ad6e4d3792ae1` (`a71a440`) |
-| Package version | `0.12.1` |
+| Package version | `0.12.2` |
 | `PROMPT_VERSION` | `0.5.0` |
-| Verified DSH baseline | `0.2.1-alpha.1` (peer range `>=0.2.1-alpha.1 <0.3.0`) |
+| Verified DSH baseline | `0.2.1-rc.2` (peer range `>=0.2.1-rc.2 <0.3.0`) |
 | Validation method revision | the commit above; the method is defined by `eval/README.md` and `eval/harness.mjs` |
 | Rubric revision | **none frozen** — `eval/README.md` requires a rubric frozen before the runs; no rubric has been frozen, which is a first-class reason Gates C and D cannot pass (below) |
 | Evaluation configuration ids | scenario families `doc-consolidation`, `auth-doc-request`, `vague-continuation`, `bounded-repair`; arms `control` / `treatment` |
@@ -150,14 +150,17 @@ not this sentence — as current. (The 0.7.0 round recorded 265 tests, and the
 0.6.0 four-module round recorded 284 tests and 22/22 checks; both are
 **HISTORICAL**.)
 
-**Host baseline.** The single supported DSH baseline is **`0.2.1-alpha.1`**:
-`dsh.engines.dsh` is `>=0.2.1-alpha.1 <0.3.0`, `dsh.compatibility.dshReleases`
+**Host baseline.** The single supported DSH baseline is **`0.2.1-rc.2`**:
+`dsh.engines.dsh` is `>=0.2.1-rc.2 <0.3.0`, `dsh.compatibility.dshReleases`
 records that one release as `verified`, and `lib/compatibility-baseline.json` was
-re-captured against it in 0.8.0 (section order and host prompt hash `ceb63ee5`
-identical to the previous baseline). The retired `0.2.0-rc.2` baseline is
-**SUPERSEDED**: it is gone from the peer range and the release map. There is no
-legacy compatibility layer; the adapter observes seam facts against the committed
-baseline rather than branching on a version string.
+re-verified against it in 0.12.2 (section order and host prompt hash `ceb63ee5`
+identical to the previous baseline). The retired `0.2.1-alpha.1` and `0.2.0-rc.2`
+baselines are **SUPERSEDED**: they are gone from the peer range and the release
+map. There is no version-gated legacy compatibility layer; the adapter observes
+seam facts against the committed baseline rather than branching on a version
+string, and the capability fallbacks it does carry (optional `fs`, `approval`,
+`storageDomain`, `tools` seams) exist for composition robustness, not for older
+host releases.
 
 **Durable state.** Governance state uses the `ctx.storageDomain` domain
 `ieg_governance` at `DOMAIN_VERSION` 1. State written under the pre-0.7.0 domain
@@ -385,12 +388,12 @@ compiler — and builds and passes the full suite from it.** That is the same pa
 take.
 
 **What this does *not* replace:** CI's Node 20/22/24 matrix and its job that installs
-`dsh@0.2.1-alpha.1` + `pnpm@12.9.1` and runs the release gate against a *real* host. The
+`dsh@0.2.1-rc.2` + `pnpm@12.9.1` and runs the release gate against a *real* host. The
 local run used the host checkout already present in this environment.
 
 **CI state (P0-2, verified 2026-10-06): green on the latest `main` commit** — all five jobs
 completed successfully, including the required `full verification chain (verified host
-0.2.1-alpha.1)`. That job installs the pinned `dsh@0.2.1-alpha.1` and `pnpm@12.9.1`, so the
+0.2.1-rc.2)`. That job installs the pinned `dsh@0.2.1-rc.2` and `pnpm@12.9.1`, so the
 green run is also the evidence that the pinned toolchain remains installable.
 
 One earlier run, on `aea534c`, concluded **failure** for an environmental reason rather than
@@ -633,7 +636,7 @@ result says nothing about modified code.
 | Release gate | `./scripts/verify.sh` | **23 / 23** |
 | Documentation consistency | `./scripts/check-docs.sh` | 13 governed documents, front matter, index coverage and links valid |
 | Packaging | `verify.sh` phase 3b | `npm pack` → fresh profile → row composes → runtime and bundle patch present → profile-local CLI present |
-| Compatibility | CI `with-host`, now required | installs and exercises **dsh 0.2.1-alpha.1**, the one release declared Verified |
+| Compatibility | CI `with-host`, now required | installs and exercises **dsh 0.2.1-rc.2**, the one release declared Verified |
 
 **Tested versions.** Node v24.21.0; TypeScript 6.0.3 (pinned in CI and installed
 locally); DSH 0.2.1-alpha.1 (Verified — the only baseline any claim rests on);
@@ -709,13 +712,14 @@ Compatibility is stated in four states, never as a semver range:
 | **Unsupported** | known or declared incompatible |
 | **Unknown** | insufficient evidence |
 
-Standing: **`0.2.1-alpha.1` is Verified** — CI installs exactly that release and runs
+Standing: **`0.2.1-rc.2` is Verified** — CI installs exactly that release and runs
 the full verification chain against it, in a **required** job, so a compatibility
 failure is a CI failure rather than a warning. The declared peer range
-`>=0.2.1-alpha.1 <0.3.0` is a **compatibility statement, not a tested-versions
+`>=0.2.1-rc.2 <0.3.0` is a **compatibility statement, not a tested-versions
 list**: every other version inside it is **Unknown** until a check exercises it.
-`0.2.0-rc.2` is **Unsupported** — retired in the 0.8.0 re-baseline, absent from both
-the peer range and the release map.
+`0.2.1-alpha.1` and `0.2.0-rc.2` are **Unsupported** — retired in the 0.12.2 and
+0.8.0 re-baselines respectively, absent from both the peer range and the release
+map.
 
 Before Round 7, CI installed `0.2.0-rc.2` while the package declared
 `0.2.1-alpha.1` verified, and its host job was allowed to fail
@@ -757,8 +761,8 @@ Status as of the 0.7.0 scope-reset round (2026-10-03). A blocker marked
    Publication and §34.2 Q5 remain release authorization for Batch 11, and are **not**
    among the gate's four conditions.
 4. **The compatibility baseline for the installed host — closed in 0.8.0.** The
-   declared peer range is now `>=0.2.1-alpha.1 <0.3.0`, and
-   `dsh.compatibility.dshReleases` records `0.2.1-alpha.1` as `verified`.
+   declared peer range is now `>=0.2.1-rc.2 <0.3.0`, and
+   `dsh.compatibility.dshReleases` records `0.2.1-rc.2` as `verified`.
    `lib/compatibility-baseline.json` was re-captured against the installed host
    and reviewed; the ordered section names, the host prompt hash (`ceb63ee5`) and
    the required capability set are identical to the previous baseline, so the

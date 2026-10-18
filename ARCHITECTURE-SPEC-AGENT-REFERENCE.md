@@ -2,21 +2,21 @@
 doc_type: architecture-spec
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.12.1
+plugin_version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
+revision: 0.12.2-batch-12
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0
 part_b_status: implemented-through-the-0.8.0-packaging-round; model-backed-gates-C-and-D-pending
-verified_against: dsh-v0.2.1-alpha.1
+verified_against: dsh-v0.2.1-rc.2
 verified_method: installed-distribution-source-inspection
 audience: agents-only
 language: en
 host_target: deepseek-harness
-host_baseline: dsh-v0.2.1-alpha.1
-part_a_scope: Part A host facts are scoped to @deepseek-ai/dsh 0.2.1-alpha.1 (re-captured in 0.8.0; the retired 0.2.0-rc.2 verification is SUPERSEDED); the shipped package is 0.8.0
+host_baseline: dsh-v0.2.1-rc.2
+part_a_scope: Part A host facts are scoped to @deepseek-ai/dsh 0.2.1-rc.2 (re-verified in 0.12.2; the 0.2.1-alpha.1 and 0.2.0-rc.2 baselines are SUPERSEDED); the shipped package is 0.12.2
 format_note: conservative-machine-readable-markdown
 ---
 
@@ -24,7 +24,7 @@ format_note: conservative-machine-readable-markdown
 
 > **Audience:** agents implementing, reviewing, or extending this plugin inside DeepSeek Harness. This document is intentionally more implementation-oriented than the Product Specification.
 >
-> **Two parts.** Sections 1–21 ("Part A") are the verified record of host integration and of the `0.1.0` prototype. Part A's host facts are scoped to `@deepseek-ai/dsh` `0.2.1-alpha.1` (the baseline re-captured in `0.8.0`; the earlier `0.2.0-rc.2` verification is **SUPERSEDED**), and the shipped package is `0.8.0`. Sections 22–34 ("Part B") carry the **target design**, whose baseline is IEG v0.2.0 and which was extended through the `0.7.0` scope-reset round (the `user-attention` capability was withdrawn, §23.2, and the module set became three) and the `0.8.0` packaging round. Part B states where it changes a Part A decision instead of rewriting Part A. Current implementation status and numbers live in [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4.
+> **Two parts.** Sections 1–21 ("Part A") are the verified record of host integration and of the `0.1.0` prototype. Part A's host facts are scoped to `@deepseek-ai/dsh` `0.2.1-rc.2` (re-verified in `0.12.2`; the `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**), and the shipped package is `0.12.2`. Sections 22–34 ("Part B") carry the **target design**, whose baseline is IEG v0.2.0 and which was extended through the `0.7.0` scope-reset round (the `user-attention` capability was withdrawn, §23.2, and the module set became three) and the `0.8.0` packaging round. Part B states where it changes a Part A decision instead of rewriting Part A. Current implementation status and numbers live in [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4.
 
 > **Classification.** Text labelled **HISTORICAL**, **SUPERSEDED**, **RETIRED**, or
 > **REFERENCE** carries the meaning defined in
@@ -83,7 +83,7 @@ domains rather than rebuilding them.
 
 The current DSH system-prompt service supports ordered prompt sections, runtime contexts, variables, and assembly hooks. Sections are centrally ordered, and the current source exposes named placements such as harness identity, deployment persona prefix, plan policy, team policy, tool sections, subagent tools, deliverable references, structured output, and deployment persona suffix.
 
-Current relevant section order values in the observed `0.2.1-alpha.1` source (identical in the **SUPERSEDED** `v0.2.0-rc.2` observation) include:
+Current relevant section order values in the observed `0.2.1-rc.2` source (identical in the **SUPERSEDED** `v0.2.0-rc.2` observation) include:
 
 ```text
 HARNESS_IDENTITY          -1000
@@ -504,18 +504,18 @@ prompt versions
 state-schema versions
 ```
 
-The shipped `0.12.1` artifact versions are:
+The shipped `0.12.2` artifact versions are:
 
 ```text
-artifact                      field                    0.12.1 value
+artifact                      field                    0.12.2 value
 ──────────────────────────────────────────────────────────────────────
-package                       package.json `version`   0.12.1 (publishable; not published)
+package                       package.json `version`   0.12.2 (publishable; not published)
 compiled prompt               PROMPT_VERSION           0.5.0
 governance state              DOMAIN_VERSION           1
 module semantics              `module.version`         0.2.0 in the three shipped
                                                         descriptors, matching the
                                                         §24 module contracts
-host compatibility range      dsh.engines.dsh          >=0.2.1-alpha.1 <0.3.0
+host compatibility range      dsh.engines.dsh          >=0.2.1-rc.2 <0.3.0
 ```
 
 Any host release that changes relevant prompt sections, hooks, or tool/approval seams should trigger compatibility review.
@@ -553,12 +553,12 @@ The DSH user-question subsystem link was dropped in `0.7.0`: IEG no longer binds
 ### 17.1 Verification basis
 
 ```text
-distribution   @deepseek-ai/dsh              0.2.1-alpha.1
+distribution   @deepseek-ai/dsh              0.2.1-rc.2
 install root   <dsh>/node_modules/@deepseek-ai/
 method         direct inspection of lib/types/*.d.ts and lib/*.js
 ```
 
-The declared baseline `dsh-v0.2.1-alpha.1` **matches** the installed host, and every URL in §16 resolves. The earlier `0.2.0-rc.2` verification is **SUPERSEDED**: the committed baseline was re-captured against `0.2.1-alpha.1` in `0.8.0`, and the ordered section names, the host prompt hash (`ceb63ee5`) and the required capability set are identical, so the seam facts below are unchanged. One citation-style correction is required: §16 cites monorepo source paths, but a runtime plugin imports **published package names**. `packages/core/system-prompt/src/index.ts` is published as `@deepseek-ai/dsh-system-prompt`; `packages/interaction/user-questions` as `@deepseek-ai/dsh-user-questions`. Plugin code must import package names and never repository paths.
+The declared baseline `dsh-v0.2.1-rc.2` **matches** the installed host, and every URL in §16 resolves. The earlier `0.2.1-alpha.1` and `0.2.0-rc.2` verifications are **SUPERSEDED**: the committed baseline was re-verified against `0.2.1-rc.2` in `0.12.2`, and the ordered section names, the host prompt hash (`ceb63ee5`) and the required capability set are identical, so the seam facts below are unchanged. One citation-style correction is required: §16 cites monorepo source paths, but a runtime plugin imports **published package names**. `packages/core/system-prompt/src/index.ts` is published as `@deepseek-ai/dsh-system-prompt`; `packages/interaction/user-questions` as `@deepseek-ai/dsh-user-questions`. Plugin code must import package names and never repository paths.
 
 A second correction: the host ships **no public plugin-authoring façade** for the seams IEG needs. IEG is an ordinary Cordis plugin that subscribes to first-party events and registers first-party services.
 
@@ -822,7 +822,7 @@ The handoff's §3 hypothesis — that plugin built-in prompts have intrinsically
 - **A4 — Mutation coverage.** Mutation governance covers **tool-mediated** mutations only. A plugin calling `ctx.fs.writeText()` directly dispatches no `fs/*` events and bypasses `tools/*`; IEG does not claim process-wide write coverage.
 - **A5 — Diagnostics availability.** An IEG invariant companion runs only where the composition mounts `dsh-invariants`, and `ctx.logger` output is only visible where the composition mounts a Cordis logger exporter; `dsh-base` does neither. Enforcement must not depend on either, and §12 diagnostics need an observable channel (D9).
 - **A6 — Root-only questioning. Withdrawn in `0.7.0`.** This assumption belonged to the `user-attention` capability: question consolidation was available only to live runtime root agents, and delegated questioning was therefore outside IEG's scope. The capability was withdrawn (§23.2); the entry is kept as history, and delegated questioning remains an accepted boundary.
-- **A7 — Fixed baseline.** All §17 facts are scoped to `@deepseek-ai/dsh` `0.2.1-alpha.1` (re-captured in `0.8.0`; the earlier `0.2.0-rc.2` scope is **SUPERSEDED**). The compatibility adapter must re-verify them on any host change per §14.
+- **A7 — Fixed baseline.** All §17 facts are scoped to `@deepseek-ai/dsh` `0.2.1-rc.2` (re-verified in `0.12.2`; the `0.2.1-alpha.1` and `0.2.0-rc.2` scopes are **SUPERSEDED**). The compatibility adapter must re-verify them on any host change per §14.
 
 ### 20.2 Items requiring confirmation or host clarification
 
@@ -862,7 +862,7 @@ seam bindings falsifiable rather than merely asserted.
 | Runtime question consolidation (§7.4) | historical only: collector was implemented and unit tested, never wired in front of `ctx.userQuestions`, and the capability was withdrawn in `0.7.0` |
 | Per-agent state (§17.7) | not implemented in the `0.1.0` prototype; orientation was per-composition |
 | Prompt-content conformance (D11) | implemented as an executable suite covering failure-class coverage, §5.2 dedupe, the prompt content DO/DON'T rules (§27), and the §11 budget ceiling |
-| Packaging, bundle patch, install, composition, mount | verified end to end against the current `@deepseek-ai/dsh` `0.2.1-alpha.1` baseline (and, historically, `0.2.0-rc.2`) |
+| Packaging, bundle patch, install, composition, mount | verified end to end against the current `@deepseek-ai/dsh` `0.2.1-rc.2` baseline (and, historically, `0.2.1-alpha.1` and `0.2.0-rc.2`) |
 
 The prototype has **zero runtime dependencies**, imports no first-party package,
 and declares the slice of the host runtime it uses in a single ambient contract
@@ -1584,7 +1584,7 @@ matches what IEG was verified against.
 ### 29.2 Verified constraint
 
 There is **no plugin-facing host-version service** in the installed
-`0.2.1-alpha.1` distribution (verified there; the `0.2.0-rc.2` observation is
+`0.2.1-rc.2` distribution (verified there; the `0.2.1-alpha.1` and `0.2.0-rc.2` observations are
 **SUPERSEDED**): the CLI resolves `context.version` for its own
 startup diagnostics only, and no mounted service exposes it. The authoritative
 version gate is therefore the host's own peer-range enforcement at install and
@@ -1689,16 +1689,16 @@ returns no question-batch decision (§8).
 
 ### 31.1 Package
 
-| Item | 0.12.1 |
+| Item | 0.12.2 |
 |---|---|
-| package | `dsh-information-environment-governance`, `version: 0.12.1`; `bin: { "dsh-ieg": "bin/ieg" }` |
+| package | `dsh-information-environment-governance`, `version: 0.12.2`; `bin: { "dsh-ieg": "bin/ieg" }` |
 | repository | the repository root **is** the package; there is no `plugin/` subdirectory (removed in 0.8.0) |
 | `private` | **removed** (Batch 4): the package is publishable. Publication itself stays the release action, withheld until Gates C and D pass and §34.2 Q5 is decided |
 | `license` | `MIT`, with `LICENSE` |
 | `CHANGELOG.md` | required; every prompt change attributed to a problem or an evaluation result |
 | `files` | `lib`, `bin`, `cordis.patch.yml`, `README.md`, `LICENSE`, `CHANGELOG.md` |
-| `dsh.engines.dsh` | `>=0.2.1-alpha.1 <0.3.0` (the single supported baseline) |
-| `dsh.compatibility.dshReleases` | `{ "0.2.1-alpha.1": "verified" }` — the committed baseline was re-captured against it in 0.8.0 (closes §34.2 Q7); the retired `0.2.0-rc.2` baseline is **SUPERSEDED** |
+| `dsh.engines.dsh` | `>=0.2.1-rc.2 <0.3.0` (the single supported baseline) |
+| `dsh.compatibility.dshReleases` | `{ "0.2.1-rc.2": "verified" }` — the committed baseline was re-verified against it in 0.12.2; the retired `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
 | runtime dependencies | none |
 | publish target | **open** — see §34.2 Q5 |
 
@@ -1895,11 +1895,11 @@ withdrawn, so it serializes nothing.
 | A4 | Mutation governance covers **tool-mediated** mutations only | carried |
 | A5 | `ctx.logger` is not displayed in stock compositions and `dsh-base` does not mount an exporter | carried; Part B's channels do not depend on it |
 | A6 | Question consolidation is available only to live runtime root agents | **withdrawn in `0.7.0`** — this assumption belonged to the removed `user-attention` capability (§23.2); kept as history, and delegated questioning remains an accepted boundary (§34.3) |
-| A7 | All Part A facts are scoped to `@deepseek-ai/dsh` `0.2.1-alpha.1` | carried; the baseline was re-captured in `0.8.0` (the `0.2.0-rc.2` scope is **SUPERSEDED**), and the shipped package is `0.8.0` |
+| A7 | All Part A facts are scoped to `@deepseek-ai/dsh` `0.2.1-rc.2` | carried; the baseline was re-verified in `0.12.2` (the `0.2.1-alpha.1` and `0.2.0-rc.2` scopes are **SUPERSEDED**), and the shipped package is `0.12.2` |
 | B1 | The withdrawal of `child-agent-lifecycle` is a product-level breaking change; its removal has been executed (§23.1) and verified by the suite | done |
 | B2 | `ctx.systemPrompt.context` accepts a `PromptContext {name, order, text}` whose `order` is any finite number, as sections do, and repeated snapshots do not accumulate unboundedly | **resolved positive**. Verified against the real `dsh-system-prompt` (originally `0.2.0-rc.2`; re-captured unchanged for `0.2.1-alpha.1` in `0.8.0`): any finite order is accepted (`8500` resolves and renders; non-finite throws `TypeError`), the text renders through the runtime-context channel (`assembly.contexts`, `renderContextSnapshot`) and **not** through `renderPrompt`, and one registration yields exactly one entry per assembly. Channel A is implemented and covered by `test/integration/diagnostics.test.js` and `test/integration/v2-integration.test.js`. |
 | B3 | Live state is keyed by the agent object identity (`WeakMap`) instead of §17.7's `ScopedLayers`, to preserve zero first-party imports | **shipped** as designed. `lib/kernel/state.js` keys by agent identity with an unscoped fallback; `test/integration/agent-isolation.test.js` proves two live agents share nothing. The deviation from §17.7 remains a deliberate, recorded choice. |
-| B4 | No plugin-facing host-version service exists; the adapter observes seam facts, and the declared peer range **is** enforced — the host's `evaluatePluginCompatibility` reads `peerDependencies` and refuses an out-of-range plugin, so Batch 10 declared the range there as well as under `dsh.engines.dsh`; observing seam facts remains the only way to detect prompt-surface drift, because the host exposes no plugin-facing version service | verified for `0.2.1-alpha.1` (originally `0.2.0-rc.2`, **SUPERSEDED**) |
+| B4 | No plugin-facing host-version service exists; the adapter observes seam facts, and the declared peer range **is** enforced — the host's `evaluatePluginCompatibility` reads `peerDependencies` and refuses an out-of-range plugin, so Batch 10 declared the range there as well as under `dsh.engines.dsh`; observing seam facts remains the only way to detect prompt-surface drift, because the host exposes no plugin-facing version service | verified for `0.2.1-rc.2` (`0.2.1-alpha.1` and `0.2.0-rc.2` are **SUPERSEDED**) |
 | B5 | Adding a table to an existing `storageDomain` version is open-compatible | to verify before shipping |
 | B6 | The prompt byte ceiling is re-recorded after a withdrawal as measured size + 10 %, floor 1400 bytes, hard cap 4096 bytes | **implemented** — re-recorded at each prompt revision: `0.7.0` recorded `RECORDED_PROMPT_BYTES = 2922` with ceiling `3215`, and the `0.9.0` optimization records `2677` with ceiling `2945` (= `min(4096, max(1400, ceil(2677 × 1.1)))`), floor `1400`, hard cap `4096`; enforced by `compilePrompt()` and asserted from the same constants by the compiler and conformance suites |
 | B7 | The publish target (registry, git, or local path) is undecided | new |
@@ -1921,7 +1921,7 @@ was renumbered; the closure mapping is also recorded in
 | Q4 | `dsh-agent-instructions` integration | **Decided — defer to the host.** IEG references `AGENTS.md` / `CLAUDE.md` as the workspace-instruction authority and does not restate it in its own prompt section; the conformance suite already forbids restating host semantics. |
 | Q5 | Publish target | **Open** — registry, git, or local `file:` distribution. |
 | Q6 | Live-profile rollout | **Open** — whether IEG is ever installed into the live `web` profile (`MAINTENANCE-HANDOFF.md` §9, §10), and under what conditions. Throwaway profiles only, so far. |
-| Q7 | Compatibility baseline for the installed host | **Decided/closed in 0.8.0 — single baseline `0.2.1-alpha.1`.** `dsh.engines.dsh` is `>=0.2.1-alpha.1 <0.3.0`, `dsh.compatibility.dshReleases` records that one release as `verified`, and `lib/compatibility-baseline.json` was re-captured against the installed host and reviewed: the ordered section names, the host prompt hash (`ceb63ee5`) and the required capability set are identical to the previous baseline. The retired `0.2.0-rc.2` baseline is **SUPERSEDED**. Tracked in `MAINTENANCE-HANDOFF.md` §4 item 4. |
+| Q7 | Compatibility baseline for the installed host | **Decided/closed in 0.12.2 — single baseline `0.2.1-rc.2`.** `dsh.engines.dsh` is `>=0.2.1-rc.2 <0.3.0`, `dsh.compatibility.dshReleases` records that one release as `verified`, and `lib/compatibility-baseline.json` was re-verified against the installed host and reviewed: the ordered section names, the host prompt hash (`ceb63ee5`) and the required capability set are identical to the previous baseline. The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**. Tracked in `MAINTENANCE-HANDOFF.md` §4 item 4. |
 | Q8 | Profile scoping of the control state | **Open** — the default control-state path is `$IEG_STATE_FILE`, else `<XDG_STATE_HOME or ~/.local/state>/ieg/state.json`, with no profile component. Governance is therefore switched per **DSH home/user**, not per profile, although §28.6 and the surrounding prose describe switching "for a profile". Decide whether the default path should include a profile component (and how `dsh-ieg` discovers it). |
 | Q9 | Module descriptor `version` fields | **Decided/closed in 0.8.0 — descriptors now `0.2.0`.** The three shipped descriptors (`src/modules/*.ts`, compiled to `lib/modules/*.js`) declare `version: '0.2.0'`, matching this specification's §24 module contracts, so one version is authoritative. |
 

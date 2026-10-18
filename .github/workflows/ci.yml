@@ -67,7 +67,7 @@ jobs:
   # tested here. TypeScript is pinned so release correctness cannot depend on
   # whichever version the registry serves that day (Batch 7 Phase 5).
   with-host:
-    name: full verification chain (verified host 0.2.1-alpha.1)
+    name: full verification chain (verified host 0.2.1-rc.2)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
       - name: Install the pinned toolchain (immutable)
         run: npm ci --ignore-scripts
       - name: Install the verified host release
-        run: npm install --global @deepseek-ai/dsh@0.2.1-alpha.1
+        run: npm install --global @deepseek-ai/dsh@0.2.1-rc.2
       # `dsh plugin add` forwards to pnpm, and the host does not bundle it. Before
       # Round 7 this job was allowed to fail, so its absence was invisible: every
       # install step failed with "pnpm was not found" and nobody saw it. Pinned like

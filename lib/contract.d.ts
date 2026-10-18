@@ -9,7 +9,7 @@
  * package.
  *
  * Every member was verified against the installed distribution
- * `@deepseek-ai/dsh` `0.2.1-alpha.1` (the current declared baseline). See `ARCHITECTURE-SPEC-AGENT-REFERENCE.md`
+ * `@deepseek-ai/dsh` `0.2.1-rc.2` (the current declared baseline). See `ARCHITECTURE-SPEC-AGENT-REFERENCE.md`
  * §17 for the citations.
  */
 

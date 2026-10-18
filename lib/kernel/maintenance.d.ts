@@ -47,7 +47,7 @@ export interface MaintenanceTruth {
     packageVersion?: string;
     /** The runtime `PROMPT_VERSION`. */
     promptVersion?: string;
-    /** The single declared host baseline, e.g. `0.2.1-alpha.1`. */
+    /** The single declared host baseline, e.g. `0.2.1-rc.2`. */
     baseline?: string;
 }
 /** One inventoried artifact, with the deterministic part of its diagnosis. */

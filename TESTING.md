@@ -2,11 +2,11 @@
 doc_type: testing-guide
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.12.1
+plugin_version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
+revision: 0.12.2-batch-12
 audience: volunteers
 language: en
 ---
@@ -28,7 +28,7 @@ is a governance layer, not a sandbox, and it is not a security control.
 | Requirement | Notes |
 |---|---|
 | Node.js **>= 20** | the host and the tests both need it |
-| DeepSeek Harness (`dsh`) | the single supported baseline is `0.2.1-alpha.1`: declared peer range `>=0.2.1-alpha.1 <0.3.0`, `dsh.compatibility.dshReleases` records that release as `verified`, and the committed baseline was re-captured against it ([`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4). The retired `0.2.0-rc.2` baseline is **SUPERSEDED** |
+| DeepSeek Harness (`dsh`) | the single supported baseline is `0.2.1-rc.2`: declared peer range `>=0.2.1-rc.2 <0.3.0`, `dsh.compatibility.dshReleases` records that release as `verified`, and the committed baseline was re-verified against it ([`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
 | A **throwaway** DSH profile | never test in a profile you rely on |
 
 ## 2. Install

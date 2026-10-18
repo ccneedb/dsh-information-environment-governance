@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "hostVersion": "0.2.1-alpha.1",
+  "hostVersion": "0.2.1-rc.2",
   "sectionNames": [
     "harness:identity",
     "deployment:persona-prefix",

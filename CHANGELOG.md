@@ -2,11 +2,11 @@
 doc_type: changelog
 project: information-environment-governance
 version: 0.12.1
-plugin_version: 0.12.1
+plugin_version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
+revision: 0.12.2-batch-12
 audience: everyone
 language: en
 ---
@@ -32,6 +32,46 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.12.2] — 2026-10-18
+
+**Target host raised to `@deepseek-ai/dsh 0.2.1-rc.2`; release identity and the
+remaining 0.12.1 defects are being closed in this round.**
+
+### Changed
+
+- **Target compatibility raised to `@deepseek-ai/dsh 0.2.1-rc.2` (Workstream 1).**
+  `peerDependencies`, `dsh.engines.dsh`, `dsh.compatibility.dshReleases`, the
+  committed `lib/compatibility-baseline.json`, the CI verified-host job, the
+  declared-baseline packaging tests and the current-state documentation front
+  matter now name `0.2.1-rc.2`. The previous `0.2.1-alpha.1` baseline is
+  **SUPERSEDED**. The baseline's section inventory, host prompt hash
+  (`ceb63ee5`) and required capability set were verified unchanged against the
+  installed rc.2 distribution, so no seam facts changed.
+- **No version-gated legacy compatibility layer existed to remove.** An audit of
+  `src/` and `lib/` found no host-version branches, deprecated shims or legacy
+  API adapters: the plugin has always observed seam facts instead of branching on
+  a version string. The capability fallbacks it does carry — optional `fs`,
+  `approval`, `storageDomain` and `tools` seams, `ctx.get?` probes, and
+  `guarded()` registration — are composition-robustness paths, not older-host
+  shims, and are retained deliberately (see `MAINTENANCE-HANDOFF.md` §4).
+  The only host-version-specific staleness was metadata and prose pinned to
+  `0.2.1-alpha.1`, all updated here.
+- **Release identity repaired (0.12.2).** The package version, `PLUGIN_VERSION`,
+  every document's `plugin_version` front matter and this changelog heading now
+  agree on `0.12.2`, and the tag `v0.12.2` is cut on the final commit of this
+  round so the released artifact has a name that identifies one tree
+  (assessment finding IEG-01). The untagged 43-commit gap after `v0.12.1` is
+  recorded, not rewritten.
+
+### Verification
+
+- The baseline metadata change is covered by
+  `test/integration/packaging.test.js` (declared baseline, baseline file,
+  release-metadata consistency) and `test/integration/compatibility.test.js`
+  (committed baseline mirrors `DEFAULT_BASELINE`).
+- Full chain is re-run at the end of the round; results are recorded in the
+  completion report and in `MAINTENANCE-HANDOFF.md`.
 
 ## [0.12.1] — 2026-10-05
 

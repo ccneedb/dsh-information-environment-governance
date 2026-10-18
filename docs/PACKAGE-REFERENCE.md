@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.12.1
+plugin_version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
+revision: 0.12.2-batch-12
 audience: implementers + operators
 language: en
 ---
@@ -25,7 +25,7 @@ This is a **verifiable prototype** of the design specified in
 (a **RETIRED** pointer; its content now lives in the architecture spec's §32 gates
 and Part B).
 
-- Package: `dsh-information-environment-governance`, version `0.12.1` (publishable,
+- Package: `dsh-information-environment-governance`, version `0.12.2` (publishable,
   peer-range enforced, not published),
   MIT, **ESM**, **zero runtime dependencies**, Node `>=20`.
 - CLI: `dsh-ieg` (`bin/ieg`; the interface is authored in `src/bin/ieg.ts` and
@@ -398,12 +398,13 @@ Honest boundaries:
   revision, which no longer exists; that evidence was deleted as superseded rather than
   kept beside results for different text. The next `eval/e2e.mjs` run against this
   plugin is what produces a valid number. See [`../eval/README.md`](../eval/README.md).
-- **Host baseline range.** The single supported baseline is `dsh 0.2.1-alpha.1`: the
-  declared range is `dsh >=0.2.1-alpha.1 <0.3.0`, and
-  `dsh.compatibility.dshReleases` lists that one release as `verified`. The retired
-  `0.2.0-rc.2` baseline is **SUPERSEDED**: it is no longer in the peer range or the
-  release map, and the committed baseline was re-captured against the installed
-  `0.2.1-alpha.1` host (identical section order and host prompt hash `ceb63ee5`).
+- **Host baseline range.** The single supported baseline is `dsh 0.2.1-rc.2`: the
+  declared range is `dsh >=0.2.1-rc.2 <0.3.0`, and
+  `dsh.compatibility.dshReleases` lists that one release as `verified`. The
+  `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**: neither is in the
+  peer range or the release map, and the committed baseline was re-verified against
+  the installed `0.2.1-rc.2` host in 0.12.2 (identical section order and host prompt
+  hash `ceb63ee5`).
   There is no legacy compatibility layer; the adapter observes seam facts against
   the committed baseline rather than branching on a version string.
 - **Packaging (Gate I) is Passed — Evidence Complete.** Installable (the release gate

@@ -27,7 +27,7 @@ const at = (rel) => join(REPO, rel)
 const manifest = JSON.parse(readFileSync(at('package.json'), 'utf8'))
 
 /** The single DSH baseline this package supports (§3 of the Batch 2 policy). */
-const DECLARED_BASELINE = '0.2.1-alpha.1'
+const DECLARED_BASELINE = '0.2.1-rc.2'
 
 /** Every file a runtime source tree may contain, as repo-relative paths. */
 function sourceFiles(dir) {

@@ -2,12 +2,12 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.12.1
+plugin_version: 0.12.2
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.1-batch-7
-verified_against: dsh-v0.2.1-alpha.1
+revision: 0.12.2-batch-12
+verified_against: dsh-v0.2.1-rc.2
 language: en
 format_note: conservative-machine-readable-markdown
 ---
@@ -28,7 +28,7 @@ in [`PRODUCT-SPEC.md` §1](PRODUCT-SPEC.md#1-product-positioning); this README
 links there rather than restating them.
 
 > **Status: prototype, not production-ready.** The package is
-> `dsh-information-environment-governance` **0.12.1** — publishable and verified
+> `dsh-information-environment-governance` **0.12.2** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
 > integrity (Gate D) are **Blocked / Unverified — Evidence Insufficient**;
@@ -366,13 +366,14 @@ Two caveats worth knowing before first use:
 Requirements: **Debian/Linux** (the supported environment), Node.js >= 20 and a
 DeepSeek Harness installation. Shell governance targets Bash; PowerShell and other
 platforms are explicitly unsupported. The declared
-peer range is `>=0.2.1-alpha.1 <0.3.0`, and `dsh.compatibility.dshReleases`
+peer range is `>=0.2.1-rc.2 <0.3.0`, and `dsh.compatibility.dshReleases`
 records that single baseline as `verified`; the committed baseline was
-re-captured against the installed `0.2.1-alpha.1` host in 0.8.0 (identical section
-order and host prompt hash). The retired `0.2.0-rc.2` baseline is **SUPERSEDED**
+re-verified against the installed `0.2.1-rc.2` host in 0.12.2 (identical section
+order and host prompt hash). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are
+**SUPERSEDED**
 and is no longer in the range or the release map. Note that the declared range is
 a **compatibility statement, not a tested-versions list**: exactly one release
-`0.2.1-alpha.1`, is verified. See
+`0.2.1-rc.2`, is verified. See
 [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4.
 
 ### Volunteer testing
@@ -431,7 +432,7 @@ installation is present. Point the loader at a non-default install with
 ## Working prototype
 
 The repository root **is** an installable **`dsh-information-environment-governance`**
-`0.12.1` (publishable and verified, **not published**) that realizes the architecture above
+`0.12.2` (publishable and verified, **not published**) that realizes the architecture above
 with zero runtime dependencies. It contributes one additive prompt section and
 enforces through `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`; it reports its own state through a bounded runtime-context
@@ -477,8 +478,8 @@ re-run rather than superseded numbers.
 2. **Decisions are open**, consolidated in
    [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §9: the publish target, any
    live-profile rollout, and the control state file being per-user rather than
-   per-profile (Q8). The compatibility-baseline re-capture (Q7) closed in 0.8.0:
-   the single supported baseline is `dsh 0.2.1-alpha.1`.
+   per-profile (Q8). The compatibility-baseline re-capture (Q7) closed in 0.12.2:
+   the single supported baseline is `dsh 0.2.1-rc.2`.
 3. **The package is publishable but not published.** `private` is gone, the packed
    artifact has been verified from a clean profile, and the registry name is
    unclaimed; publication itself is the release action, withheld until 1 and 2 are
