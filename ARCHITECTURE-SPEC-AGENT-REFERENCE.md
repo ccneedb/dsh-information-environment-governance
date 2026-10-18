@@ -5,7 +5,7 @@ version: 0.8.0
 plugin_version: 0.13.0
 status: active
 owner: maintainers
-last_reviewed: 2026-10-03
+last_reviewed: 2026-10-18
 revision: 0.13.0-batch-13
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0

@@ -5,7 +5,7 @@ version: 0.5.0
 plugin_version: 0.13.0
 status: active
 owner: maintainers
-last_reviewed: 2026-10-03
+last_reviewed: 2026-10-18
 revision: 0.13.0-batch-13
 verified_against: dsh-v0.2.1-rc.2
 language: en
@@ -370,7 +370,7 @@ Required evaluation dimensions include:
 
 ## 11. Success Criteria (v0.1 target, met — historical)
 
-The v0.1 target was met; the package has since moved to `0.8.0`. Current status
+The v0.1 target was met; the package has since moved to `0.13.0`. Current status
 and numbers: [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §3–§4. The v0.1
 criteria were:
 

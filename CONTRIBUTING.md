@@ -5,7 +5,7 @@ version: 0.3.0
 plugin_version: 0.13.0
 status: active
 owner: maintainers
-last_reviewed: 2026-10-03
+last_reviewed: 2026-10-18
 revision: 0.13.0-batch-13
 audience: contributors
 language: en

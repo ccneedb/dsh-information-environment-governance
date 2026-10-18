@@ -16,9 +16,9 @@ jobs:
   # Required. Runs everywhere, including on a fork, with no host installation.
   # The integration tests that mount the real DeepSeek Harness services detect
   # the host through `test-support/dsh.js` and *skip* when it is absent, so this
-  # job stays portable. It is honest about that: the step asserts the suite
-  # exits 0 and prints its totals, and the host-backed job below is what
-  # exercises the real seams.
+  # job stays portable. It runs `node --test` unchanged (0 failures required);
+  # the required `with-host` job below runs the full `scripts/verify.sh` chain and
+  # is where the real seams and the "no skips" claim are exercised.
   checks:
     name: typecheck and tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Build the migrated TypeScript sources
         run: npm run build
-      - name: Typecheck (strict checkJs)
+      - name: TypeScript typecheck (ambient seam contract)
         run: npm run typecheck
       - name: Unit, conformance, and portable integration tests
         run: node --test

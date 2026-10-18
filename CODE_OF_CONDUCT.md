@@ -4,7 +4,7 @@ project: information-environment-governance
 version: 2.1.0
 status: active
 owner: maintainers
-last_reviewed: 2026-10-02
+last_reviewed: 2026-10-18
 audience: everyone
 language: en
 ---

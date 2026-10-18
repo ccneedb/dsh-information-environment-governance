@@ -11,7 +11,7 @@
  * registry, and IEG's own section — and prints the baseline JSON to stdout.
  *
  * ```bash
- * cd plugin && node scripts/capture-baseline.mjs > lib/compatibility-baseline.json
+ * node scripts/capture-baseline.mjs > lib/compatibility-baseline.json
  * ```
  *
  * It exits non-zero with a clear message when the host is unavailable, so it can
