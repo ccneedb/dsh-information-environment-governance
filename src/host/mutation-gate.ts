@@ -34,7 +34,7 @@ export interface MutationGateSurface {
   /** Record one diagnostic. */
   note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void
   /** Mount one capability, recording a degradation instead of failing the mount. */
-  guarded: (capability: string, attach: () => void) => void
+  guarded: (capability: string, attach: () => void) => boolean
   /** Live per-agent governance state. */
   governance: GovernanceState
   /** The effective workspace policy, exactly as configured. */
@@ -56,7 +56,7 @@ export interface MutationGateSurface {
 }
 
 /** Register the mutation gate. */
-export function registerMutationGate(surface: MutationGateSurface): void {
+export function registerMutationGate(surface: MutationGateSurface): boolean {
   const onPreExecute = async (exec: IegToolExecution, next: () => Promise<IegPreToolDecision>): Promise<IegPreToolDecision> => {
     // Every decision below is taken against the calling agent's own state.
     const agent = exec?.agent
@@ -175,18 +175,35 @@ export function registerMutationGate(surface: MutationGateSurface): void {
       return next()
     }
 
-    const outcome = decision.kind === 'deny' ? 'blocked' : 'gated'
+    // An `ask` is not a denial: the host's approval service decides, and the call is
+    // commonly allowed. Recording it as `blocked` made the status line and warning
+    // count report a refusal that never happened (assessment finding IEG-19).
+    if (decision.kind === 'ask') {
+      surface.note(
+        'ieg.workspace_mutation_gated',
+        {
+          tool: exec.name,
+          outcome: 'gated',
+          targets: classification.targets,
+          approvalAvailable: surface.approvalAvailable,
+          agentId: agentIdOf(agent),
+        },
+        `ieg: workspace_mutation_gated tool=${exec.name} targets=${classification.targets.join(',') || '-'}`,
+      )
+      // P1-2: a fail-closed `ask` must say why it will be refused, and what to do about it.
+      return surface.approvalAvailable
+        ? decision
+        : { kind: 'ask', reason: decision.reason + NO_APPROVAL_CHANNEL }
+    }
+
     surface.note(
       'ieg.workspace_mutation_blocked',
-      { tool: exec.name, outcome, targets: classification.targets, agentId: agentIdOf(agent) },
-      `ieg: workspace_mutation_${outcome} tool=${exec.name} targets=${classification.targets.join(',') || '-'}`,
+      { tool: exec.name, outcome: 'blocked', targets: classification.targets, agentId: agentIdOf(agent) },
+      `ieg: workspace_mutation_blocked tool=${exec.name} targets=${classification.targets.join(',') || '-'}`,
     )
-    // P1-2: a fail-closed `ask` must say why it will be refused, and what to do about it.
-    return decision.kind === 'ask' && !surface.approvalAvailable
-      ? { kind: 'ask', reason: decision.reason + NO_APPROVAL_CHANNEL }
-      : decision
+    return decision
   }
-  surface.guarded('tools/pre-execute', () => {
+  return surface.guarded('tools/pre-execute', () => {
     surface.ctx.on('tools/pre-execute', onPreExecute)
   })
 }

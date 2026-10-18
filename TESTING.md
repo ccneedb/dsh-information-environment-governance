@@ -2,11 +2,11 @@
 doc_type: testing-guide
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 audience: volunteers
 language: en
 ---
@@ -43,18 +43,14 @@ is in [`README.md`](README.md) §Install; it is not restated here.
 dsh plugin --profile ieg-test add https://github.com/ccneedb/dsh-information-environment-governance
 dsh --profile ieg-test --dump-config | grep -A3 'id: ieg'      # the row must compose
 
-# 2. only now does the post-install management command exist — path-local, not on PATH
-"$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" status
+# 2. the only CLI surface is prompt viewing/editing — path-local, not on PATH
+"$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" prompt
+"$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" prompt edit
 ```
 
-The `dsh-ieg` lifecycle (`install | update | uninstall`) manages an
-**already-installed** package — for example to install a specific tarball into a
-profile or to roll one back. It is never the first step:
-
-```bash
-"$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" install --profile ieg-test --from <tarball-or-dir>
-"$DSH_HOME/profiles/ieg-test/node_modules/.bin/dsh-ieg" uninstall --profile ieg-test
-```
+Installing, updating and uninstalling the package are DSH's job (`dsh plugin …`);
+the plugin has no lifecycle command. Runtime state is read through the
+`ieg_status` tool (or the `ieg:status` runtime-context line), not through the CLI.
 
 `dsh-ieg prompt` prints the effective text with its version and byte count. If you
 prefer a stable command name, install the package globally once it is published

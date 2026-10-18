@@ -30,7 +30,7 @@ export interface MaintenanceToolSurface {
   /** The injected tool registry. */
   tools: IegContext['tools']
   /** Mount one capability, recording a degradation instead of failing the mount. */
-  guarded: (capability: string, attach: () => void) => void
+  guarded: (capability: string, attach: () => void) => boolean
   /** Record one diagnostic. */
   note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void
   /** The host filesystem service, if the composition has one. */

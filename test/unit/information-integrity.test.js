@@ -50,11 +50,17 @@ test('the critical PR-03 case: invalidity cannot be undone by assertion', () => 
 
   const bare = transition(record, 'AUTHORITATIVE')
   assert.equal(bare.ok, false)
-  assert.match(/** @type {any} */ (bare).reason, /requires evidence or explicit user confirmation/)
+  assert.match(/** @type {any} */ (bare).reason, /requires explicit user confirmation/)
 
+  // IEG-16: model-authored evidence is an assertion, not authority.
   const withEvidence = transition(record, 'AUTHORITATIVE', { evidence: 'the API is v2 now' })
-  assert.equal(withEvidence.ok, true)
-  assert.equal(isUsableAsAuthoritative(/** @type {any} */ (withEvidence).record), true)
+  assert.equal(withEvidence.ok, false)
+  assert.match(/** @type {any} */ (withEvidence).reason, /model-authored evidence note is not confirmation/)
+
+  // Only the approval-routed caller can supply userConfirmation.
+  const withConfirmation = transition(record, 'AUTHORITATIVE', { userConfirmation: true, evidence: 'the user confirmed it' })
+  assert.equal(withConfirmation.ok, true)
+  assert.equal(isUsableAsAuthoritative(/** @type {any} */ (withConfirmation).record), true)
 })
 
 test('promotion to authoritative accepts user confirmation as justification', () => {
@@ -63,10 +69,11 @@ test('promotion to authoritative accepts user confirmation as justification', ()
   assert.equal(confirmed.ok, true)
 })
 
-test('blank evidence does not count as evidence', () => {
-  let record = createRecord({ id: 'r1', status: 'INVALID' })
-  const result = transition(record, 'AUTHORITATIVE', { evidence: '   ' })
-  assert.equal(result.ok, false)
+test('blank or model-authored evidence does not promote to authoritative', () => {
+  const record = createRecord({ id: 'r1', status: 'INVALID' })
+  const blank = transition(record, 'AUTHORITATIVE', { evidence: '   ' })
+  assert.equal(blank.ok, false)
+  assert.match(/** @type {any} */ (blank).reason, /requires explicit user confirmation/)
 })
 
 test('deprecation and supersession remove authoritative standing immediately', () => {

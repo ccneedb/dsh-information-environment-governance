@@ -445,7 +445,7 @@ test('an absent seam is recorded as degraded rather than treated as unneeded', (
   )
 })
 
-test('a full mount degrades nothing and collects its disposer', () => {
+test('a full mount degrades nothing and collects its disposer', async () => {
   const stub = stubContext()
   assert.doesNotThrow(() => ieg.apply(stub.ctx, {}))
   stub.mountTools()
@@ -453,9 +453,11 @@ test('a full mount degrades nothing and collects its disposer', () => {
   // registration's own contract: a future change that drops it must fail here.
   assert.equal(stub.effects.length, 1)
   assert.match(String(stub.effects[0].label), /release the governance domain handle/)
-  const disposer = stub.effects[0].action()
+  // IEG-28: the disposer is an async-effect disposer so the host can await the
+  // storage close; it must still resolve to a callable disposer.
+  const disposer = await stub.effects[0].action()
   assert.equal(typeof disposer, 'function')
-  assert.doesNotThrow(() => /** @type {() => void} */ (disposer)())
+  await assert.doesNotReject(async () => /** @type {() => Promise<void>} */ (disposer)())
 })
 
 /* ── the operator's prompt file (Batch 5: no control plane, no lifecycle) ── */
@@ -692,15 +694,19 @@ test('R8-02: the lifecycle runs in the real path, and stale reuse is detected', 
   assert.equal(created.ok, true)
   assert.equal(created.record.status, 'PROVISIONAL')
 
-  // 2. promotion without evidence is refused by the lifecycle itself
+  // 2. promotion without user confirmation is refused by the lifecycle itself
   const premature = await record.execute({ id: 'api-version', status: 'AUTHORITATIVE' }, { agent })
   assert.equal(premature.ok, false)
-  assert.match(premature.reason, /requires evidence or explicit user confirmation/)
+  assert.match(premature.reason, /requires explicit user confirmation/)
 
-  // 3. promotion with evidence is legitimate
-  const promoted = await record.execute({ id: 'api-version', status: 'AUTHORITATIVE', evidence: 'upstream release notes' }, { agent })
-  assert.equal(promoted.ok, true)
-  assert.equal(promoted.record.status, 'AUTHORITATIVE')
+  // 3. IEG-16: model-authored evidence alone cannot promote; only the
+  // approval-routed confirm_information path can (step 8 below).
+  const withEvidence = await record.execute(
+    { id: 'api-version', status: 'AUTHORITATIVE', evidence: 'upstream release notes' },
+    { agent },
+  )
+  assert.equal(withEvidence.ok, false)
+  assert.match(withEvidence.reason, /model-authored evidence note is not confirmation/)
 
   // 4. invalidation + correction: the stale text is retained for detection
   const corrected = await record.execute({ id: 'api-version', value: 'The API is v2', disposition: 'CORRECTED' }, { agent })

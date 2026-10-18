@@ -10,7 +10,7 @@
 #   4. the bundle patch composes an `ieg` row with the expected config;
 #   5. the installed plugin is actually EXECUTED — proven positively against the
 #      INSTALLED artifact: it must bind one section, the three listeners, and its
-#      two tools from the profile's own copy of the package, and it must absorb a
+#      six tools from the profile's own copy of the package, and it must absorb a
 #      bad configuration into an observable fault surface instead of unmounting
 #      (§26.2: `apply()` does not throw). The host must then boot the real
 #      composition with that bad overlay and report no unactivated entry.
@@ -117,8 +117,8 @@ else
 fi
 
 # ── 1. typecheck ─────────────────────────────────────────────────────────────
-step "Typecheck (strict checkJs)"
-if (cd "$PACKAGE_DIR" && npm run --silent typecheck); then pass "tsc --checkJs strict"; else fail "tsc --checkJs strict"; fi
+step "TypeScript typecheck (ambient seam contract)"
+if (cd "$PACKAGE_DIR" && npm run --silent typecheck); then pass "tsc strict typecheck"; else fail "tsc strict typecheck"; fi
 
 # ── 2. tests ─────────────────────────────────────────────────────────────────
 step "Unit and integration tests"
@@ -426,7 +426,7 @@ CONTROL_DIR="${VERIFY_ROOT}/control"
 rm -rf "$CONTROL_DIR"
 mkdir -p "$CONTROL_DIR"
 if node "$PROBE" "$INSTALLED_MODULE" "$CONTROL_DIR" >"${VERIFY_ROOT}/probe.out" 2>&1; then
-  pass "installed artifact binds one section, three listeners, two tools; control gating and a bad config stay observable"
+  pass "installed artifact binds one section, three listeners, six tools; control gating and a bad config stay observable"
 else
   fail "installed-artifact execution proof failed"
   sed -n '1,25p' "${VERIFY_ROOT}/probe.out"

@@ -132,11 +132,14 @@ test('channel A: the governance status line rides the runtime-context channel of
     `expected ${ieg.STATUS_CONTEXT_NAME} among ${contextNames.join(', ') || '(none)'}`,
   )
 
-  // It renders through the runtime-context snapshot, not the compiled prompt.
+  // It renders through the runtime-context snapshot, not the compiled prompt, and
+  // the text is a *stable* mount summary (IEG-25): ring counters are not included.
   const snapshot = systemPromptModule.renderContextSnapshot(assembly)
-  assert.match(snapshot, /ieg: diagnostics=/)
+  assert.match(snapshot, /ieg: mounted=true modules=3 policy=/)
+  assert.match(snapshot, /compat=PENDING/)
+  assert.doesNotMatch(snapshot, /diagnostics=/, 'volatile counters must stay out of the durable context text')
   const prompt = systemPromptModule.renderPrompt(assembly)
-  assert.doesNotMatch(prompt, /ieg: diagnostics=/, 'the status line must not enter the compiled system prompt')
+  assert.doesNotMatch(prompt, /ieg: mounted=/, 'the status line must not enter the compiled system prompt')
 })
 
 test('channel A: repeated assemblies do not accumulate status snapshots', { skip }, async () => {
@@ -148,11 +151,20 @@ test('channel A: repeated assemblies do not accumulate status snapshots', { skip
 
   const first = await ctx.systemPrompt.assemble({})
   const second = await ctx.systemPrompt.assemble({})
+  const third = await ctx.systemPrompt.assemble({})
   const count = (/** @type {any} */ assembly) =>
     (assembly.contexts ?? []).filter((/** @type {{ name: string }} */ entry) => entry.name === ieg.STATUS_CONTEXT_NAME).length
 
   assert.equal(count(first), 1)
   assert.equal(count(second), 1, 'one registration must yield exactly one context entry per assembly')
+  // The first assembly can legitimately change the compatibility verdict (PENDING ->
+  // COMPATIBLE); afterwards the text must be stable, or every step would append a
+  // durable history message (IEG-25).
+  assert.equal(
+    systemPromptModule.renderContextSnapshot(second),
+    systemPromptModule.renderContextSnapshot(third),
+    'the composed status text must be stable across assemblies (IEG-25)',
+  )
 })
 
 test('compatibility: the composition root observes the real assembly through the waterfall', { skip }, async () => {

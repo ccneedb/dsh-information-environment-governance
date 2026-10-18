@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.12.2
-version: 0.12.2
+plugin_version: 0.13.0
+version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 host_baseline_verified: dsh-0.2.1-rc.2
 supersedes: none
 language: en
@@ -14,7 +14,7 @@ language: en
 
 # IEG Maintenance Handoff
 
-> **This is the maintained status record (package 0.12.2).** §3–§4 are the single
+> **This is the maintained status record (package 0.13.0).** §3–§4 are the single
 > source of truth for current status and numbers; other documents link here rather
 > than restate them. §13 is **history** (the rename, the withdrawn capability, the
 > old→new gate mapping, the `0.1.0`/v0.2.0 rounds, and the open-item closures).
@@ -89,9 +89,11 @@ references the frozen baseline above: commit `a71a440`, package `0.12.1`, `PROMP
 | **I** Packaging | installable, licensed, changelogged, peer-range enforced | `verify.sh` phase 3b (pack the real tarball → fresh profile → compose the `ieg` row) — pass; `test/integration/packaging.test.js` — pass; the host's own `evaluatePluginCompatibility`, executed against this manifest, returns *compatible*, and against an out-of-range declaration **refuses** it with the exemption remedy | **PASSED — Evidence Complete** | Publication is release authorization (Batch 11), not one of the four conditions. A satisfied version range says nothing about seam drift, which is why the adapter still observes seam facts |
 | **J** Withdrawal integrity | three modules ship with no dangling reference to the removed `user-attention` capability | withdrawal tests — pass | **PASS** | — |
 
-**No gate was passed by inference, and no criterion was weakened.** C, D and I end blocked
+**No gate was passed by inference, and no criterion was weakened.** C and D end blocked
 because the evidence does not exist — which Batch 10 §1 and §14 explicitly accept as the
-correct outcome.
+correct outcome. Gate I is passed on evidence: the full verification chain (tarball → fresh
+profile → composed row → installed-artifact proof) passes, and release identity now names
+one tree (tag, package version and changelog agree).
 
 **No equivalent validation method was adopted.** Every candidate proposed for C and D is a
 substitution Batch 10 §6 prohibits, and each was rejected for that reason:
@@ -122,8 +124,8 @@ permitted.
 | Baseline item | Value |
 |---|---|
 | Repository commit | `a71a4401dfa67f1f50943757447ad6e4d3792ae1` (`a71a440`) |
-| Package version | `0.12.2` |
-| `PROMPT_VERSION` | `0.5.0` |
+| Package version | `0.13.0` |
+| `PROMPT_VERSION` | `0.6.0` |
 | Verified DSH baseline | `0.2.1-rc.2` (peer range `>=0.2.1-rc.2 <0.3.0`) |
 | Validation method revision | the commit above; the method is defined by `eval/README.md` and `eval/harness.mjs` |
 | Rubric revision | **none frozen** — `eval/README.md` requires a rubric frozen before the runs; no rubric has been frozen, which is a first-class reason Gates C and D cannot pass (below) |
@@ -138,22 +140,22 @@ permitted.
 six tools: `record_orientation`, `record_information`, `confirm_terminology`,
 `confirm_information`, `ieg_status` and `maintain_environment`. It compiles
 **one** prompt section, `ieg:governance` (`order: 8500`, `interpolate: false`
-`complete` never set), at **`PROMPT_VERSION` 0.5.0**. The compiled section is
-**2,806 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
+`complete` never set), at **`PROMPT_VERSION` 0.6.0**. The compiled section is
+**2,840 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
 4,096). Integration tests mount the real `dsh-system-prompt`, `dsh-tools`
 `dsh-fs-local`, and the `dsh-storage`/`dsh-storage-json`/`dsh-storage-domain`
-stack — not mocks. **272 tests (all pass, no todo, no skip) and 27/27
-verification checks** were derived from the current tree on 2026-10-03, the 0.8.0
-three-module packaging round. Counts move with each round; re-derive them with
-`npm test` and `scripts/verify.sh`, and treat the numbers printed there —
-not this sentence — as current. (The 0.7.0 round recorded 265 tests, and the
-0.6.0 four-module round recorded 284 tests and 22/22 checks; both are
-**HISTORICAL**.)
+stack — not mocks. **310 tests (all pass, no todo, no skip) and 24/24
+verification checks** were derived from the current tree on 2026-10-18, the
+0.13.0 remediation round. Counts move with each round; re-derive them with
+`node --test` and `scripts/verify.sh`, and treat the numbers printed there —
+not this sentence — as current. (The 0.8.0 round recorded 272 tests and 27/27
+checks, the 0.7.0 round 265 tests, and the 0.6.0 four-module round 284 tests and
+22/22 checks; all three are **HISTORICAL**.)
 
 **Host baseline.** The single supported DSH baseline is **`0.2.1-rc.2`**:
 `dsh.engines.dsh` is `>=0.2.1-rc.2 <0.3.0`, `dsh.compatibility.dshReleases`
 records that one release as `verified`, and `lib/compatibility-baseline.json` was
-re-verified against it in 0.12.2 (section order and host prompt hash `ceb63ee5`
+re-verified against it in 0.13.0 (section order and host prompt hash `ceb63ee5`
 identical to the previous baseline). The retired `0.2.1-alpha.1` and `0.2.0-rc.2`
 baselines are **SUPERSEDED**: they are gone from the peer range and the release
 map. There is no version-gated legacy compatibility layer; the adapter observes
@@ -191,7 +193,7 @@ number (§4.1, §4.2).
 | F — Diagnosability | mount and gate decisions are observable without a logger exporter | **Passed — Evidence Complete** |
 | G — Agent isolation | two live agents in one composition never share governance state | **Passed — Evidence Complete** |
 | H — Compatibility baseline | the adapter reports a verdict and detects a simulated host change | **Passed — Evidence Complete** |
-| I — Packaging | installable, licensed, changelogged, peer-range enforced | **Blocked / Unverified — Evidence Insufficient** |
+| I — Packaging | installable, licensed, changelogged, peer-range enforced | **Passed — Evidence Complete** |
 | J — Withdrawal integrity | the plugin ships three modules with no dangling reference to the removed one | **Passed — Evidence Complete** |
 
 **Mount resilience (2026-10-02).** `apply()` does not throw: a configuration
@@ -717,7 +719,7 @@ the full verification chain against it, in a **required** job, so a compatibilit
 failure is a CI failure rather than a warning. The declared peer range
 `>=0.2.1-rc.2 <0.3.0` is a **compatibility statement, not a tested-versions
 list**: every other version inside it is **Unknown** until a check exercises it.
-`0.2.1-alpha.1` and `0.2.0-rc.2` are **Unsupported** — retired in the 0.12.2 and
+`0.2.1-alpha.1` and `0.2.0-rc.2` are **Unsupported** — retired in the 0.13.0 and
 0.8.0 re-baselines respectively, absent from both the peer range and the release
 map.
 
@@ -928,8 +930,8 @@ key**. Defaults a maintainer must not change silently: `workspace.policy: ask`
 documented decision; strict enforcement is an explicit opt-in.
 
 The operator's `prompt.md` is a separate input, not
-config: its record lives at `$IEG_STATE_FILE` (else
-`<state-dir>/ieg/state.json`, `<state-dir>` = `$XDG_STATE_HOME` or
+config: its path is `$IEG_PROMPT_FILE`, else
+`<state-dir>/ieg/prompt.md` (`<state-dir>` = `$XDG_STATE_HOME` or
 `~/.local/state`), with a sibling `prompt.md`. Prompt precedence:
 control-plane `prompt.md` > config `prompt.file` (mode `replace`) > config
 `prompt.append` (mode `append`) > the compiled default.
@@ -1041,10 +1043,10 @@ baseline re-capture (§4 item 4, Q7) and the module descriptor versions (Q9).
   package once Gates C and D pass (§34.2 Q5).
 - **Live-profile rollout** — whether IEG is ever installed into the live `web`
   profile (§10), and under what conditions; it currently is not (§34.2 Q6).
-- **Control state is per-user, not per-profile** — `$IEG_STATE_FILE` /
-  `$XDG_STATE_HOME` resolves once for the whole user, so two profiles on one host
-  share one governance switch. Decide whether that is intended or whether the
-  control file must become profile-scoped (§34.2 Q8).
+- **Control state (withdrawn 0.6.0) — nothing to scope.** The control plane, the
+  `$IEG_STATE_FILE` control-state file and per-profile switching were removed in
+  Batch 5; the optional operator `prompt.md` is the only file and its path is
+  `$IEG_PROMPT_FILE`, else `<state-dir>/ieg/prompt.md` (§34.2 Q8).
 
 ## 10. Why IEG does not appear in the plugin list
 
@@ -1282,7 +1284,7 @@ Q9  module descriptor version fields       -> CLOSED (descriptors now 0.2.0)    
 Q2  section order 8500                     -> still OPEN
 Q5  publish target                         -> still OPEN
 Q6  live-profile rollout                   -> still OPEN
-Q8  control state per-user vs per-profile  -> still OPEN
+Q8  control state per-user vs per-profile  -> WITHDRAWN (0.6.0)      §34.2, §28.6
 ```
 
 ## 14. Batch 11 release-readiness handoff

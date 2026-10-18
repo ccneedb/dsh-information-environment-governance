@@ -210,6 +210,19 @@ test('compatibility: classify reports UNSUPPORTED on critical drift', () => {
 
 /* ─────────────────────── 2. the real host assembly ───────────────────────── */
 
+test('compatibility: expected first-party sections do not warn; unknown ones do (IEG-03)', () => {
+  const expected = verdictOf(
+    { sectionNames: ['host:a', IEG_SECTION_NAME, 'host:b', 'tool:bash'], hostPromptHash: 'deadbeef' },
+    { expectedAdditionalSections: ['tool:bash'] },
+  )
+  assert.equal(expected.verdict, 'COMPATIBLE', expected.reasons.join(' | '))
+  assert.match(expected.reasons.join(' '), /differs from the minimal baseline/)
+
+  const unknown = verdictOf({ sectionNames: ['host:a', IEG_SECTION_NAME, 'host:b', 'tool:new'] }, {})
+  assert.equal(unknown.verdict, 'COMPATIBLE_WITH_WARNINGS')
+  assert.match(unknown.reasons.join(' '), /unexpected additional prompt section/)
+})
+
 test('compatibility: DEFAULT_BASELINE mirrors the committed baseline file', async () => {
   const committed = JSON.parse(
     await readFile(new URL('../../lib/compatibility-baseline.json', import.meta.url), 'utf8'),
@@ -220,6 +233,7 @@ test('compatibility: DEFAULT_BASELINE mirrors the committed baseline file', asyn
   assert.deepEqual(committed.sectionNames, [...DEFAULT_BASELINE.sectionNames])
   assert.equal(committed.hostPromptHash, DEFAULT_BASELINE.hostPromptHash)
   assert.deepEqual(committed.capabilities, [...DEFAULT_BASELINE.capabilities])
+  assert.deepEqual(committed.expectedAdditionalSections, [...DEFAULT_BASELINE.expectedAdditionalSections])
 })
 
 test(`integration: a real assembly matches the committed baseline (DSH ${dshVersion()})`, { skip }, async () => {

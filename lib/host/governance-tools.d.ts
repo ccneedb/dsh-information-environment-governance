@@ -10,7 +10,7 @@ import { type GovernanceState } from '../kernel/state.js';
 /** What the governance tools need from the composition. */
 export interface GovernanceToolSurface {
     tools: IegContext['tools'];
-    guarded: (capability: string, attach: () => void) => void;
+    guarded: (capability: string, attach: () => void) => boolean;
     note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void;
     governance: GovernanceState;
     /**
@@ -52,6 +52,11 @@ export interface GovernanceToolSurface {
         mutatingTools: readonly string[];
         classifyShellCommands?: boolean;
     };
+    /**
+     * Whether the approval-routed mutation gate is active. When it is not, the
+     * authority-conferring tool is withheld (assessment finding IEG-17).
+     */
+    authorityToolsEnabled: boolean;
 }
 /** Register the governance tools. */
 export declare function registerGovernanceTools(surface: GovernanceToolSurface): void;

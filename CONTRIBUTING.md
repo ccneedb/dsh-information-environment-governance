@@ -2,11 +2,11 @@
 doc_type: contributing
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 audience: contributors
 language: en
 ---
@@ -29,7 +29,7 @@ the product scope and the explicit out-of-scope list live in
 | Requirement | Why | Notes |
 |---|---|---|
 | Node.js **>= 20** | `package.json` `engines` | `node --test` is the test runner |
-| A DeepSeek Harness installation (`@deepseek-ai/dsh`) | The integration tests mount the **real** host services rather than mocks | Without it those tests **skip**; the unit and conformance suites still run. Single supported baseline `0.2.1-rc.2` (declared peer range `>=0.2.1-rc.2 <0.3.0`, verified release map and committed baseline re-verified in 0.12.2). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
+| A DeepSeek Harness installation (`@deepseek-ai/dsh`) | The integration tests mount the **real** host services rather than mocks | Without it those tests **skip**; the unit and conformance suites still run. Single supported baseline `0.2.1-rc.2` (declared peer range `>=0.2.1-rc.2 <0.3.0`, verified release map and committed baseline re-verified in 0.13.0). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
 | `pnpm` (via `dsh plugin add`) | `scripts/verify.sh` performs a real install into a throwaway profile | Only needed for the full chain; the `dsh-ieg` lifecycle is npm-native |
 
 If your DSH installation is not at `/usr/local/lib/node_modules/@deepseek-ai/dsh`
@@ -52,7 +52,7 @@ dsh plugin --profile <profile> add https://github.com/ccneedb/dsh-information-en
 dsh --profile <profile> --dump-config | grep -A3 'id: ieg'      # the row must compose
 
 # 2. only now does the CLI exist — inside the profile, not on PATH
-"$DSH_HOME/profiles/<profile>/node_modules/.bin/dsh-ieg" status
+"$DSH_HOME/profiles/<profile>/node_modules/.bin/dsh-ieg" prompt
 ```
 
 - Prefer the DSH-native path. Do not add a wrapper that calls `dsh-ieg` before the
@@ -206,7 +206,7 @@ change.
 
 IEG is **not production-ready**: the model-backed behavioural gates C
 (improvement) and D (information integrity) have no valid measurement for the
-current prompt revision, packaging (Gate I) is partial, the package is
+current prompt revision, packaging (Gate I) is **Passed — Evidence Complete**, the package is
 no `private` flag (publishable and verified), and the publish target is undecided. The rules a release must
 satisfy are in
 [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](ARCHITECTURE-SPEC-AGENT-REFERENCE.md)
@@ -216,7 +216,7 @@ Part B and the acceptance matrix in its §32. In short:
   at least a minor bump and a changelog entry;
 - a new host release is added to `dsh.compatibility.dshReleases` only after the
   compatibility baseline test passes and the baseline file is reviewed. The
-  current single baseline is `0.2.1-rc.2`, re-verified and reviewed in 0.12.2;
+  current single baseline is `0.2.1-rc.2`, re-verified and reviewed in 0.13.0;
 - `scripts/verify.sh` must pass against the pinned host version;
 - `npm pack` must contain exactly the `files` allowlist, with no consumer-side
   build step: the package ships the compiled `lib/`, and the only build is the

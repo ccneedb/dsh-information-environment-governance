@@ -57,13 +57,13 @@ export declare const STATUS_CONTEXT_NAME = "ieg:status";
  * model-facing text changes, so a behavioural regression is attributable to one
  * prompt revision (ARCHITECTURE-SPEC Part B §22.3, PRODUCT-SPEC PR-07).
  */
-export declare const PROMPT_VERSION = "0.5.0";
+export declare const PROMPT_VERSION = "0.6.0";
 /**
  * Version of the plugin package, kept in step with `package.json` `version`.
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export declare const PLUGIN_VERSION = "0.12.2";
+export declare const PLUGIN_VERSION = "0.13.0";
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
  * are enabled. Compiled ahead of module principles.

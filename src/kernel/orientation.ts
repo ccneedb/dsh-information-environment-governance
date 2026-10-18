@@ -299,7 +299,13 @@ export function orientationToolDefinition(
       },
       required: ['intent', 'objective', 'scope'],
     },
-    output: { schema: { type: 'object' }, render: () => [] },
+    output: {
+      schema: { type: 'object' },
+      // A result reaches the model only through `render`; an empty array made the
+      // one sanctioned orientation confirmation invisible (assessment finding
+      // IEG-29 / L-09).
+      render: (_args: unknown, value: unknown) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+    },
     execute: async (args, exec) => {
       const store = getStore(exec)
       const result = store.record(args)

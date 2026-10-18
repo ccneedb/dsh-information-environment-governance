@@ -172,7 +172,7 @@ test('conformance: §2.3 information integrity is stated as a status obligation,
   assert.match(PROMPT, /Delete information you have established is wrong/)
   assert.match(PROMPT, /Never leave it in place annotated as wrong/)
   assert.match(PROMPT, /Never present invalid/)
-  assert.match(PROMPT, /requires new evidence or explicit user confirmation/)
+  assert.match(PROMPT, /requires the user's explicit confirmation; your own evidence note is not confirmation/)
 })
 
 test('conformance: §11 the section is one logical contribution with a stable shape', () => {

@@ -2,11 +2,11 @@
 doc_type: changelog
 project: information-environment-governance
 version: 0.12.1
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 audience: everyone
 language: en
 ---
@@ -33,7 +33,7 @@ names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
 
-## [0.12.2] — 2026-10-18
+## [0.13.0] — 2026-10-18
 
 **Target host raised to `@deepseek-ai/dsh 0.2.1-rc.2`; release identity and the
 remaining 0.12.1 defects are being closed in this round.**
@@ -57,21 +57,96 @@ remaining 0.12.1 defects are being closed in this round.**
   shims, and are retained deliberately (see `MAINTENANCE-HANDOFF.md` §4).
   The only host-version-specific staleness was metadata and prose pinned to
   `0.2.1-alpha.1`, all updated here.
-- **Release identity repaired (0.12.2).** The package version, `PLUGIN_VERSION`,
+- **Release identity repaired (0.13.0).** The package version, `PLUGIN_VERSION`,
   every document's `plugin_version` front matter and this changelog heading now
-  agree on `0.12.2`, and the tag `v0.12.2` is cut on the final commit of this
+  agree on `0.13.0`, and the tag `v0.13.0` is cut on the final commit of this
   round so the released artifact has a name that identifies one tree
   (assessment finding IEG-01). The untagged 43-commit gap after `v0.12.1` is
   recorded, not rewritten.
+
+### Security and authority (Workstream 2)
+
+- **A model can no longer promote information to `AUTHORITATIVE` by assertion
+  (IEG-16).** `transition()` now requires `userConfirmation` for any promotion to
+  `AUTHORITATIVE`; a model-authored `evidence` string is recorded but never
+  satisfies the rule. The only path to confirmation is the approval-routed
+  `confirm_information` tool. The model-facing principle was updated to say so
+  (this is the prompt-text change that forces a minor bump).
+- **Authority tools cannot be mounted without the approval gate (IEG-17).** If the
+  `tools/pre-execute` listener fails to register, `confirm_information` and
+  `confirm_terminology` are withheld and a `ieg.capability_missing` diagnostic
+  names the degradation. Their bodies promote authority unconditionally, so
+  mounting them without the gate would let the model self-grant.
+- **Shell classification coverage extended, and its DoS path closed (IEG-13,
+  IEG-22).** `git clone/checkout/…`, `rsync`, `tar -x`, `unzip`, `install`,
+  package-manager installs, `sed --in-place`, `perl -pi`, and interpreter inline
+  programs that call write APIs (`node -e`, `python -c`, …) are now classified as
+  mutations. Commands over 64 KiB are conservatively classified as mutations
+  before any regex runs, removing the ~15 s quadratic stall. The residual
+  runtime-assembled payload limit remains documented in `SECURITY.md`.
+- **`ask` is no longer reported as a denial (IEG-19).** A gated call records
+  `ieg.workspace_mutation_gated`; only a `deny` records
+  `ieg.workspace_mutation_blocked`. The warning count no longer inflates on calls
+  the host allowed.
+
+### Reliability and lifecycle
+
+- **The status context is stable and literal (IEG-25, IEG-26).** The runtime-context
+  text carries material mount facts only, not ring counters or the last code, so
+  it no longer appends a durable history message on almost every step; it is also
+  registered with `interpolate: false`, so a future free-form line cannot break
+  prompt assembly.
+- **Storage teardown is awaited (IEG-28).** The storage-domain close runs from an
+  async effect disposer, so a reload cannot race a new fiber against
+  `storage-domain`'s single-open rule.
+- **`record_orientation` now renders its result (IEG-29/L-09).** The model sees the
+  recorded orientation facts instead of an empty result.
+
+### Compatibility signal
+
+- **Expected first-party sections no longer warn (IEG-03).** The baseline names
+  the standard sections a full profile carries; those are excluded from the
+  minimal-baseline text hash and from the "unexpected section" warning, and a
+  composed profile with only expected extras reports `COMPATIBLE`. Unknown extra
+  sections still warn.
+
+### Release and documentation truth
+
+- **The release identity is one tree (IEG-01).** Version `0.13.0`, `PLUGIN_VERSION`,
+  every document's `plugin_version`, and the changelog heading agree; a packaging
+  test fails when a version tag on `HEAD` names another version.
+- **The release workflow runs the gate (IEG-09).** Before packing/attaching, it runs
+  typecheck, the test suite, and the full `verify.sh` chain against the verified
+  host, and asserts the release tag names the package version.
+- **Documentation matches runtime behaviour (IEG-02, IEG-04…IEG-08, IEG-11).**
+  Gate I has one answer; the model-facing surface is six tools; the removed
+  control plane, `$IEG_STATE_FILE`, `dsh-ieg status/install/pause/start/exit` and
+  Q8 are no longer documented as current; the package description names only the
+  prompt CLI; the verification labels and the test/check numbers were re-derived.
 
 ### Verification
 
 - The baseline metadata change is covered by
   `test/integration/packaging.test.js` (declared baseline, baseline file,
-  release-metadata consistency) and `test/integration/compatibility.test.js`
-  (committed baseline mirrors `DEFAULT_BASELINE`).
-- Full chain is re-run at the end of the round; results are recorded in the
-  completion report and in `MAINTENANCE-HANDOFF.md`.
+  release-metadata consistency, tag identity, documented tool surface) and
+  `test/integration/compatibility.test.js` (committed baseline mirrors
+  `DEFAULT_BASELINE`; expected/unknown extra-section behaviour).
+- Full chain on 2026-10-18: `node --test` **310/310 pass, 0 skip, 0 todo**;
+  `npm run typecheck` clean; `scripts/verify.sh` **24/24 checks** against the
+  installed `@deepseek-ai/dsh 0.2.1-rc.2`.
+
+### Blocked in this round
+
+- **IEG-12 (availability of the shipped `policy: ask`) remains partially blocked.**
+  The host does not expose whether an approval channel can actually grant a call,
+  and the observed sub-agent denial is an auto-reject by the host's approval
+  service, not a missing service the plugin could detect. The gate now records the
+  approval availability it can see and explains the fail-closed reason in the
+  decision text; a real fix needs host support or an operator decision to change
+  the default. Recorded as a follow-up in the completion report.
+- **IEG-14, IEG-15, IEG-18, IEG-20, IEG-21, IEG-23 and the remaining Medium/Low
+  findings are out of scope for this round** (no unrelated refactors); each is
+  listed with its rationale and follow-up in the completion report.
 
 ## [0.12.1] — 2026-10-05
 

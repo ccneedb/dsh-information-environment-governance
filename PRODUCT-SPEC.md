@@ -2,11 +2,11 @@
 doc_type: product-spec
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 verified_against: dsh-v0.2.1-rc.2
 language: en
 host_target: deepseek-harness
@@ -24,7 +24,7 @@ document links here rather than restating it
 
 **Information Environment Governance (IEG)** is an additive
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin. The
-package is `dsh-information-environment-governance`, version **0.12.2**, MIT
+package is `dsh-information-environment-governance`, version **0.13.0**, MIT
 licensed, publishable and not yet published. It supplements the host system prompt and
 runtime with project-work governance.
 
@@ -391,7 +391,7 @@ success criterion.
 
 **REFERENCE.** The product design is aligned with the DSH architecture as observed
 in the upstream repository on 2026-10-01 and re-verified against the installed
-`dsh 0.2.1-rc.2` baseline in the 0.12.2 round:
+`dsh 0.2.1-rc.2` baseline in the 0.13.0 round:
 
 - System prompt assembly and ordered `PromptSection` registration: https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/system-prompt/src/index.ts
 - System prompt subsystem documentation: https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/system-prompt.md
@@ -414,7 +414,7 @@ seam.
 
 | Requirement | Effect of host verification |
 |---|---|
-| PR-04 version awareness | A concrete mechanism exists: declared DSH peer ranges are enforced at install and startup, with an audited exemption registry. The compatibility adapter observes the real `system-prompt/assemble` waterfall and reports a verdict against a committed baseline. The single supported baseline is `>=0.2.1-rc.2 <0.3.0`; `dsh.compatibility.dshReleases` records `0.2.1-rc.2` as `verified`, and the committed baseline was re-verified against it in 0.12.2. The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**. |
+| PR-04 version awareness | A concrete mechanism exists: declared DSH peer ranges are enforced at install and startup, with an audited exemption registry. The compatibility adapter observes the real `system-prompt/assemble` waterfall and reports a verdict against a committed baseline. The single supported baseline is `>=0.2.1-rc.2 <0.3.0`; `dsh.compatibility.dshReleases` records `0.2.1-rc.2` as `verified`, and the committed baseline was re-verified against it in 0.13.0. The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**. |
 
 The user-question seam (`ctx.userQuestions.ask`, batched question model) is
 **removed from scope** in 0.7.0; IEG neither owns question state nor gates

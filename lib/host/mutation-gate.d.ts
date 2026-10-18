@@ -14,7 +14,7 @@ export interface MutationGateSurface {
     /** Record one diagnostic. */
     note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void;
     /** Mount one capability, recording a degradation instead of failing the mount. */
-    guarded: (capability: string, attach: () => void) => void;
+    guarded: (capability: string, attach: () => void) => boolean;
     /** Live per-agent governance state. */
     governance: GovernanceState;
     /** The effective workspace policy, exactly as configured. */
@@ -35,4 +35,4 @@ export interface MutationGateSurface {
     approvalAvailable: boolean;
 }
 /** Register the mutation gate. */
-export declare function registerMutationGate(surface: MutationGateSurface): void;
+export declare function registerMutationGate(surface: MutationGateSurface): boolean;

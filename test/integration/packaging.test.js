@@ -16,6 +16,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -199,6 +200,42 @@ test('release metadata is internally consistent', async () => {
     readFileSync(at('lib/compatibility-baseline.json'), 'utf8').includes(DECLARED_BASELINE),
     'the committed baseline file must describe the declared baseline',
   )
+})
+
+test('release identity: a version tag on HEAD names the package version (IEG-01)', () => {
+  let tags = []
+  try {
+    tags = execFileSync('git', ['tag', '--points-at', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+  } catch {
+    // Not a git checkout (e.g. a packed tarball): nothing to compare.
+    tags = []
+  }
+  for (const tag of tags) {
+    if (/^v\d+\.\d+\.\d+$/.test(tag)) {
+      assert.equal(tag, `v${manifest.version}`, 'a version tag on HEAD must name the package version')
+    }
+  }
+  const changelog = readFileSync(at('CHANGELOG.md'), 'utf8')
+  assert.match(changelog, new RegExp(`^## \\[${manifest.version.replace(/\./g, '\\.')}\\]`, 'm'),
+    'the newest changelog entry must describe the package version')
+})
+
+test('the documented model-facing surface lists the six shipped tools (IEG-05)', () => {
+  const reference = readFileSync(at('docs/PACKAGE-REFERENCE.md'), 'utf8')
+  for (const tool of [
+    'record_orientation',
+    'record_information',
+    'confirm_terminology',
+    'confirm_information',
+    'maintain_environment',
+    'ieg_status',
+  ]) {
+    assert.ok(reference.includes(tool), `docs/PACKAGE-REFERENCE.md must document ${tool}`)
+  }
+  assert.doesNotMatch(reference, /Exactly \*\*two\*\* tools/)
 })
 
 /**

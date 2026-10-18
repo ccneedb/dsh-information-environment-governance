@@ -26,11 +26,17 @@ export interface InformationToolSurface {
   /** The injected tool registry. */
   tools: IegContext['tools']
   /** Mount one capability, recording a degradation instead of failing the mount. */
-  guarded: (capability: string, attach: () => void) => void
+  guarded: (capability: string, attach: () => void) => boolean
   /** Record one diagnostic. */
   note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void
   /** The calling agent's information ledger. */
   ledgerFor: (agent: unknown) => InformationLedger
+  /**
+   * Whether the approval-routed mutation gate is active. When it is not, the
+   * authority-conferring tool is withheld: its body promotes unconditionally and
+   * must never run without the gate (assessment finding IEG-17).
+   */
+  authorityToolsEnabled: boolean
 }
 
 /** The agent a tool execution belongs to. */
@@ -44,7 +50,7 @@ export function registerInformationTools(surface: InformationToolSurface): void 
       surface.tools?.register({
         name: RECORD_INFORMATION_TOOL_NAME,
         description:
-          'Record a piece of project information, or move it through its lifecycle. Use a status to mark an item invalid, superseded, deprecated or suspect, and a disposition to record how a wrong item was corrected, replaced, quarantined or removed. Recording never makes information authoritative: promotion to AUTHORITATIVE requires evidence or the user\'s explicit confirmation, which is a separate, approved call.',
+          'Record a piece of project information, or move it through its lifecycle. Use a status to mark an item invalid, superseded, deprecated or suspect, and a disposition to record how a wrong item was corrected, replaced, quarantined or removed. Recording never makes information authoritative: promotion to AUTHORITATIVE requires the user\'s explicit confirmation through confirm_information, and model-authored evidence never promotes by itself.',
         parameters: {
           type: 'object',
           properties: {
@@ -84,7 +90,13 @@ export function registerInformationTools(surface: InformationToolSurface): void 
 
     // R8-02 §5: revalidation. The gate above returns `ask` for every call, so this body
     // is reached only once the user has approved — which is what makes the promotion
-    // below legitimate rather than self-granted.
+    // below legitimate rather than self-granted. If the gate is not active, the tool is
+    // withheld entirely rather than mounted without its approval route (IEG-17).
+    if (!surface.authorityToolsEnabled) {
+      surface.note('ieg.capability_missing', { capability: 'authorityTools' },
+        'ieg: confirm_information withheld: the mutation gate is not active', 'warn')
+      return
+    }
     surface.guarded('tools.confirm_information', () => {
       surface.tools?.register({
         name: CONFIRM_INFORMATION_TOOL_NAME,

@@ -2,11 +2,11 @@
 doc_type: migration-record
 project: information-environment-governance
 version: 1.0.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 audience: contributors
 language: en
 ---
@@ -312,9 +312,10 @@ Three independent checks back the claim that the package still works:
   check imports the **installed** copy's `lib/index.js` (a real directory in a
   throwaway profile, not a link back to the source tree), applies the **installed
   `cordis.patch.yml` verbatim**, and proves it binds one `ieg:governance` section,
-  three listeners, and two tools (`record_orientation`, `ieg_status`).
+  three listeners, and six tools (`record_orientation`, `record_information`,
+  `confirm_terminology`, `confirm_information`, `ieg_status`, `maintain_environment`).
 - **A tarball proof** — `npm pack` + extract + `import <packed>/lib/index.js`
-  mounts one `ieg:governance` section and the two tools (`record_orientation`,
+  mounts one `ieg:governance` section and the six tools (`record_orientation`,
   `ieg_status`). The tarball contains **zero** `src/` entries (sources are not
   shipped) and ships the compiled `lib/**` tree.
 

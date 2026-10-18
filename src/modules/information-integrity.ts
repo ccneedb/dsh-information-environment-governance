@@ -102,9 +102,9 @@ export function createRecord(input: {
 /**
  * Attempt a status transition.
  *
- * Promotion to `AUTHORITATIVE` always requires evidence or explicit user
- * confirmation. This is the mechanical expression of PR-03: invalidity cannot be
- * undone by assertion.
+ * Promotion to `AUTHORITATIVE` always requires explicit user confirmation. This is
+ * the mechanical expression of PR-03: invalidity cannot be undone by assertion, and a
+ * model-authored evidence note is an assertion.
  */
 export function transition(
   record: InformationRecord,
@@ -121,10 +121,17 @@ export function transition(
   const hasEvidence = typeof justification.evidence === 'string' && justification.evidence.trim() !== ''
   const hasConfirmation = justification.userConfirmation === true
 
-  if (to === 'AUTHORITATIVE' && !hasEvidence && !hasConfirmation) {
+  // Evidence alone is model-authored data and can never confer authority: only the
+  // host's approval service can supply `userConfirmation` (R8-01's boundary, applied
+  // to information). This closes the self-promotion path where a model could
+  // re-promote an INVALID/DEPRECATED/SUPERSEDED record with its own evidence note
+  // (assessment finding IEG-16).
+  if (to === 'AUTHORITATIVE' && !hasConfirmation) {
     return {
       ok: false,
-      reason: `promoting ${record.status} -> AUTHORITATIVE requires evidence or explicit user confirmation`,
+      reason: hasEvidence
+        ? 'promoting to AUTHORITATIVE requires the user\'s explicit confirmation; a model-authored evidence note is not confirmation'
+        : `promoting ${record.status} -> AUTHORITATIVE requires explicit user confirmation`,
     }
   }
 
@@ -210,7 +217,7 @@ export const informationIntegrityModule = Object.freeze({
     'Delete outdated and superseded content as well, except in a software development project, where version history matters: there, mark it explicitly as outdated instead of removing it.',
     'When the environment reports maintenance as due, run one maintenance round at the next safe boundary and report its proposals.',
     'Never present invalid, deprecated, superseded, suspect, or unconfirmed information as authoritative.',
-    'Re-promoting deleted or invalidated information requires new evidence or explicit user confirmation.',
+    'Re-promoting deleted or invalidated information requires the user\'s explicit confirmation; your own evidence note is not confirmation.',
   ]),
   prompt: 'When something written down is wrong, remove it at the source; a later reader must not be able to encounter the old claim on its own.',
   dependencies: Object.freeze(['project-governance']),
@@ -247,8 +254,9 @@ export function findRecord(ledger: InformationLedger, id: string): InformationRe
  *
  * The caller supplies *what is claimed*; authority is not a parameter. A new record
  * starts `PROVISIONAL`, and any later promotion goes through
- * {@link applyTransition}, whose `AUTHORITATIVE` rule cannot be satisfied by the model
- * alone (R8-01's boundary, applied to information).
+ * {@link applyTransition}, whose `AUTHORITATIVE` rule requires explicit user
+ * confirmation and cannot be satisfied by model-authored evidence (R8-01's boundary,
+ * applied to information).
  */
 export function addRecord(
   ledger: InformationLedger,

@@ -9,9 +9,10 @@ name: Release artifact
 # (or the equivalent `dsh plugin --profile ieg-test add "<tarball url>"`).
 #
 # Publication to the **npm registry is NOT performed and NOT authorised**: the
-# package stays `"private": true` until the model-backed gates pass and the
-# publish target is chosen (ARCHITECTURE-SPEC §31.1, §34.2 Q5). The release
-# asset is the distribution channel; do not add an `npm publish` step here.
+# package is publishable (no `private` flag) but publication is a release
+# decision withheld until the model-backed gates pass and the publish target is
+# chosen (ARCHITECTURE-SPEC §31.1, §34.2 Q5). The release asset is the
+# distribution channel; do not add an `npm publish` step here.
 
 on:
   release:
@@ -54,6 +55,35 @@ jobs:
 
       - name: Build the generated sources
         run: npm run build
+
+      # The documented release gate must run here, not only in CI: a tag used to be
+      # able to receive an artifact without tests or verify.sh ever running (IEG-09).
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test suite
+        run: node --test
+
+      - name: Install the verified host release
+        run: npm install --global @deepseek-ai/dsh@0.2.1-rc.2
+
+      - name: Install pnpm (pinned)
+        run: npm install --global pnpm@12.9.1
+
+      - name: Full verification chain (release gate)
+        run: |
+          DSH_PACKAGES="$(npm root -g)/@deepseek-ai/dsh/node_modules/@deepseek-ai"
+          test -d "$DSH_PACKAGES" || { echo "host layout not found at $DSH_PACKAGES"; exit 1; }
+          IEG_DSH_PACKAGES="$DSH_PACKAGES" ./scripts/verify.sh
+
+      # Release identity (IEG-01): the tag must name the package version, or the
+      # artifact is attached under a name that denotes another tree.
+      - name: Assert the tag names this package version
+        run: |
+          test -n "$TAG" || { echo "no tag to check"; exit 1; }
+          EXPECTED="v$(node -p "require('./package.json').version")"
+          test "$TAG" = "$EXPECTED" || { echo "tag $TAG does not name $EXPECTED"; exit 1; }
+          echo "release identity: $TAG == $EXPECTED"
 
       # `prepack` asserts the required artifacts are present, so a broken or
       # unbuilt tree fails here rather than shipping a tarball that cannot mount.

@@ -56,6 +56,8 @@ interface IegPromptContext {
   name: string
   order: number
   text: string | ((context: IegAssembleContext) => string)
+  /** Preserve `{{…}}` literally; the host interpolates contexts by default. */
+  interpolate?: boolean
 }
 
 /**
@@ -188,7 +190,7 @@ interface IegContext {
   on(name: string, listener: (...args: any[]) => any, options?: { global?: boolean }): () => void
   get?(name: string): unknown
   inject?(services: readonly string[], callback: (scoped: IegContext) => void): void
-  effect?(action: () => (() => void) | void, label?: string): () => void
+  effect?(action: () => unknown, label?: string): unknown
 }
 
 /* ───────────────────── host: node runtime (declared slice) ───────────────── */

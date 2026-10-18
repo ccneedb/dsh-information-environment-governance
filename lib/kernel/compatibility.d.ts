@@ -128,6 +128,14 @@ export declare const DEFAULT_BASELINE: Readonly<{
     sectionNames: readonly string[];
     hostPromptHash: "ceb63ee5";
     capabilities: readonly string[];
+    /**
+     * First-party sections a full dsh profile carries in addition to the minimal
+     * baseline composition. They are expected, not drift: flagging them on every
+     * real mount produced a permanent COMPATIBLE_WITH_WARNINGS verdict and trained
+     * operators to ignore the signal (assessment finding IEG-03). Unknown extra
+     * sections still warn.
+     */
+    expectedAdditionalSections: readonly string[];
 }>;
 /**
  * Compare one observation with one baseline and produce a §29.4 verdict.

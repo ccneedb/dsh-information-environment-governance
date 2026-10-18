@@ -16,10 +16,11 @@
 # lists the bundles of the profile you RUN: installing into one profile and
 # running another looks exactly like a failed install.
 #
-# Inspect the running profile from the terminal with `dsh-ieg status` (control
-# state, generation, PROMPT_VERSION, and whether the row composes); `dsh-ieg pause`
-# / `dsh-ieg start` / `dsh-ieg exit` switch governance without touching the
-# installation.
+# Inspect the running profile from the terminal with `dsh-ieg prompt` (effective
+# prompt text, PROMPT_VERSION and byte count). Runtime governance state
+# (mount record, compatibility verdict, diagnostics) is read through the
+# `ieg_status` tool or the `ieg:status` runtime-context line; the plugin has no
+# start/pause/exit control plane.
 #
 # Read-only with one caveat: `dsh --dump-config` materialises a temporary
 # `cordis.yml` inside the profile directory, so that directory must be writable
@@ -125,10 +126,10 @@ fi
 printf '\n'
 if [ "$installed" = "yes" ] && [ "$composes" = "yes" ]; then
   printf 'VERDICT: IEG WILL LOAD in profile "%s".\n' "$PROFILE"
-  printf '  Inspect it from a Debian shell:\n'
-  printf '    dsh-ieg status --profile %s\n' "$PROFILE"
-  printf '  `dsh-ieg pause` / `dsh-ieg start` switch governance for that profile without\n'
-  printf '  touching the installation; `dsh-ieg exit` switches it off.\n'
+  printf '  Inspect the prompt from a Debian shell:\n'
+  printf '    %s/profiles/%s/node_modules/.bin/dsh-ieg prompt\n' "$DSH_HOME" "$PROFILE"
+  printf '  Runtime state is read through the `ieg_status` tool; there is no\n'
+  printf '  start/pause/exit control plane.\n'
   printf '  DSH lists the bundles of the profile you RUN, so installing into one profile\n'
   printf '  while running another looks exactly like a failed install.\n'
   exit 0

@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 audience: implementers + operators
 language: en
 ---
@@ -25,7 +25,7 @@ This is a **verifiable prototype** of the design specified in
 (a **RETIRED** pointer; its content now lives in the architecture spec's §32 gates
 and Part B).
 
-- Package: `dsh-information-environment-governance`, version `0.12.2` (publishable,
+- Package: `dsh-information-environment-governance`, version `0.13.0` (publishable,
   peer-range enforced, not published),
   MIT, **ESM**, **zero runtime dependencies**, Node `>=20`.
 - CLI: `dsh-ieg` (`bin/ieg`; the interface is authored in `src/bin/ieg.ts` and
@@ -103,11 +103,14 @@ compatibility     -> host section inventory + hashes     report     (COMPATIBLE 
 
 ## Model-facing surface
 
-Exactly **two** tools are registered:
+Exactly **six** tools are registered:
 
 | Tool | Direction | Purpose |
 |---|---|---|
 | `record_orientation` | capture | record intent, scope, terminology, and a task-flow plan |
+| `record_information` | capture/lifecycle | record a claim and move it through the information lifecycle; it never confers authority |
+| `confirm_information` | approval-gated | ask the user to promote a claim to `AUTHORITATIVE` |
+| `confirm_terminology` | approval-gated | ask the user to confirm a project term |
 | `maintain_environment` | read-only | one maintenance round: inventory, diagnosis and proposed actions for the information environment; optionally reconciles one named change |
 | `ieg_status` | read-only | mount record, effective configuration, compatibility verdict, and the diagnostic ring |
 
@@ -142,8 +145,8 @@ the plugin adds text and never claims the section is complete.
 
 | Property | Value |
 |---|---|
-| `PROMPT_VERSION` | `0.5.0` |
-| Compiled section size | **2,806 bytes** |
+| `PROMPT_VERSION` | `0.6.0` |
+| Compiled section size | **2,840 bytes** |
 | Recorded ceiling | **2,945 bytes** |
 | Floor | 1400 bytes |
 | Hard cap | 4096 bytes |
@@ -315,7 +318,7 @@ manager's job; IEG no longer performs it and no IEG-specific mechanism replaces 
 
 | Variable | Purpose |
 |---|---|
-| `IEG_STATE_FILE` | overrides the control-state path (the sibling `prompt.md` sits beside it) |
+| `IEG_PROMPT_FILE` | overrides the operator `prompt.md` path (no control-state file exists) |
 | `IEG_DSH_PACKAGES` | the installed DSH package directory the tests and `verify.sh` load host services from |
 | `IEG_VERIFY_HOME` | the throwaway DSH home `scripts/verify.sh` uses; a temporary `.ieg-verify/` under the repository by default |
 
@@ -403,7 +406,7 @@ Honest boundaries:
   `dsh.compatibility.dshReleases` lists that one release as `verified`. The
   `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED**: neither is in the
   peer range or the release map, and the committed baseline was re-verified against
-  the installed `0.2.1-rc.2` host in 0.12.2 (identical section order and host prompt
+  the installed `0.2.1-rc.2` host in 0.13.0 (identical section order and host prompt
   hash `ceb63ee5`).
   There is no legacy compatibility layer; the adapter observes seam facts against
   the committed baseline rather than branching on a version string.

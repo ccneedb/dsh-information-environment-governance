@@ -10,5 +10,29 @@
   "hostPromptHash": "ceb63ee5",
   "capabilities": [
     "systemPrompt"
+  ],
+  "expectedAdditionalSections": [
+    "plan:policy",
+    "team:policy",
+    "context:file-reference",
+    "tool:bash",
+    "tool:read",
+    "tool:write",
+    "tool:edit",
+    "tool:glob",
+    "tool:grep",
+    "tool:jobs",
+    "tool:web_search",
+    "tool:web_fetch",
+    "tool:session-query",
+    "tool:goal",
+    "tool:workflow",
+    "tool:ralph",
+    "tool:subagent",
+    "tool:subagent_fork",
+    "mcp-resource-servers",
+    "ui:deliverable-file-references",
+    "harness:source",
+    "app:web-surface"
   ]
 }

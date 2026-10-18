@@ -38,6 +38,16 @@ test('a shell command that writes is classified as a mutation', () => {
     "bash -c 'echo x > f'",
     'sh -c "rm -rf build"',
     "bash -c 'sed -i s/a/b/ spec.md'",
+    // IEG-13: write-capable utilities/VCS/interpreter payloads that were read-only.
+    'git clone https://example.com/x repo',
+    'git checkout -b feature',
+    'rsync -a src/ dst/',
+    'tar -xzf release.tgz',
+    'unzip bundle.zip',
+    'install -m 644 a.md b.md',
+    "python3 -c \"open('x','w').write('y')\"",
+    "node -e \"require('fs').writeFileSync('x','y')\"",
+    'sed --in-place s/a/b/ spec.md',
   ]
   for (const command of writes) {
     assert.equal(commandWritesFiles(command), true, `should be a write: ${command}`)
@@ -65,6 +75,10 @@ test('everyday read-only shell commands are NOT classified as mutations', () => 
     "grep -rn 'a > b' src",
     "rg 'rm ' src",
     "git commit -m 'rm stale files'",
+    'git status',
+    'git log --oneline -5',
+    'python3 -c "print(1)"',
+    "node -e \"console.log('ok')\"",
   ]
   for (const command of reads) {
     assert.equal(commandWritesFiles(command), false, `should be read-only: ${command}`)
@@ -156,6 +170,12 @@ test('R8-03: read-only idioms are not classified as writes', () => {
   for (const command of reading) {
     assert.equal(commandWritesFiles(command), false, `must not be classified as a write: ${command}`)
   }
+})
+
+test('IEG-22: an over-long command is conservatively a mutation, and never reaches the regexes', () => {
+  // The in-place-editor patterns are quadratic; classifying an over-long command as a
+  // write keeps the decision conservative and keeps the synchronous gate fast.
+  assert.equal(commandWritesFiles('a '.repeat(40000)), true)
 })
 
 test('R8-03: a payload assembled at runtime is a documented limitation, not a claim', () => {

@@ -20,7 +20,7 @@ export interface DurableStateInput {
   /** Record one diagnostic. */
   note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void
   /** Mount one capability, recording a degradation instead of failing the mount. */
-  guarded: (capability: string, attach: () => void) => void
+  guarded: (capability: string, attach: () => void) => boolean
   /** Live per-agent governance state. */
   governance: GovernanceState
 }
@@ -85,8 +85,12 @@ export function createDurableState(input: DurableStateInput): DurableState {
   }
 
   input.guarded('dispose.storageDomain', () => {
-    input.ctx.effect?.(() => () => {
-      void durable.close()
+    // Return the close promise from an async effect: the host awaits it, and the
+    // storage domain allows one open per name. A fire-and-forget close lets a
+    // reload's new fiber hit `already-open` and silently lose persistence
+    // (assessment finding IEG-28).
+    input.ctx.effect?.(async () => async () => {
+      await durable.close()
     }, 'ieg: release the governance domain handle')
   })
   return { hydrateOrientation, persistOrientation }

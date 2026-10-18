@@ -254,6 +254,37 @@ export const DEFAULT_BASELINE = Object.freeze({
   ]),
   hostPromptHash: 'ceb63ee5',
   capabilities: Object.freeze(['systemPrompt']),
+  /**
+   * First-party sections a full dsh profile carries in addition to the minimal
+   * baseline composition. They are expected, not drift: flagging them on every
+   * real mount produced a permanent COMPATIBLE_WITH_WARNINGS verdict and trained
+   * operators to ignore the signal (assessment finding IEG-03). Unknown extra
+   * sections still warn.
+   */
+  expectedAdditionalSections: Object.freeze([
+    'plan:policy',
+    'team:policy',
+    'context:file-reference',
+    'tool:bash',
+    'tool:read',
+    'tool:write',
+    'tool:edit',
+    'tool:glob',
+    'tool:grep',
+    'tool:jobs',
+    'tool:web_search',
+    'tool:web_fetch',
+    'tool:session-query',
+    'tool:goal',
+    'tool:workflow',
+    'tool:ralph',
+    'tool:subagent',
+    'tool:subagent_fork',
+    'mcp-resource-servers',
+    'ui:deliverable-file-references',
+    'harness:source',
+    'app:web-surface',
+  ]),
 })
 
 /**
@@ -353,7 +384,11 @@ export function classify(input: unknown): CompatibilityVerdict {
       }
     }
 
-    const extraSections = observedNames.filter((name) => !baselineSet.has(name))
+    const expectedExtraSections = stringList(safeGet(baseline, 'expectedAdditionalSections')) ?? []
+    const expectedExtraSet = new Set(expectedExtraSections)
+    const extraSections = observedNames.filter(
+      (name) => !baselineSet.has(name) && !expectedExtraSet.has(name),
+    )
     if (extraSections.length > 0) {
       warnings.push(
         `unexpected additional prompt section(s) not present in the baseline: ${extraSections.join(', ')}`,
@@ -386,11 +421,24 @@ export function classify(input: unknown): CompatibilityVerdict {
 
     const baselineHash = baseline === null ? null : safeHash(safeGet(baseline, 'hostPromptHash'))
     const observedHash = observed === null ? null : safeHash(safeGet(observed, 'hostPromptHash'))
+    // A composed profile carries the expected first-party sections and may customise
+    // its persona sections, so the minimal baseline's text hash is not a drift signal
+    // there (assessment finding IEG-03). It stays a warning whenever the composition
+    // has no expected extras or contains an unknown one.
+    const composedWithExpectedSections = extraSections.length === 0 &&
+      observedNames.some((name) => expectedExtraSet.has(name))
     if (baselineHash !== null) {
       if (observedHash === null) {
         notes.push('the host section text hash was not observed, so the baseline hash could not be checked')
       } else if (observedHash !== baselineHash) {
-        warnings.push(`host section text changed: baseline hash ${baselineHash}, observed hash ${observedHash}`)
+        if (composedWithExpectedSections) {
+          notes.push(
+            `host section text differs from the minimal baseline (expected in a composed profile): ` +
+              `baseline hash ${baselineHash}, observed hash ${observedHash}`,
+          )
+        } else {
+          warnings.push(`host section text changed: baseline hash ${baselineHash}, observed hash ${observedHash}`)
+        }
       }
     }
 
@@ -426,7 +474,7 @@ export function classify(input: unknown): CompatibilityVerdict {
  * @param assembly
  * @returns the assembly reduced to the compared facts.
  */
-function normalizeAssembly(assembly: unknown): NormalizedObservation {
+function normalizeAssembly(assembly: unknown, expectedSections?: ReadonlySet<string>): NormalizedObservation {
   const record = isRecord(assembly) ? assembly : null
   const sections = record === null ? undefined : safeGet(record, 'sections')
   const sectionNames: string[] = []
@@ -441,6 +489,9 @@ function normalizeAssembly(assembly: unknown): NormalizedObservation {
       sectionNames.push(sectionName)
       if (sectionName === IEG_SECTION_NAME && iegIndex === -1) iegIndex = index
       if (sectionName !== IEG_SECTION_NAME) {
+        // Expected first-party sections do not participate in the minimal baseline
+        // hash: a composed profile legitimately carries them (IEG-03).
+        if (expectedSections?.has(sectionName) === true) continue
         const text = safeGet(section, 'text')
         hostTexts.push(typeof text === 'string' ? text : '')
       }
@@ -583,6 +634,12 @@ export function createCompatibilityAdapter(options?: CompatibilityAdapterOptions
   const shapeByScope = new WeakMap<object, string>()
   let globalShape: string | null = null
 
+  /** Sections the baseline expects in a composed profile; excluded from the hash. */
+  const expectedSections: ReadonlySet<string> = (() => {
+    const raw = isRecord(baseline) ? safeGet(baseline, 'expectedAdditionalSections') : undefined
+    return new Set(stringList(raw) ?? [])
+  })()
+
   let state: CompatibilitySnapshot = {
     verdict: 'PENDING',
     reasons: ['no prompt assembly has been observed yet'],
@@ -635,7 +692,7 @@ export function createCompatibilityAdapter(options?: CompatibilityAdapterOptions
    */
   function observe(assembly: unknown, context?: unknown): CompatibilitySnapshot {
     try {
-      const normalized = normalizeAssembly(assembly)
+      const normalized = normalizeAssembly(assembly, expectedSections)
       const capabilities = resolveCapabilities()
       const shape = shapeSignature(normalized, capabilities)
       const scopeObject = scopeKeyOf(context)

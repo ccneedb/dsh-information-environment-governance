@@ -80,9 +80,10 @@
         # `allowOverBudget`, is refused and the compiled default is kept — the
         # refusal is reported as ieg.prompt_override_rejected.
         #
-        # Precedence (0.6.0): the control-plane `prompt.md` beside the control
-        # state file (edited with `ieg prompt edit`) outranks this whole block.
-        # `ieg prompt reset` deletes it and returns here.
+        # Precedence (0.6.0): an operator `prompt.md` ($IEG_PROMPT_FILE, else
+        # <state-dir>/ieg/prompt.md; edited with `dsh-ieg prompt edit`) outranks
+        # this whole block. Delete the file by hand to return here; there is no
+        # `reset` command and no control-state file.
         prompt:
           mode: compiled
           append: ""

@@ -2,11 +2,11 @@
 doc_type: readme
 project: information-environment-governance
 version: 0.5.0
-plugin_version: 0.12.2
+plugin_version: 0.13.0
 status: active
 owner: maintainers
 last_reviewed: 2026-10-03
-revision: 0.12.2-batch-12
+revision: 0.13.0-batch-13
 verified_against: dsh-v0.2.1-rc.2
 language: en
 format_note: conservative-machine-readable-markdown
@@ -14,7 +14,7 @@ format_note: conservative-machine-readable-markdown
 
 # Information Environment Governance (IEG)
 
-Status: prototype, paused (maintenance-only). Used only by its author so far. Not published to npm.
+Status: prototype, maintenance-only until the model-backed gates pass. Used only by its author so far. Not published to npm.
 
 [![CI](https://github.com/ccneedb/dsh-information-environment-governance/actions/workflows/ci.yml/badge.svg)](https://github.com/ccneedb/dsh-information-environment-governance/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -28,7 +28,7 @@ in [`PRODUCT-SPEC.md` §1](PRODUCT-SPEC.md#1-product-positioning); this README
 links there rather than restating them.
 
 > **Status: prototype, not production-ready.** The package is
-> `dsh-information-environment-governance` **0.12.2** — publishable and verified
+> `dsh-information-environment-governance` **0.13.0** — publishable and verified
 > but **not published** — and the
 > publish target is undecided. Behavioural improvement (Gate C) and information
 > integrity (Gate D) are **Blocked / Unverified — Evidence Insufficient**;
@@ -213,7 +213,7 @@ The plugin contributes **one** additive prompt section, `ieg:governance`
 `confirm_information`, plus the read-only `ieg_status` and `maintain_environment`.
 The two confirmations are gated through the host's approval service, so the model
 cannot supply the user's authority itself. At `PROMPT_VERSION`
-0.5.0 the compiled section is **2,806 bytes** against a **2,945-byte** ceiling.
+0.6.0 the compiled section is **2,840 bytes** against a **2,945-byte** ceiling.
 It reports its own state through the `ieg:status` runtime-context line and the
 `ieg.*` diagnostic codes. Full runtime detail is in
 [`ARCHITECTURE-SPEC-AGENT-REFERENCE.md`](ARCHITECTURE-SPEC-AGENT-REFERENCE.md)
@@ -368,7 +368,7 @@ DeepSeek Harness installation. Shell governance targets Bash; PowerShell and oth
 platforms are explicitly unsupported. The declared
 peer range is `>=0.2.1-rc.2 <0.3.0`, and `dsh.compatibility.dshReleases`
 records that single baseline as `verified`; the committed baseline was
-re-verified against the installed `0.2.1-rc.2` host in 0.12.2 (identical section
+re-verified against the installed `0.2.1-rc.2` host in 0.13.0 (identical section
 order and host prompt hash). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are
 **SUPERSEDED**
 and is no longer in the range or the release map. Note that the declared range is
@@ -432,7 +432,7 @@ installation is present. Point the loader at a non-default install with
 ## Working prototype
 
 The repository root **is** an installable **`dsh-information-environment-governance`**
-`0.12.2` (publishable and verified, **not published**) that realizes the architecture above
+`0.13.0` (publishable and verified, **not published**) that realizes the architecture above
 with zero runtime dependencies. It contributes one additive prompt section and
 enforces through `agent/pre-step`, `tools/pre-execute`, `ctx.tools.guard`, and
 `ctx.storageDomain`; it reports its own state through a bounded runtime-context
@@ -476,10 +476,11 @@ re-run rather than superseded numbers.
    integrity. Superseded measurements were deleted, not annotated, because a
    stale number still reads as a standing result.
 2. **Decisions are open**, consolidated in
-   [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §9: the publish target, any
-   live-profile rollout, and the control state file being per-user rather than
-   per-profile (Q8). The compatibility-baseline re-capture (Q7) closed in 0.12.2:
-   the single supported baseline is `dsh 0.2.1-rc.2`.
+   [`MAINTENANCE-HANDOFF.md`](MAINTENANCE-HANDOFF.md) §9: the publish target and
+   any live-profile rollout. The compatibility-baseline re-capture (Q7) closed in
+   0.13.0: the single supported baseline is `dsh 0.2.1-rc.2`. The control state
+   file and its per-profile question (Q8) were withdrawn in 0.6.0 with the
+   control plane; there is no control-state file to scope.
 3. **The package is publishable but not published.** `private` is gone, the packed
    artifact has been verified from a clean profile, and the registry name is
    unclaimed; publication itself is the release action, withheld until 1 and 2 are

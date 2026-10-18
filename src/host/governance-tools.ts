@@ -16,7 +16,7 @@ import { MAINTENANCE_BATCH_THRESHOLD } from '../kernel/maintenance.js'
 /** What the governance tools need from the composition. */
 export interface GovernanceToolSurface {
   tools: IegContext['tools']
-  guarded: (capability: string, attach: () => void) => void
+  guarded: (capability: string, attach: () => void) => boolean
   note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void
   governance: GovernanceState
   /**
@@ -50,6 +50,11 @@ export interface GovernanceToolSurface {
     mutatingTools: readonly string[]
     classifyShellCommands?: boolean
   }
+  /**
+   * Whether the approval-routed mutation gate is active. When it is not, the
+   * authority-conferring tool is withheld (assessment finding IEG-17).
+   */
+  authorityToolsEnabled: boolean
 }
 
 /** Register the governance tools. */
@@ -121,7 +126,10 @@ export function registerGovernanceTools(surface: GovernanceToolSurface): void {
     // it reports rather than acts: Batch 6 §5 forbids claiming automatic
     // synchronization, and an automatic round could rewrite the user's documents.
 
-    surface.guarded('tools.confirm_terminology', () => {
+    if (!surface.authorityToolsEnabled) {
+      surface.note('ieg.capability_missing', { capability: 'authorityTools' },
+        'ieg: confirm_terminology withheld: the mutation gate is not active', 'warn')
+    } else surface.guarded('tools.confirm_terminology', () => {
       surface.tools?.register({
         ...confirmationToolDefinition((exec, input) => {
           const store = surface.governance.forAgent(((exec ?? {}) as { agent?: unknown }).agent).orientation

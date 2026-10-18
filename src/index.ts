@@ -183,14 +183,14 @@ export const STATUS_CONTEXT_NAME = 'ieg:status'
  * model-facing text changes, so a behavioural regression is attributable to one
  * prompt revision (ARCHITECTURE-SPEC Part B §22.3, PRODUCT-SPEC PR-07).
  */
-export const PROMPT_VERSION = '0.5.0'
+export const PROMPT_VERSION = '0.6.0'
 
 /**
  * Version of the plugin package, kept in step with `package.json` `version`.
  * Declared here so the `ieg` CLI can name the build without reading the
  * filesystem at runtime.
  */
-export const PLUGIN_VERSION = '0.12.2'
+export const PLUGIN_VERSION = '0.13.0'
 
 /**
  * Stable kernel invariants: the statements that hold regardless of which modules
@@ -328,6 +328,7 @@ function mountConfigFaultSurface(ctx: IegContext, error: unknown): void {
         ctx.systemPrompt.context?.({
           name: STATUS_CONTEXT_NAME,
           order: DEFAULT_SECTION_ORDER,
+          interpolate: false,
           text: () => diagnostics.formatLine(),
         })
       } catch {
@@ -476,6 +477,26 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
    * assembly so an edit applies without a remount, and the read-only `ieg_status`
    * tool reports these mount-time facts.
    */
+  /**
+   * Stable one-line summary for the runtime-context channel (channel A).
+   *
+   * The host materialises a registered context as a durable user-role snapshot and
+   * appends a new history message whenever the retained text differs
+   * (`dsh-agent-loop` runtime-context projection). A provider that included the
+   * ring size or the last code would therefore append one message per governed
+   * step (assessment finding IEG-25), so this emits material mount facts only;
+   * volatile diagnostics stay behind the `ieg_status` tool.
+   */
+  const statusSummary = (): string => {
+    const snapshot = mount.compatibility as { verdict?: unknown }
+    const verdict = typeof snapshot.verdict === 'string' ? snapshot.verdict : 'PENDING'
+    return (
+      `ieg: mounted=${String(mount.mounted)} modules=${mount.moduleCount} ` +
+      `policy=${config.workspace.policy} gate=${config.preStep.orientationGate} ` +
+      `compat=${verdict} degraded=${degradedCapabilities.length}`
+    )
+  }
+
   const promptState: PromptState = {
     text: prompt,
     bytes: stats.bytes,
@@ -552,13 +573,15 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
    * @param capability
    * @param action
    */
-  const guarded = (capability: string, action: () => void): void => {
+  const guarded = (capability: string, action: () => void): boolean => {
     try {
       action()
+      return true
     } catch (error) {
       degradedCapabilities.push(capability)
       const message = error instanceof Error ? error.message : String(error)
       note('ieg.error', { capability, message }, `ieg: ${capability} failed: ${message}`, 'warn')
+      return false
     }
   }
 
@@ -686,17 +709,18 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
       })
     })
 
-    // Channel A (§28.3): one bounded status line, registered once. The host
-    // re-evaluates a function-valued `text` on every assembly and supersedes the
-    // previous snapshot instead of accumulating one, and it renders through the
-    // runtime-context channel rather than the compiled prompt — both verified
-    // against the real `dsh-system-prompt`, which resolves assumption B2.
+    // Channel A (§28.3): one bounded, *stable* status line, registered once. The
+    // host renders it through the runtime-context channel rather than the compiled
+    // prompt (verified against the real `dsh-system-prompt`), and it appends a new
+    // durable message whenever the text changes — hence `statusSummary()` and the
+    // literal-interpolation flag (assessment findings IEG-25 and IEG-26).
     if (config.diagnostics) {
       guarded('systemPrompt.context', () => {
         ctx.systemPrompt?.context?.({
           name: STATUS_CONTEXT_NAME,
           order: config.sectionOrder,
-          text: () => diagnostics.formatLine(),
+          interpolate: false,
+          text: () => statusSummary(),
         })
       })
     }
@@ -714,7 +738,7 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
 
   /* ── 3. mutation gate: tools/pre-execute ──────────────────────────────── */
 
-  registerMutationGate({
+  const mutationGateActive = registerMutationGate({
     note,
     guarded,
     governance,
@@ -727,6 +751,11 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
     // degrade any `ask` to a denial, which the gate now says out loud (P1-2).
     approvalAvailable: ctx.get?.('approval') !== undefined,
   })
+  if (!mutationGateActive) {
+    // The authority tools promote unconditionally, so they must not be mounted
+    // without the approval-routed pre-execute gate (assessment finding IEG-17).
+    noteMissing('authorityTools')
+  }
 
   /* ── 4. tool registry: the orientation tool and the guard backstop ────── */
 
@@ -749,6 +778,7 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
       promptFilePath,
       persistOrientation,
       workspacePolicy: config.workspace,
+      authorityToolsEnabled: mutationGateActive,
     })
     registerMaintenanceTool({
       tools: toolCtx.tools,
@@ -767,6 +797,7 @@ export function apply(ctx: IegContext, rawConfig?: unknown): void {
       guarded,
       note,
       ledgerFor: (agent) => governance.forAgent(agent).information,
+      authorityToolsEnabled: mutationGateActive,
     })
   }
   if (ctx.inject === undefined) {

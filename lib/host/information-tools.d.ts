@@ -13,11 +13,17 @@ export interface InformationToolSurface {
     /** The injected tool registry. */
     tools: IegContext['tools'];
     /** Mount one capability, recording a degradation instead of failing the mount. */
-    guarded: (capability: string, attach: () => void) => void;
+    guarded: (capability: string, attach: () => void) => boolean;
     /** Record one diagnostic. */
     note: (code: string, data?: Record<string, unknown>, narration?: string, level?: 'info' | 'warn') => void;
     /** The calling agent's information ledger. */
     ledgerFor: (agent: unknown) => InformationLedger;
+    /**
+     * Whether the approval-routed mutation gate is active. When it is not, the
+     * authority-conferring tool is withheld: its body promotes unconditionally and
+     * must never run without the gate (assessment finding IEG-17).
+     */
+    authorityToolsEnabled: boolean;
 }
 /** Register the information-integrity tools. */
 export declare function registerInformationTools(surface: InformationToolSurface): void;

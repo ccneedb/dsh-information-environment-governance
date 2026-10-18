@@ -41,6 +41,7 @@ const EXPECTED_CODES = [
   'ieg.orientation_required',
   'ieg.workspace_mutation_allowed',
   'ieg.workspace_mutation_blocked',
+  'ieg.workspace_mutation_gated',
   'ieg.document_overlap_flagged',
   'ieg.information_invalidated',
   'ieg.information_reintroduced',

@@ -56,9 +56,9 @@ export declare function createRecord(input: {
 /**
  * Attempt a status transition.
  *
- * Promotion to `AUTHORITATIVE` always requires evidence or explicit user
- * confirmation. This is the mechanical expression of PR-03: invalidity cannot be
- * undone by assertion.
+ * Promotion to `AUTHORITATIVE` always requires explicit user confirmation. This is
+ * the mechanical expression of PR-03: invalidity cannot be undone by assertion, and a
+ * model-authored evidence note is an assertion.
  */
 export declare function transition(record: InformationRecord, to: string, justification?: {
     evidence?: string;
@@ -126,8 +126,9 @@ export declare function findRecord(ledger: InformationLedger, id: string): Infor
  *
  * The caller supplies *what is claimed*; authority is not a parameter. A new record
  * starts `PROVISIONAL`, and any later promotion goes through
- * {@link applyTransition}, whose `AUTHORITATIVE` rule cannot be satisfied by the model
- * alone (R8-01's boundary, applied to information).
+ * {@link applyTransition}, whose `AUTHORITATIVE` rule requires explicit user
+ * confirmation and cannot be satisfied by model-authored evidence (R8-01's boundary,
+ * applied to information).
  */
 export declare function addRecord(ledger: InformationLedger, input: {
     id: string;
