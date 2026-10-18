@@ -1,12 +1,12 @@
 ---
 doc_type: maintenance-handoff
 project: information-environment-governance
-plugin_version: 0.15.0
-version: 0.15.0
+plugin_version: 0.15.1
+version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 host_baseline_verified: dsh-0.2.1-rc.2
 supersedes: none
 language: en
@@ -14,7 +14,7 @@ language: en
 
 # IEG Maintenance Handoff
 
-> **This is the maintained status record (package 0.15.0).** §3–§4 are the single
+> **This is the maintained status record (package 0.15.1).** §3–§4 are the single
 > source of truth for current status and numbers; other documents link here rather
 > than restate them. §13 is **history** (the rename, the withdrawn capability, the
 > old→new gate mapping, the `0.1.0`/v0.2.0 rounds, and the open-item closures).
@@ -124,7 +124,7 @@ permitted.
 | Baseline item | Value |
 |---|---|
 | Repository commit | `a71a4401dfa67f1f50943757447ad6e4d3792ae1` (`a71a440`) |
-| Package version | `0.15.0` |
+| Package version | `0.15.1` |
 | `PROMPT_VERSION` | `0.6.0` |
 | Verified DSH baseline | `0.2.1-rc.2` (peer range `>=0.2.1-rc.2 <0.3.0`) |
 | Validation method revision | the commit above; the method is defined by `eval/README.md` and `eval/harness.mjs` |
@@ -144,9 +144,9 @@ six tools: `record_orientation`, `record_information`, `confirm_terminology`,
 **2,840 bytes**; the recorded ceiling is **2,945 bytes** (floor 1,400, hard cap
 4,096). Integration tests mount the real `dsh-system-prompt`, `dsh-tools`
 `dsh-fs-local`, and the `dsh-storage`/`dsh-storage-json`/`dsh-storage-domain`
-stack — not mocks. **310 tests (all pass, no todo, no skip) and 24/24
+stack — not mocks. **312 tests (all pass, no todo, no skip) and 24/24
 verification checks** were derived from the current tree on 2026-10-18, the
-0.15.0 remediation round. Counts move with each round; re-derive them with
+0.15.1 runtime-patch round. Counts move with each round; re-derive them with
 `node --test` and `scripts/verify.sh`, and treat the numbers printed there —
 not this sentence — as current. (The 0.8.0 round recorded 272 tests and 27/27
 checks, the 0.7.0 round 265 tests, and the 0.6.0 four-module round 284 tests and
@@ -155,7 +155,7 @@ checks, the 0.7.0 round 265 tests, and the 0.6.0 four-module round 284 tests and
 **Host baseline.** The single supported DSH baseline is **`0.2.1-rc.2`**:
 `dsh.engines.dsh` is `>=0.2.1-rc.2 <0.3.0`, `dsh.compatibility.dshReleases`
 records that one release as `verified`, and `lib/compatibility-baseline.json` was
-re-verified against it in 0.15.0 (section order and host prompt hash `ceb63ee5`
+re-verified against it in 0.15.1 (section order and host prompt hash `ceb63ee5`
 identical to the previous baseline). The retired `0.2.1-alpha.1` and `0.2.0-rc.2`
 baselines are **SUPERSEDED**: they are gone from the peer range and the release
 map. There is no version-gated legacy compatibility layer; the adapter observes

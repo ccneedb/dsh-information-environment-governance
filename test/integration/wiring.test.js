@@ -310,8 +310,25 @@ test('the mutation gate lets inspection through and gates mutation', async () =>
   assert.ok(stub.logs.some((entry) => entry.message.includes('workspace_mutation_blocked')))
 })
 
-test('the ask policy emits the host approval request rather than a denial', async () => {
+test('the ask policy without an approval channel records a fail-closed blocked decision', async () => {
   const stub = stubContext()
+  ieg.apply(stub.ctx, { workspace: { policy: 'ask' }, preStep: { requireBeforeMutation: false } })
+  const decision = await stub.listeners.get('tools/pre-execute')[0](
+    { name: 'write', arguments: { file_path: '/a' } },
+    async () => ({ kind: 'allow' }),
+  )
+  // The decision stays `ask` so the host's approval semantics are not replaced, but
+  // the event is warning-class because the host will deny it without a channel.
+  assert.equal(decision.kind, 'ask')
+  assert.match(decision.reason, /no approval channel/i)
+  assert.ok(stub.logs.some((entry) => entry.message.includes('workspace_mutation_blocked')))
+  assert.ok(stub.logs.some((entry) => entry.message.includes('gated-no-approval')))
+  assert.equal(stub.logs.some((entry) => entry.message.includes('workspace_mutation_gated')), false)
+})
+
+test('the ask policy with an approval channel records a gated decision', async () => {
+  const stub = stubContext()
+  stub.ctx.get = (/** @type {string} */ name) => (name === 'approval' ? {} : undefined)
   ieg.apply(stub.ctx, { workspace: { policy: 'ask' }, preStep: { requireBeforeMutation: false } })
   const decision = await stub.listeners.get('tools/pre-execute')[0](
     { name: 'write', arguments: { file_path: '/a' } },
@@ -319,6 +336,7 @@ test('the ask policy emits the host approval request rather than a denial', asyn
   )
   assert.equal(decision.kind, 'ask')
   assert.ok(stub.logs.some((entry) => entry.message.includes('workspace_mutation_gated')))
+  assert.equal(stub.logs.some((entry) => entry.message.includes('workspace_mutation_blocked')), false)
 })
 
 test('the mount diagnostic is emitted with the modules and section placement', () => {

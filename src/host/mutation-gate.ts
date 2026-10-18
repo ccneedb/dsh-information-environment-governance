@@ -179,21 +179,37 @@ export function registerMutationGate(surface: MutationGateSurface): boolean {
     // commonly allowed. Recording it as `blocked` made the status line and warning
     // count report a refusal that never happened (assessment finding IEG-19).
     if (decision.kind === 'ask') {
+      if (!surface.approvalAvailable) {
+        // Fail-closed: the host refuses an `ask` with no approval channel. That is a
+        // *blocked* decision in effect, so it is recorded as warning-class and the
+        // remedy stays in the reason. Recording it as merely `gated` hid an availability
+        // failure from the warning count (v0.15.0 runtime finding R4-01).
+        surface.note(
+          'ieg.workspace_mutation_blocked',
+          {
+            tool: exec.name,
+            outcome: 'gated-no-approval',
+            targets: classification.targets,
+            agentId: agentIdOf(agent),
+          },
+          `ieg: workspace_mutation_blocked tool=${exec.name} outcome=gated-no-approval ` +
+            `targets=${classification.targets.join(',') || '-'}`,
+          'warn',
+        )
+        return { kind: 'ask', reason: decision.reason + NO_APPROVAL_CHANNEL }
+      }
       surface.note(
         'ieg.workspace_mutation_gated',
         {
           tool: exec.name,
           outcome: 'gated',
           targets: classification.targets,
-          approvalAvailable: surface.approvalAvailable,
+          approvalAvailable: true,
           agentId: agentIdOf(agent),
         },
         `ieg: workspace_mutation_gated tool=${exec.name} targets=${classification.targets.join(',') || '-'}`,
       )
-      // P1-2: a fail-closed `ask` must say why it will be refused, and what to do about it.
-      return surface.approvalAvailable
-        ? decision
-        : { kind: 'ask', reason: decision.reason + NO_APPROVAL_CHANNEL }
+      return decision
     }
 
     surface.note(

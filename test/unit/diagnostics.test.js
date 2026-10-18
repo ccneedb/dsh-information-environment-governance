@@ -221,6 +221,16 @@ test('unit: lastCode() is null while empty and follows the newest entry', () => 
   assert.equal(diagnostics.lastCode(), 'ieg.error')
 })
 
+test('unit: a COMPATIBLE compatibility observation is not counted as a warning', () => {
+  const diagnostics = createDiagnostics({ limit: 10 })
+  diagnostics.record({ code: 'ieg.host_compatibility', data: { verdict: 'COMPATIBLE' } })
+  assert.equal(diagnostics.formatLine(), 'ieg: diagnostics=1 last=ieg.host_compatibility warnings=0')
+  diagnostics.record({ code: 'ieg.host_compatibility', data: { verdict: 'COMPATIBLE_WITH_WARNINGS' } })
+  assert.equal(diagnostics.formatLine(), 'ieg: diagnostics=2 last=ieg.host_compatibility warnings=1')
+  diagnostics.record({ code: 'ieg.host_compatibility', data: { verdict: 'UNSUPPORTED' } })
+  assert.equal(diagnostics.formatLine(), 'ieg: diagnostics=3 last=ieg.host_compatibility warnings=2')
+})
+
 test('unit: formatLine() summarises material state and is stable between records', () => {
   const diagnostics = createDiagnostics()
   assert.equal(diagnostics.formatLine(), 'ieg: diagnostics=0 last=none warnings=0')

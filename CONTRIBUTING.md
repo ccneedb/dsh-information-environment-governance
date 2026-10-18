@@ -2,11 +2,11 @@
 doc_type: contributing
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.15.0
+plugin_version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 audience: contributors
 language: en
 ---
@@ -29,7 +29,7 @@ the product scope and the explicit out-of-scope list live in
 | Requirement | Why | Notes |
 |---|---|---|
 | Node.js **>= 20** | `package.json` `engines` | `node --test` is the test runner |
-| A DeepSeek Harness installation (`@deepseek-ai/dsh`) | The integration tests mount the **real** host services rather than mocks | Without it those tests **skip**; the unit and conformance suites still run. Single supported baseline `0.2.1-rc.2` (declared peer range `>=0.2.1-rc.2 <0.3.0`, verified release map and committed baseline re-verified in 0.15.0). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
+| A DeepSeek Harness installation (`@deepseek-ai/dsh`) | The integration tests mount the **real** host services rather than mocks | Without it those tests **skip**; the unit and conformance suites still run. Single supported baseline `0.2.1-rc.2` (declared peer range `>=0.2.1-rc.2 <0.3.0`, verified release map and committed baseline re-verified in 0.15.1). The `0.2.1-alpha.1` and `0.2.0-rc.2` baselines are **SUPERSEDED** |
 | `pnpm` (via `dsh plugin add`) | `scripts/verify.sh` performs a real install into a throwaway profile | Only needed for the full chain; the `dsh-ieg` lifecycle is npm-native |
 
 If your DSH installation is not at `/usr/local/lib/node_modules/@deepseek-ai/dsh`
@@ -216,7 +216,7 @@ Part B and the acceptance matrix in its §32. In short:
   at least a minor bump and a changelog entry;
 - a new host release is added to `dsh.compatibility.dshReleases` only after the
   compatibility baseline test passes and the baseline file is reviewed. The
-  current single baseline is `0.2.1-rc.2`, re-verified and reviewed in 0.15.0;
+  current single baseline is `0.2.1-rc.2`, re-verified and reviewed in 0.15.1;
 - `scripts/verify.sh` must pass against the pinned host version;
 - `npm pack` must contain exactly the `files` allowlist, with no consumer-side
   build step: the package ships the compiled `lib/`, and the only build is the

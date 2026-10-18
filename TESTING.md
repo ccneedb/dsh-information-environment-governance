@@ -2,11 +2,11 @@
 doc_type: testing-guide
 project: information-environment-governance
 version: 0.3.0
-plugin_version: 0.15.0
+plugin_version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 audience: volunteers
 language: en
 ---

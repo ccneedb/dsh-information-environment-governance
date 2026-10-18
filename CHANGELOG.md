@@ -2,11 +2,11 @@
 doc_type: changelog
 project: information-environment-governance
 version: 0.12.1
-plugin_version: 0.15.0
+plugin_version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 audience: everyone
 language: en
 ---
@@ -32,6 +32,41 @@ motivated it**. IEG records a prompt revision in four places, and an entry below
 names the one it changes: the package `version`, the enforced
 `dsh.engines.dsh` range, `dsh.compatibility.dshReleases`, `PROMPT_VERSION`, and
 the governance state `DOMAIN_VERSION` (§22.3).
+
+## [0.15.1] — 2026-10-18
+
+**Runtime-verification patch.** Two observability defects were confirmed on the
+installed `0.15.0` artifact and fixed here; behaviour of the gates is unchanged.
+
+### Fixed
+
+- **R4-01 — a fail-closed `ask` was recorded as merely `gated`.** With
+  `workspace.policy: ask` and no approval channel, the host denies the call, but
+  the gate recorded `ieg.workspace_mutation_gated` (not warning-class), so an
+  availability failure was invisible in `warnings=` and the event name overstated
+  a host decision that never happened. The gate now records
+  `ieg.workspace_mutation_blocked` with `outcome: gated-no-approval` at warn level
+  when `approvalAvailable` is false, and keeps the remedy text in the decision
+  reason; the `gated` event is recorded only when an approval channel exists
+  (`src/host/mutation-gate.ts`, tests in `test/integration/wiring.test.js`).
+  Evidence: installed-runtime probe with `approvalAvailable=false` showed the old
+  `gated` narration; the new test pins the fail-closed event and the
+  approval-present variant.
+- **R4-02 — a `COMPATIBLE` compatibility observation counted as a warning.** The
+  status line counted every `ieg.host_compatibility` entry, including a
+  `COMPATIBLE` verdict, so every healthy composed profile reported at least one
+  warning (observed live: `warnings=1` with `verdict=COMPATIBLE`, and `warnings=3`
+  after a team-section assembly change). `warningCount()` now counts the entry
+  only when its verdict is not `COMPATIBLE` (`src/kernel/diagnostics.ts`, unit
+  test added). `COMPATIBLE_WITH_WARNINGS` and `UNSUPPORTED` still count.
+
+### Verification
+
+- `node --test`: **312/312 pass, 0 skip, 0 todo**; `npm run typecheck` clean;
+  `scripts/verify.sh` 24/24 against the installed `@deepseek-ai/dsh 0.2.1-rc.2`.
+- Installed-artifact probe on `0.15.0`: 14/14 pre-repair checks passed, and the
+  two repair-specific checks failed as expected; the same probe against the
+  `0.15.1` tree passes all 16 checks (see the round report).
 
 ## [0.15.0] — 2026-10-18
 

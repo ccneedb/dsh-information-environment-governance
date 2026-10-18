@@ -2,11 +2,11 @@
 doc_type: architecture-spec
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.15.0
+plugin_version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 part_a: verified-host-integration-and-prototype-0.1.0
 part_b: target-design-baseline-0.2.0-extended-through-0.8.0
 part_b_status: implemented-through-the-0.8.0-packaging-round; model-backed-gates-C-and-D-pending
@@ -1689,9 +1689,9 @@ returns no question-batch decision (§8).
 
 ### 31.1 Package
 
-| Item | 0.15.0 |
+| Item | 0.15.1 |
 |---|---|
-| package | `dsh-information-environment-governance`, `version: 0.15.0`; `bin: { "dsh-ieg": "bin/ieg" }` |
+| package | `dsh-information-environment-governance`, `version: 0.15.1`; `bin: { "dsh-ieg": "bin/ieg" }` |
 | repository | the repository root **is** the package; there is no `plugin/` subdirectory (removed in 0.8.0) |
 | `private` | **removed** (Batch 4): the package is publishable. Publication itself stays the release action, withheld until Gates C and D pass and §34.2 Q5 is decided |
 | `license` | `MIT`, with `LICENSE` |

@@ -2,11 +2,11 @@
 doc_type: implementation-readme
 project: information-environment-governance
 version: 0.8.0
-plugin_version: 0.15.0
+plugin_version: 0.15.1
 status: active
 owner: maintainers
 last_reviewed: 2026-10-18
-revision: 0.15.0-batch-14
+revision: 0.15.1-batch-15
 audience: implementers + operators
 language: en
 ---
@@ -25,7 +25,7 @@ This is a **verifiable prototype** of the design specified in
 (a **RETIRED** pointer; its content now lives in the architecture spec's §32 gates
 and Part B).
 
-- Package: `dsh-information-environment-governance`, version `0.15.0` (publishable,
+- Package: `dsh-information-environment-governance`, version `0.15.1` (publishable,
   peer-range enforced, not published),
   MIT, **ESM**, **zero runtime dependencies**, Node `>=20`.
 - CLI: `dsh-ieg` (`bin/ieg`; the interface is authored in `src/bin/ieg.ts` and

@@ -410,7 +410,20 @@ export function createDiagnostics(options?: DiagnosticOptions): Diagnostics {
    */
   function warningCount(): number {
     let total = 0
-    for (const entry of ordered()) if (WARNING_CODES.has(entry.code)) total += 1
+    for (const entry of ordered()) {
+      if (!WARNING_CODES.has(entry.code)) continue
+      // A compatibility observation is warning-class only when the verdict is not
+      // COMPATIBLE. Counting a COMPATIBLE observation made the status line report a
+      // warning in every healthy composed profile (v0.15.0 runtime finding R4-02).
+      if (
+        entry.code === 'ieg.host_compatibility' &&
+        entry.data !== undefined &&
+        entry.data.verdict === 'COMPATIBLE'
+      ) {
+        continue
+      }
+      total += 1
+    }
     return total
   }
 
